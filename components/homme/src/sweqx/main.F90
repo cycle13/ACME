@@ -32,6 +32,10 @@ program main
   ! -----------------------------------------------
   use control_mod, only : integration
 
+#if HAVE_MOAB
+  use moabmesh_mod, only : create_moab_mesh
+#endif
+
   implicit none
   type (element_t), pointer :: elem(:)
   
@@ -94,6 +98,9 @@ program main
   nets=dom_mt(ithr)%start
   nete=dom_mt(ithr)%end
 
+#if HAVE_MOAB
+   call create_moab_mesh(par, elem, nets, nete)
+#endif
   !
   ! ================================================
   ! Initialize thread decomposition
