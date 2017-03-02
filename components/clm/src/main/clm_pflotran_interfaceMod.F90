@@ -80,6 +80,13 @@ module clm_pflotran_interfaceMod
   public :: clm_pf_write_restart
   public :: clm_pf_finalize
 
+  !! pflotran mass balance check
+  public :: clm_pf_BeginCBalance
+  public :: clm_pf_BeginNBalance
+  public :: clm_pf_CBalanceCheck
+  public :: clm_pf_NBalanceCheck
+
+
   private :: pflotran_not_available
 
 #ifdef CLM_PFLOTRAN
@@ -272,7 +279,13 @@ contains
     character(len=256) :: subname = "clm_pf_run"
 
 #ifdef CLM_PFLOTRAN
+    call clm_pf_BeginCBalance(clm_bgc_data, bounds, filters, ifilter)
+    call clm_pf_BeginNBalance(clm_bgc_data, bounds, filters, ifilter)
+
     call pflotran_run_onestep(clm_bgc_data, bounds, filters, ifilter)
+
+    call clm_pf_CBalanceCheck(clm_bgc_data,bounds, filters, ifilter)
+    call clm_pf_NBalanceCheck(clm_bgc_data,bounds, filters, ifilter)
 #else
     call pflotran_not_available(subname)
 #endif
@@ -313,6 +326,323 @@ contains
   end subroutine clm_pf_finalize
 
 
+!!--------------------------------------------------------------------------------------
+  subroutine clm_pf_BeginCBalance(clm_bgc_data, bounds, filters, ifilter)
+    !
+    ! !DESCRIPTION:
+    ! On the radiation time step, calculate the beginning carbon balance for mass
+    ! conservation checks.
+
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varcon      , only : dzsoi_decomp
+    !
+    ! !ARGUMENTS:
+    type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
+    type(clumpfilter) , intent(inout) :: filters(:)  ! filters on current process
+    integer           , intent(in)    :: ifilter     ! which filter to be operated
+    type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
+    !
+    ! !LOCAL VARIABLES:
+    integer :: c,j,l     ! indices
+    integer :: fc        ! soil filter indices
+
+    !-----------------------------------------------------------------------
+
+    associate(                                                              &
+         decomp_cpools_vr       => clm_bgc_data%decomp_cpools_vr_col      , &
+         soil_begcb             => clm_bgc_data%soil_begcb_col              & ! Output: [real(r8) (:)]  carbon mass, beginning of time step (gC/m**2)
+         )
+    ! calculate beginning column-level soil carbon balance, for mass conservation check
+      do fc = 1,filters(ifilter)%num_soilc
+        c = filters(ifilter)%soilc(fc)
+         soil_begcb(c) = 0._r8
+         do j = 1, nlevdecomp
+            do l = 1, ndecomp_pools
+                soil_begcb(c) = soil_begcb(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
+            end do
+        end do
+      end do
+
+    end associate
+
+  end subroutine clm_pf_BeginCBalance
+
+!!--------------------------------------------------------------------------------------
+
+  subroutine clm_pf_BeginNBalance(clm_bgc_data, bounds, filters, ifilter)
+    !
+    ! !DESCRIPTION:
+    ! On the radiation time step, calculate the beginning carbon balance for mass
+    ! conservation checks.
+
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varcon      , only : dzsoi_decomp
+    !
+    ! !ARGUMENTS:
+    type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
+    type(clumpfilter) , intent(inout) :: filters(:)  ! filters on current process
+    integer           , intent(in)    :: ifilter     ! which filter to be operated
+    type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
+    !
+    ! !LOCAL VARIABLES:
+    integer :: c,j,l     ! indices
+    integer :: fc        ! soil filter indices
+
+    !-----------------------------------------------------------------------
+
+    associate(                                                              &
+         decomp_npools_vr       => clm_bgc_data%decomp_npools_vr_col      , &
+         smin_no3_vr            => clm_bgc_data%smin_no3_vr_col           , &
+         smin_nh4_vr            => clm_bgc_data%smin_nh4_vr_col           , &
+         smin_nh4sorb_vr        => clm_bgc_data%smin_nh4sorb_vr_col       , &
+         soil_begnb             => clm_bgc_data%soil_begnb_col            , & ! Output: [real(r8) (:)]  carbon mass, beginning of time step (gC/m**2)
+         soil_begnb_org         => clm_bgc_data%soil_begnb_org_col        , & !
+         soil_begnb_min         => clm_bgc_data%soil_begnb_min_col          & !
+         )
+    ! calculate beginning column-level soil carbon balance, for mass conservation check
+
+    do fc = 1,filters(ifilter)%num_soilc
+        c = filters(ifilter)%soilc(fc)
+        soil_begnb(c)     = 0._r8
+        soil_begnb_org(c) = 0._r8
+        soil_begnb_min(c) = 0._r8
+
+        do j = 1, nlevdecomp
+!!do NOT directly use sminn_vr(c,j), it does NOT always equal to (no3+nh4+nh4sorb) herein due to unknown reason
+            soil_begnb_min(c) = soil_begnb_min(c) + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
+                                                  + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
+                                                  + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+            do l = 1, ndecomp_pools
+                soil_begnb_org(c) = soil_begnb_org(c) + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
+            end do
+        end do
+
+        soil_begnb(c) = soil_begnb_org(c) + soil_begnb_min(c)
+    end do
+    end associate
+    end subroutine clm_pf_BeginNBalance
+!!--------------------------------------------------------------------------------------
+
+  subroutine clm_pf_CBalanceCheck(clm_bgc_data,bounds, filters, ifilter)
+    !
+    ! !DESCRIPTION:
+    ! On the radiation time step, perform carbon mass conservation check for column and pft
+    !
+    ! !USES:
+    use clm_time_manager, only : get_step_size, get_nstep
+    use clm_varctl      , only : iulog, use_ed
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varcon      , only : dzsoi_decomp
+    ! !ARGUMENTS:
+    type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
+    type(clumpfilter) , intent(inout) :: filters(:)  ! filters on current process
+    integer           , intent(in)    :: ifilter     ! which filter to be operated
+    type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
+    !
+    ! !LOCAL VARIABLES:
+    integer  :: c,j,l     ! indices
+    integer  :: fc             ! lake filter indices
+    real(r8) :: dtime            ! land model time step (sec)
+    integer  :: err_index                                                           ! indices
+    logical  :: err_found                                                           ! error flag
+    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend
+    !-----------------------------------------------------------------------
+
+    associate(                                                                    &
+         externalc               => clm_bgc_data%externalc_to_decomp_cpools_col , & ! Input:  [real(r8) (:) ]  (gC/m2)   total column carbon, incl veg and cpool
+         decomp_cpools_delta_vr  => clm_bgc_data%decomp_cpools_sourcesink_col   , &
+         hr_vr                   => clm_bgc_data%hr_vr_col                      , &
+         soil_begcb              => clm_bgc_data%soil_begcb_col                   & ! Output: [real(r8) (:) ]  carbon mass, beginning of time step (gC/m**2)
+         )
+
+    ! ------------------------------------------------------------------------
+    dtime = get_step_size()
+    !! pflotran mass blance check-Carbon
+    err_found = .false.
+    do fc = 1,filters(ifilter)%num_soilc
+        c = filters(ifilter)%soilc(fc)
+        pf_cbeg     = soil_begcb(c)
+        pf_cinputs  = 0._r8
+        pf_coutputs = 0._r8
+        pf_cdelta   = 0._r8
+
+        do j = 1, nlevdecomp
+            pf_coutputs = pf_coutputs + hr_vr(c,j)*dzsoi_decomp(j)
+            do l = 1, ndecomp_pools
+                pf_cinputs = pf_cinputs + externalc(c,j,l)*dzsoi_decomp(j)
+                pf_cdelta  = pf_cdelta  + decomp_cpools_delta_vr(c,j,l)*dzsoi_decomp(j)
+            end do
+        end do
+
+        pf_cend = pf_cbeg + pf_cdelta
+        pf_errcb = (pf_cinputs - pf_coutputs)*dtime - pf_cdelta
+
+        ! check for significant errors
+        if (abs(pf_errcb) > 1e-8_r8) then
+            err_found = .true.
+            err_index = c
+        end if
+    end do
+
+    if (.not. use_ed) then
+         if (err_found) then
+            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:beg"
+            write(iulog,'(A30,I5)')"C Balance Error in Column = ",err_index
+            write(iulog,'(16A15)')"errcb", "C_in-out", "Cdelta","Cinputs","Coutputs","Cbeg","Cend"
+            write(iulog,'(16E15.6)')pf_errcb, (pf_cinputs - pf_coutputs)*dtime, pf_cdelta, &
+                                    pf_cinputs*dtime,pf_coutputs*dtime,pf_cbeg,pf_cend
+            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
+!           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
+!            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
+!                call endrun(msg=errMsg(__FILE__, __LINE__))
+!            end if
+         end if
+    end if !!(.not. use_ed)
+    end associate
+    end subroutine clm_pf_CBalanceCheck
+!!--------------------------------------------------------------------------------------
+
+  subroutine clm_pf_NBalanceCheck(clm_bgc_data,bounds, filters, ifilter)
+    !
+    ! !DESCRIPTION:
+    ! On the radiation time step, perform carbon mass conservation check for column and pft
+    !
+    ! !USES:
+    use clm_time_manager, only : get_step_size,get_nstep
+    use clm_varctl      , only : iulog, use_ed
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varcon      , only : dzsoi_decomp
+    ! !ARGUMENTS:
+    type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
+    type(clumpfilter) , intent(inout) :: filters(:)  ! filters on current process
+    integer           , intent(in)    :: ifilter     ! which filter to be operated
+    type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
+    !
+    ! !LOCAL VARIABLES:
+    integer  :: c,j,l     ! indices
+    integer  :: fc             ! lake filter indices
+    real(r8) :: dtime            ! land model time step (sec)
+    integer  :: err_index                                                           ! indices
+    logical  :: err_found                                                           ! error flag
+!    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend
+    real(r8) :: pf_ninputs, pf_noutputs, pf_ndelta,pf_errnb
+    real(r8) :: pf_noutputs_gas, pf_noutputs_veg                                    !! _gas:nitrogen gases; _veg:plant uptake of NO3/NH4
+    real(r8) :: pf_noutputs_nit, pf_noutputs_denit                                  !! _gas = _nit + _denit
+    real(r8) :: pf_ninputs_org, pf_ninputs_min, pf_ndelta_org,pf_ndelta_min         !! _org:organic; _min:mineral nitrogen
+    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min,pf_nend, pf_nend_org, pf_nend_min
+    !-----------------------------------------------------------------------
+
+    associate(                                                                        &
+         externaln_to_decomp_npools   => clm_bgc_data%externaln_to_decomp_npools_col, & ! Input:  [real(r8) (:) ]  (gC/m2)   total column carbon, incl veg and cpool
+         externaln_to_no3_vr          => clm_bgc_data%externaln_to_no3_col          , &
+         externaln_to_nh4_vr          => clm_bgc_data%externaln_to_nh4_col          , &
+         decomp_npools_delta_vr       => clm_bgc_data%decomp_npools_sourcesink_col  , &
+         smin_no3_vr                  => clm_bgc_data%smin_no3_vr_col               , &
+         smin_nh4_vr                  => clm_bgc_data%smin_nh4_vr_col               , &
+         smin_nh4sorb_vr              => clm_bgc_data%smin_nh4sorb_vr_col           , &
+         f_ngas_decomp_vr             => clm_bgc_data%f_ngas_decomp_vr_col          , &
+         f_ngas_nitri_vr              => clm_bgc_data%f_ngas_nitri_vr_col           , &
+         f_ngas_denit_vr              => clm_bgc_data%f_ngas_denit_vr_col           , &
+         sminn_to_plant_vr            => clm_bgc_data%sminn_to_plant_vr_col         , &
+         soil_begnb                   => clm_bgc_data%soil_begnb_col                , & ! Output: [real(r8) (:) ]  carbon mass, beginning of time step (gC/m**2)
+         soil_begnb_org               => clm_bgc_data%soil_begnb_org_col            , & !
+         soil_begnb_min               => clm_bgc_data%soil_begnb_min_col              & !
+         )
+
+    ! ------------------------------------------------------------------------
+    dtime = get_step_size()
+    !! pflotran mass blance check-Carbon
+    err_found = .false.
+    do fc = 1,filters(ifilter)%num_soilc
+        c = filters(ifilter)%soilc(fc)
+        pf_nbeg_org         = soil_begnb_org(c)
+        pf_nbeg_min         = soil_begnb_min(c)
+        pf_nbeg             = soil_begnb(c)
+
+        pf_nend_org         = 0._r8
+        pf_nend_min         = 0._r8
+        pf_nend             = 0._r8
+
+        pf_ninputs_org      = 0._r8
+        pf_ninputs_min      = 0._r8
+        pf_ninputs          = 0._r8
+
+        pf_noutputs_nit     = 0._r8
+        pf_noutputs_denit   = 0._r8
+        pf_noutputs_gas     = 0._r8
+        pf_noutputs_veg     = 0._r8
+        pf_noutputs         = 0._r8
+
+        pf_ndelta_org       = 0._r8
+        pf_ndelta_min       = 0._r8
+        pf_ndelta           = 0._r8
+
+        do j = 1, nlevdecomp
+            !! sminn_vr(c,j) has been calculated above
+            pf_nend_min     = pf_nend_min     + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
+                                              + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
+                                              + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+
+            pf_ninputs_min  = pf_ninputs_min  + externaln_to_nh4_vr(c,j)*dzsoi_decomp(j) &
+                                              + externaln_to_no3_vr(c,j)*dzsoi_decomp(j)
+
+            pf_noutputs_nit = pf_noutputs_nit + f_ngas_decomp_vr(c,j)*dzsoi_decomp(j) &
+                                              + f_ngas_nitri_vr(c,j)*dzsoi_decomp(j)
+            pf_noutputs_denit = pf_noutputs_denit + f_ngas_denit_vr(c,j)*dzsoi_decomp(j)
+            pf_noutputs_veg = pf_noutputs_veg + sminn_to_plant_vr(c,j)*dzsoi_decomp(j)
+            do l = 1, ndecomp_pools
+                pf_ndelta_org  = pf_ndelta_org  + decomp_npools_delta_vr(c,j,l)*dzsoi_decomp(j)
+                pf_ninputs_org = pf_ninputs_org + externaln_to_decomp_npools(c,j,l)*dzsoi_decomp(j)
+            end do
+        end do
+
+        pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
+        pf_nend         = pf_nend_org       + pf_nend_min
+        pf_ndelta_min   = pf_nend_min       - pf_nbeg_min
+        pf_ndelta       = pf_ndelta_org     + pf_ndelta_min
+        pf_ninputs      = pf_ninputs_org    + pf_ninputs_min
+        pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
+        pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
+        pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
+write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+        ! check for significant errors
+        if (abs(pf_errnb) > 1e-8_r8) then
+            err_found = .true.
+            err_index = c
+        end if
+    end do
+
+    if (.not. use_ed) then
+         if (err_found) then
+            write(iulog,'(A,100(1h-))')">>>--------NEW PFLOTRAN Mass Balance Check:beg"
+            write(iulog,'(A30,I5)')"N Balance Error in Column = ",err_index
+            write(iulog,'(20A15)')  "errnb", "N_in-out", "Ndelta",                          &
+                                    "Ninputs","Noutputs", "Nbeg","Nend"
+            write(iulog,'(20E15.6)')pf_errnb, (pf_ninputs - pf_noutputs)*dtime, pf_ndelta,  &
+                                    pf_ninputs*dtime,pf_noutputs*dtime,pf_nbeg,pf_nend
+
+            write(iulog,'(20A15)')  "Ninputs_org","Ninputs_min",                            &
+                                    "Noutputs_nit","Noutputs_denit",                        &
+                                    "Noutputs_gas","Noutputs_veg"
+
+            write(iulog,'(20E15.6)')pf_ninputs_org*dtime,pf_ninputs_min*dtime,              &
+                                    pf_noutputs_nit*dtime,pf_noutputs_denit*dtime,          &
+                                    pf_noutputs_gas*dtime,pf_noutputs_veg*dtime
+
+            write(iulog,'(20A15)')  "Ndelta_org","Nbeg_org","Nend_org",                     &
+                                    "Ndelta_min","Nbeg_min","Nend_min"
+            write(iulog,'(20E15.6)')pf_ndelta_org,pf_nbeg_org,pf_nend_org,                  &
+                                    pf_ndelta_min,pf_nbeg_min,pf_nend_min
+            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
+!           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
+!            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
+!                call endrun(msg=errMsg(__FILE__, __LINE__))
+!            end if
+        end if
+    end if !!(.not. use_ed)
+    end associate
+    end subroutine clm_pf_NBalanceCheck
+!!--------------------------------------------------------------------------------------
 
 
 #ifdef CLM_PFLOTRAN
@@ -2685,19 +3015,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
     integer  :: gcount, cellcount
 
     real(r8) :: dtime            ! land model time step (sec)
-!!pflotran mass balance check:beg--------------------------------------------------
-    integer  :: err_index                                                           ! indices
-    logical  :: err_found                                                           ! error flag
-    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend
-    real(r8) :: pf_ninputs, pf_noutputs, pf_ndelta,pf_errnb
-    real(r8) :: pf_noutputs_gas, pf_noutputs_veg                                    !! _gas:nitrogen gases; _veg:plant uptake of NO3/NH4
-    real(r8) :: pf_noutputs_nit, pf_noutputs_denit                                  !! _gas = _nit + _denit
-    real(r8) :: pf_ninputs_org, pf_ninputs_min, pf_ndelta_org,pf_ndelta_min         !! _org:organic; _min:mineral nitrogen
-    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min,pf_nend, pf_nend_org, pf_nend_min
-    real(r8) :: pf_externaln_to_no3_col(bounds%begc:bounds%endc, 1:nlevdecomp_full)
-    real(r8) :: pf_nbeg_nh4sorb,pf_nend_nh4sorb
-    real(r8) :: pf_nbeg_no3,pf_nbeg_nh4
-!!pflotran mass balance check:end--------------------------------------------------
 
     integer  :: vec_offset
     PetscScalar, pointer :: decomp_cpools_vr_clm_loc(:)      ! (moleC/m3) vertically-resolved decomposing (litter, cwd, soil) c pools
@@ -2752,54 +3069,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      )
 ! ------------------------------------------------------------------------
      dtime = get_step_size()
-!!wgs:beg-----------------------------------------------------------------
-!! pflotran mass blance check for Carbon & Nitrogen:
-!! summary for last time-step
-
-    do fc = 1,filters(ifilter)%num_soilc
-        c = filters(ifilter)%soilc(fc)
-
-        pf_cbeg         = 0._r8
-        pf_nbeg_org     = 0._r8
-        pf_nbeg_min     = 0._r8
-        pf_nbeg         = 0._r8
-        pf_nbeg_nh4sorb = 0._r8
-        pf_nbeg_no3     = 0._r8
-        pf_nbeg_nh4     = 0._r8
-
-        do j = 1, nlevdecomp
-            pf_nbeg_no3 = pf_nbeg_no3 + smin_no3_vr(c,j)*dzsoi_decomp(j)
-            pf_nbeg_nh4 = pf_nbeg_nh4 + smin_nh4_vr(c,j)*dzsoi_decomp(j)
-            pf_nbeg_nh4sorb = pf_nbeg_nh4sorb + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
-!!do NOT directly use sminn_vr(c,j), it does NOT always equal to (no3+nh4+nh4sorb) herein due to unknown reason
-!!            pf_nbeg_min = pf_nbeg_min + sminn_vr(c,j)*dzsoi_decomp(j)
-            do l = 1, ndecomp_pools
-                pf_nbeg_org = pf_nbeg_org + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
-                pf_cbeg     = pf_cbeg     + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
-            end do
-        end do
-
-        pf_nbeg_min = pf_nbeg_no3 + pf_nbeg_nh4 + pf_nbeg_nh4sorb
-        pf_nbeg = pf_nbeg_org + pf_nbeg_min
-    end do
-
-!! do NOT consider NO3 leaching/runoff
-    do fc = 1,filters(ifilter)%num_soilc
-        c = filters(ifilter)%soilc(fc)
-        do j = 1, nlevdecomp
-            pf_externaln_to_no3_col(c,j) = clm_bgc_data%externaln_to_no3_col(c,j)
-!            if(.not.pf_hmode) then
-!                pf_externaln_to_no3_col(c,j) = pf_externaln_to_no3_col(c,j)  &
-!                                             - clm_bgc_data%no3_net_transport_vr_col(c,j)
-!                if (pf_externaln_to_no3_col(c,j)<0._r8) then
-!                     pf_externaln_to_no3_col(c,j) = max(pf_externaln_to_no3_col(c,j), &
-!                                                        -max(smin_no3_vr(c,j)/dtime, 0._r8))
-!                endif
-!            end if !!(.not.pf_hmode)
-
-        end do
-    end do
-!!wgs:end-----------------------------------------------------------------
 
      ! soil C/N pool increments set to the previous timestep (i.e., not yet updated)
      decomp_cpools_delta_vr  = 0._r8-decomp_cpools_vr
@@ -2906,8 +3175,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
                  if (abs(decomp_cpools_delta_vr(c,j,k))<=1.d-20) decomp_cpools_delta_vr(c,j,k)=0._r8
                  if (abs(decomp_npools_delta_vr(c,j,k))<=1.d-21) decomp_npools_delta_vr(c,j,k)=0._r8
 
-!!wgs:beg:--------------------------------------------------------------------------------
-!! hr_vr is moved to update_bgc_gaslosses_pf2clm()
                  ! tracking HR/NMIN/NIMM/NIMMP from SOM-C reaction network
                  ! if total 'hr/nmin/nimm/nimp' unknown, have to add up
                   if (clm_pf_idata%ispec_decomp_hr(k)>0 .and. clm_pf_idata%ispec_hrimm<=0) then
@@ -2915,7 +3182,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
                            + (acchr_vr_clm_loc(vec_offset+cellcount)    &
                            * clm_pf_idata%C_molecular_weight)/dtime
                   endif
-!!wgs:end:--------------------------------------------------------------------------------
+
                  !
                  if (clm_pf_idata%ispec_decomp_nmin(k)>0 .and. clm_pf_idata%ispec_nmin<=0) then
                     gross_nmin_vr(c,j)  = gross_nmin_vr(c,j)            &
@@ -2982,16 +3249,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
               smin_no3_to_plant_vr(c,j) = (accextrno3_vr_clm_loc(cellcount)  &
                           * clm_pf_idata%N_molecular_weight)/dtime
               sminn_to_plant_vr(c,j) = smin_nh4_to_plant_vr(c,j) + smin_no3_to_plant_vr(c,j)
-!! wgs-beg:--------------------------------------------------------------------------------
-!! these 3 fluxes have been updated above
-!              gross_nmin_vr(c,j) = (accnmin_vr_clm_loc(cellcount)        &
-!                          * clm_pf_idata%N_molecular_weight)/dtime
-!
-!              potential_immob_vr(c,j) = (accnimmp_vr_clm_loc(cellcount)  &
-!                          * clm_pf_idata%N_molecular_weight)/dtime
-!              actual_immob_vr(c,j)    = (accnimm_vr_clm_loc(cellcount)   &
-!                          * clm_pf_idata%N_molecular_weight)/dtime
-!! wgs-end:--------------------------------------------------------------------------------
+
           else    ! just in case 'clm_pf_idata%nzclm_mapped<nlevdcomp', all set to ZERO (different from TH)
 
               do k=1, ndecomp_pools
@@ -3072,139 +3330,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      ! update bgc gas losses-------------------------------------------------
      call update_bgc_gaslosses_pf2clm(clm_bgc_data, bounds, filters, ifilter)
 
-!!wgs:beg-----------------------------------------------------------------
-!! pflotran mass blance check for Carbon & Nitrogen:
-!! summary for current time-step & calculate mass balance
-!! pflotran mass blance check-Carbon
-    err_found = .false.
-    do fc = 1,filters(ifilter)%num_soilc
-        c = filters(ifilter)%soilc(fc)
-        pf_cinputs = 0._r8
-        pf_coutputs = 0._r8
-        pf_cdelta = 0._r8
-
-        do j = 1, nlevdecomp
-!            pf_coutputs = pf_coutputs + clm_bgc_data%hr_vr_col(c,j)*dzsoi_decomp(j)
-            pf_coutputs = pf_coutputs + hr_vr(c,j)*dzsoi_decomp(j)
-            do l = 1, ndecomp_pools
-                pf_cinputs = pf_cinputs + clm_bgc_data%externalc_to_decomp_cpools_col(c,j,l)*dzsoi_decomp(j)
-                pf_cdelta  = pf_cdelta  + decomp_cpools_delta_vr(c,j,l)*dzsoi_decomp(j)
-            end do
-        end do
-
-        pf_cend = pf_cbeg + pf_cdelta
-        pf_errcb = (pf_cinputs - pf_coutputs)*dtime - pf_cdelta
-
-        ! check for significant errors
-        if (abs(pf_errcb) > 1e-8_r8) then
-            err_found = .true.
-            err_index = c
-        end if
-    end do
-
-    if (.not. use_ed) then
-         if (err_found) then
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:beg"
-            write(iulog,'(A30,I5)')"C Balance Error in Column = ",err_index
-            write(iulog,'(16A15)')"errcb", "C_in-out", "Cdelta","Cinputs","Coutputs","Cbeg","Cend"
-            write(iulog,'(16E15.6)')pf_errcb, (pf_cinputs - pf_coutputs)*dtime, pf_cdelta, &
-                                    pf_cinputs*dtime,pf_coutputs*dtime,pf_cbeg,pf_cend
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
-!           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
-!            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
-!                call endrun(msg=errMsg(__FILE__, __LINE__))
-!            end if
-         end if
-    end if !!(.not. use_ed)
-
-!!-----------------------------------
-!! pflotran mass blance check-Nitrogen
-    do fc = 1,filters(ifilter)%num_soilc
-        c = filters(ifilter)%soilc(fc)
-
-        pf_nend_org         = 0._r8
-        pf_nend_min         = 0._r8
-        pf_nend             = 0._r8
-        pf_nend_nh4sorb     = 0._r8
-
-        pf_ninputs_org      = 0._r8
-        pf_ninputs_min      = 0._r8
-        pf_ninputs          = 0._r8
-
-        pf_noutputs_nit     = 0._r8
-        pf_noutputs_denit   = 0._r8
-        pf_noutputs_gas     = 0._r8
-        pf_noutputs_veg     = 0._r8
-        pf_noutputs         = 0._r8
-
-        pf_ndelta_org       = 0._r8
-        pf_ndelta_min       = 0._r8
-        pf_ndelta           = 0._r8
-
-        do j = 1, nlevdecomp
-            !! sminn_ver(c,j) has been calculated above
-            pf_nend_min     = pf_nend_min     + sminn_vr(c,j)*dzsoi_decomp(j)
-            pf_nend_nh4sorb = pf_nend_nh4sorb + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
-            pf_ninputs_min  = pf_ninputs_min  + clm_bgc_data%externaln_to_nh4_col(c,j)*dzsoi_decomp(j) &
-                                              + pf_externaln_to_no3_col(c,j)*dzsoi_decomp(j)
-
-            pf_noutputs_nit = pf_noutputs_nit + clm_bgc_data%f_ngas_decomp_vr_col(c,j)*dzsoi_decomp(j) &
-                                              + clm_bgc_data%f_ngas_nitri_vr_col(c,j)*dzsoi_decomp(j)
-            pf_noutputs_denit = pf_noutputs_denit + clm_bgc_data%f_ngas_denit_vr_col(c,j)*dzsoi_decomp(j)
-            pf_noutputs_veg = pf_noutputs_veg + sminn_to_plant_vr(c,j)*dzsoi_decomp(j)
-            do l = 1, ndecomp_pools
-                pf_ndelta_org  = pf_ndelta_org  + decomp_npools_delta_vr(c,j,l)*dzsoi_decomp(j)
-                pf_ninputs_org = pf_ninputs_org + clm_bgc_data%externaln_to_decomp_npools_col(c,j,l)*dzsoi_decomp(j)
-            end do
-        end do
-
-        pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
-        pf_nend         = pf_nend_org       + pf_nend_min
-        pf_ndelta_min   = pf_nend_min       - pf_nbeg_min
-        pf_ndelta       = pf_ndelta_org     + pf_ndelta_min
-        pf_ninputs      = pf_ninputs_org    + pf_ninputs_min
-        pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
-        pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
-        pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
-!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
-        ! check for significant errors
-!        if (abs(pf_errnb) > 1e-8_r8) then
-            err_found = .true.
-            err_index = c
-!        end if
-    end do
-
-    if (.not. use_ed) then
-         if (err_found) then
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:beg"
-            write(iulog,'(A30,I5)')"N Balance Error in Column = ",err_index
-            write(iulog,'(20A15)')  "errnb", "N_in-out", "Ndelta",                          &
-                                    "Ninputs","Noutputs", "Nbeg","Nend"
-            write(iulog,'(20E15.6)')pf_errnb, (pf_ninputs - pf_noutputs)*dtime, pf_ndelta,  &
-                                    pf_ninputs*dtime,pf_noutputs*dtime,pf_nbeg,pf_nend
-
-            write(iulog,'(20A15)')  "Ninputs_org","Ninputs_min",                            &
-                                    "Noutputs_nit","Noutputs_denit",                        &
-                                    "Noutputs_gas","Noutputs_veg"
-
-            write(iulog,'(20E15.6)')pf_ninputs_org*dtime,pf_ninputs_min*dtime,              &
-                                    pf_noutputs_nit*dtime,pf_noutputs_denit*dtime,          &
-                                    pf_noutputs_gas*dtime,pf_noutputs_veg*dtime
-
-            write(iulog,'(20A15)')  "Ndelta_org","Nbeg_org","Nend_org",                     &
-                                    "Ndelta_min","Nbeg_min","Nend_min",                     &
-                                    "Ndelta_nh4sorb","Nbeg_nh4sorb","Nend_nh4sorb"
-            write(iulog,'(20E15.6)')pf_ndelta_org,pf_nbeg_org,pf_nend_org,                  &
-                                    pf_ndelta_min,pf_nbeg_min,pf_nend_min,                  &
-                                    pf_nend_nh4sorb-pf_nbeg_nh4sorb,pf_nbeg_nh4sorb,pf_nend_nh4sorb
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
-!           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
-!            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
-!                call endrun(msg=errMsg(__FILE__, __LINE__))
-!            end if
-        end if
-    end if !!(.not. use_ed)
-!!wgs:end-----------------------------------------------------------------
     end associate
   end subroutine update_soil_bgc_pf2clm
 
