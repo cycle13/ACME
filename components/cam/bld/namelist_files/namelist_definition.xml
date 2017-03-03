@@ -4175,6 +4175,18 @@ Initialize with observed aerosols. This works only for mode three and with presc
 Default: FALSE
 </entry>
 
+<entry id="swrad_off" type="logical" category="scam"
+       group="cam_inparm" valid_values="">
+Assume night time (turn off SW rad).
+Default: FALSE
+</entry>
+
+<entry id="lwrad_off" type="logical" category="scam"
+       group="cam_inparm" valid_values="">
+Assume turn off LW rad.
+Default: FALSE
+</entry>
+
 <!-- Solar Parameters -->
 
 <entry id="solar_const" type="real" category="solar"

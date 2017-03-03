@@ -162,7 +162,9 @@ module scamMod
   logical*4, public ::  have_asdif    ! dataset contains asdif
   logical*4, public ::  scm_iop_srf_prop   ! use the specified surface properties
   logical*4, public ::  scm_relaxation! use relaxation
-  logical*4, public ::  scm_observed_aero
+  logical*4, public ::  scm_observed_aero ! use observed aerosols in SCM file
+  logical*4, public ::  swrad_off     ! turn off SW radiation (assume night)
+  logical*4, public ::  lwrad_off     ! turn off LW radiation
   logical*4, public ::  use_camiop    ! use cam generated forcing 
   logical*4, public ::  use_3dfrc     ! use 3d forcing
 
@@ -180,7 +182,7 @@ module scamMod
 subroutine scam_default_opts( scmlat_out,scmlon_out,iopfile_out, &
 	single_column_out,scm_iop_srf_prop_out, scm_relaxation_out, &
         scm_diurnal_avg_out, scm_crm_mode_out, scm_observed_aero_out, &
-	scm_clubb_iop_name_out)
+	swrad_off_out, lwrad_off_out, scm_clubb_iop_name_out)
 !-----------------------------------------------------------------------
    real(r8), intent(out), optional :: scmlat_out,scmlon_out
    character*(max_path_len), intent(out), optional ::  iopfile_out
@@ -190,6 +192,8 @@ subroutine scam_default_opts( scmlat_out,scmlon_out,iopfile_out, &
    logical, intent(out), optional ::  scm_diurnal_avg_out
    logical, intent(out), optional ::  scm_crm_mode_out
    logical, intent(out), optional ::  scm_observed_aero_out
+   logical, intent(out), optional ::  swrad_off_out
+   logical, intent(out), optional ::  lwrad_off_out
    character(len=*), intent(out), optional ::  scm_clubb_iop_name_out
 
    if ( present(scmlat_out) )           scmlat_out     = -999._r8
@@ -201,6 +205,8 @@ subroutine scam_default_opts( scmlat_out,scmlon_out,iopfile_out, &
    if ( present(scm_diurnal_avg_out) )  scm_diurnal_avg_out = .false.
    if ( present(scm_crm_mode_out) )     scm_crm_mode_out  = .false.
    if ( present(scm_observed_aero_out)) scm_observed_aero_out = .false.
+   if ( present(swrad_off_out))         swrad_off_out = .false.
+   if ( present(lwrad_off_out))         lwrad_off_out = .false.
    if ( present(scm_clubb_iop_name_out) ) scm_clubb_iop_name_out  = ' '
 
 end subroutine scam_default_opts
@@ -208,7 +214,7 @@ end subroutine scam_default_opts
 subroutine scam_setopts( scmlat_in, scmlon_in,iopfile_in,single_column_in, &
                          scm_iop_srf_prop_in, scm_relaxation_in, &
                          scm_diurnal_avg_in, scm_crm_mode_in, scm_observed_aero_in, &
-			 scm_clubb_iop_name_in)
+			 swrad_off_in, lwrad_off_in, scm_clubb_iop_name_in)
 !-----------------------------------------------------------------------
   real(r8), intent(in), optional       :: scmlon_in, scmlat_in
   character*(max_path_len), intent(in), optional :: iopfile_in
@@ -218,6 +224,8 @@ subroutine scam_setopts( scmlat_in, scmlon_in,iopfile_in,single_column_in, &
   logical, intent(in), optional        :: scm_diurnal_avg_in
   logical, intent(in), optional        :: scm_crm_mode_in
   logical, intent(in), optional        :: scm_observed_aero_in
+  logical, intent(in), optional        :: swrad_off_in
+  logical, intent(in), optional        :: lwrad_off_in
   character(len=*), intent(in), optional :: scm_clubb_iop_name_in
   integer ncid,latdimid,londimid,latsiz,lonsiz,latid,lonid,ret,i
   integer latidx,lonidx
@@ -245,6 +253,14 @@ subroutine scam_setopts( scmlat_in, scmlon_in,iopfile_in,single_column_in, &
 
   if (present (scm_observed_aero_in)) then
      scm_observed_aero=scm_observed_aero_in
+  endif
+
+  if (present (swrad_off_in)) then
+     swrad_off=swrad_off_in
+  endif
+
+  if (present (lwrad_off_in)) then
+     lwrad_off=lwrad_off_in
   endif
 
   if (present (scm_clubb_iop_name_in)) then

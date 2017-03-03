@@ -27,6 +27,7 @@ use scamMod,         only: scm_crm_mode, single_column,have_cld,cldobs,&
                            have_clwp,clwpobs,have_tg,tground
 use perf_mod,        only: t_startf, t_stopf
 use cam_logfile,     only: iulog
+use scamMod,    only: swrad_off, lwrad_off
 
 use rad_constituents, only: N_DIAG, rad_cnst_get_call_list, rad_cnst_get_info
 use radconstants,     only: rrtmg_sw_cloudsim_band, rrtmg_lw_cloudsim_band, nswbands, nlwbands
@@ -868,6 +869,10 @@ end function radiation_nextsw_cday
 
     call output_rad_data(  pbuf, state, cam_in, landm, coszrs )
 
+    if (swrad_off) then
+       coszrs(:)=0._r8 ! coszrs is only output for zenith
+    endif
+
     ! Gather night/day column indices.
     Nday = 0
     Nnite = 0
@@ -1175,6 +1180,30 @@ end function radiation_nextsw_cday
                   do i=1,ncol
                      lwcf(i)=flutc(i) - flut(i)
                   end do
+
+                  if (lwrad_off) then
+                     qrl(:,:) = 0._r8
+                     qrlc(:,:) = 0._r8
+                     flns(:) = 0._r8
+                     flnt(:) = 0._r8
+                     flnsc(:) = 0._r8
+                     flntc(:) = 0._r8
+                     cam_out%flwds(:) = 0._r8
+                     flut(:) = 0._r8
+                     flutc(:) = 0._r8
+                     fnl(:,:) = 0._r8
+                     fcnl(:,:) = 0._r8
+                     fldsc(:) = 0._r8
+                     !PMC: I think this pointer isn't defined unless
+                     !spectralflux=.true.
+                     !I don't understand why lu and ld are passed to
+                     !rad_rrtmg_lw since
+                     !they are pointers which should be accessible across
+                     !subroutines anyways.
+                     !I guess it doesn't matter since people doing SCAM won't
+                     !care about 
+                     !spectrally resolved radiation?
+                  end if !lwrad_off
 
                   !  Output fluxes at 200 mb
                   call vertinterp(ncol, pcols, pverp, state%pint, 20000._r8, fnl, fln200)

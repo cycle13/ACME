@@ -238,6 +238,7 @@ subroutine readiopdata( )
 !====================================BLH===================================
 !                        read observed aersol data
 !-------------------------------------------------------------------------     
+ 
  if(scm_observed_aero) then
    status = NF90_INQ_DIMID( ncid, 'mod', mod_dimID )
    if ( status .ne. nf90_noerr ) then
@@ -371,6 +372,7 @@ status = NF90_INQ_VARID( ncid, 'scm_coarse_div', sps_varID )
 
    call handle_ncerr( nf90_get_var (ncid, sps_varID, scm_div(3,:nsps)),&
                     'readiopdata.F90', __LINE__)
+
 endif !scm_observed_aero 
 !======================================================================
 !

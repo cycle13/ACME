@@ -1137,12 +1137,12 @@ contains
    real(r8) :: q_a(3,6)
    real(r8) :: rho(pcols,pver)        ! air density (kg m-3)
    character(len=20) :: aername
-   character(len=32) :: arnam(7) = (/'so4','pom','soa','bc','dst','ncl','num'/)
+   character(len=3) :: arnam(7) = (/'so4','pom','soa','bc ','dst','ncl','num'/)
 
 !+++------------------------------------end---------------------------------------   
     nflds = size(flds)
     times_found = .false.
-    
+
 !=====================================Bereket Lebassi Habtezion==================
 !=========================================11/01/2014=============================
      if(single_column .and. scm_observed_aero) then
@@ -1155,7 +1155,7 @@ contains
 !q_a(1,4)=q(bc),q_a(1,5)=q(dst),q_a(1,6)=q(ncl).
 !For mode 2 (aitken mode) q_a(2,1)=q(so4),q_a(2,2)=q(soa),q_a(2,3)=q(ncl).
 !For mode 3 (coarse mode) q_a(3,1)=q(dst),q_a(3,2)=q(ncl),q_a(3,3)=q(so4).
- 
+
                      call rad_cnst_get_info(0, nmodes=nmodes)
                      do n=1, nmodes
                          call rad_cnst_get_info(0, n, nspec=nspec)
@@ -1299,54 +1299,54 @@ contains
              if(single_column .and. scm_observed_aero) then
                    kk=index(trim(flds(f)%fldnam),'_')-1
                 if(index(trim(flds(f)%fldnam),'1') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(2).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(2),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(2)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(2)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(3).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(3),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(3)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(3)),flds(f)%input(i)%data, &
                                rho,pp,q_a(1,3),state(begchunk)%ncol)
-                    elseif(flds(f)%fldnam(1:kk).eq.arnam(4).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(4),flds(f)%input(i)%data, &
+                    elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(4)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(4)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,4),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(5).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(5),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(5)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(5)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,5),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,6),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(1),state(begchunk)%ncol)
                      endif
                 elseif(index(trim(flds(f)%fldnam),'2') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(2,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(3).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(3),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(3)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(3)),flds(f)%input(i)%data, &
                                rho,pp,q_a(2,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(2,3),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(2),state(begchunk)%ncol)
                      endif
                 elseif(index(trim(flds(f)%fldnam),'3') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,3),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(5).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(5),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(5)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(5)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(3),state(begchunk)%ncol)
                      endif
                 endif 
