@@ -40,12 +40,14 @@ module domainMod
      logical          :: decomped   ! decomposed locally or global copy
 
      !! pflotran:beg-----------------------------------------------------
+     !! ACME-v2: add calculation of nv/lon0/lat0/lonv(:,:)/latv(:,:) to ldomain
+     !! utils/domainMod.F90: declare variables
+     !! main/surfrdMod.F90 : subroutine surfrd_get_grid(): get nv/lon0/lat0/lonv(:,:)/latv(:,:)
      integer          :: nv           ! number of vertices
      real(r8),pointer :: latv(:,:)    ! latitude of grid cell's vertices (deg)
      real(r8),pointer :: lonv(:,:)    ! longitude of grid cell's vertices (deg)
      real(r8)         :: lon0         ! the origin lon/lat (Most western/southern corner, if not globally covered grids; OR -180W(360E)/-90N)
      real(r8)         :: lat0         ! the origin lon/lat (Most western/southern corner, if not globally covered grids; OR -180W(360E)/-90N)
-
      !! pflotran:end-----------------------------------------------------
   end type domain_type
 

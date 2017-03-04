@@ -4032,7 +4032,8 @@ contains
          nfixation_prof               => cnstate_vars%nfixation_prof_col                     , & ! Output: [real(r8) (:,:) ]
          sminn_vr                     => nitrogenstate_vars%sminn_vr_col                     , & ! Input:  [real(r8) (:,:) ]  (gN/m3) soil mineral N
          smin_no3_vr                  => nitrogenstate_vars%smin_no3_vr_col                  , & ! Input:  [real(r8) (:,:) ]  (gN/m3) soil mineral N
-         smin_nh4_vr                  => nitrogenstate_vars%smin_nh4_vr_col                    & ! Input:  [real(r8) (:,:) ]  (gN/m3) soil mineral N
+         smin_nh4_vr                  => nitrogenstate_vars%smin_nh4_vr_col                  , & ! Input:  [real(r8) (:,:) ]  (gN/m3) soil mineral N
+         smin_nh4sorb_vr              => nitrogenstate_vars%smin_nh4sorb_vr_col                & ! Input:  [real(r8) (:,:) ]  (gN/m3) soil mineral N
          )
 
 
@@ -4040,7 +4041,8 @@ contains
          ! init sminn_tot
          do fc=1,num_soilc
             c = filter_soilc(fc)
-            sminn_tot(c) = 0.
+            sminn_tot(c) = 0._r8
+            sminn_vr_loc(c,:) = 0._r8
          end do
 
          do j = 1, nlevdecomp
@@ -4049,7 +4051,11 @@ contains
                if (.not. use_nitrif_denitrif) then
                     sminn_vr_loc(c,j) = sminn_vr(c,j)
                else
-                    sminn_vr_loc(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j)
+                    if(use_pflotran .and. pf_cmode) then
+                        sminn_vr_loc(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j) + smin_nh4sorb_vr(c,j)
+                    else
+                        sminn_vr_loc(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j)
+                    end if
                end if
                sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) !!original: if (use_nitrif_denitrif): sminn_tot(c) = sminn_tot(c) + (smin_no3_vr(c,j) + smin_nh4_vr(c,j)) * dzsoi_decomp(j)
             end do
@@ -4058,7 +4064,7 @@ contains
          do j = 1, nlevdecomp
             do fc=1,num_soilc
                c = filter_soilc(fc)
-               if (sminn_tot(c)  >  0.) then
+               if (sminn_tot(c)  >  0._r8) then
                   nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c)   !!original: if (use_nitrif_denitrif): nuptake_prof(c,j) = sminn_vr(c,j) / sminn_tot(c)
                else
                   nuptake_prof(c,j) = nfixation_prof(c,j)
@@ -4103,7 +4109,7 @@ contains
          ! init sminn_tot
          do fc=1,num_soilc
             c = filter_soilc(fc)
-            solutionp_tot(c) = 0.
+            solutionp_tot(c) = 0._r8
          end do
 
          do j = 1, nlevdecomp
@@ -4117,7 +4123,7 @@ contains
             do fc=1,num_soilc
                c = filter_soilc(fc)
                !!! add P demand calculation
-               if (solutionp_tot(c)  >  0.) then
+               if (solutionp_tot(c)  >  0._r8) then
                   puptake_prof(c,j) = solutionp_vr(c,j) / solutionp_tot(c)
                else
                   puptake_prof(c,j) = nfixation_prof(c,j)      !!!! need modifications !!!!

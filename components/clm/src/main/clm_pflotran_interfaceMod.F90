@@ -415,7 +415,7 @@ contains
             do l = 1, ndecomp_pools
                 soil_begnb_org(c) = soil_begnb_org(c) + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
             end do
-        end do
+        end do !!j = 1, nlevdecomp
 
         soil_begnb(c) = soil_begnb_org(c) + soil_begnb_min(c)
     end do
@@ -456,7 +456,7 @@ contains
          )
 
     ! ------------------------------------------------------------------------
-    dtime = get_step_size()
+    dtime = real( get_step_size(), r8 )
     !! pflotran mass blance check-Carbon
     err_found = .false.
     do fc = 1,filters(ifilter)%num_soilc
@@ -524,12 +524,13 @@ contains
     real(r8) :: dtime            ! land model time step (sec)
     integer  :: err_index                                                           ! indices
     logical  :: err_found                                                           ! error flag
-!    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend
+
     real(r8) :: pf_ninputs, pf_noutputs, pf_ndelta,pf_errnb
     real(r8) :: pf_noutputs_gas, pf_noutputs_veg                                    !! _gas:nitrogen gases; _veg:plant uptake of NO3/NH4
     real(r8) :: pf_noutputs_nit, pf_noutputs_denit                                  !! _gas = _nit + _denit
     real(r8) :: pf_ninputs_org, pf_ninputs_min, pf_ndelta_org,pf_ndelta_min         !! _org:organic; _min:mineral nitrogen
-    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min,pf_nend, pf_nend_org, pf_nend_min
+    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min
+    real(r8) :: pf_nend, pf_nend_org, pf_nend_min, pf_nend_nh4sorb
     !-----------------------------------------------------------------------
 
     associate(                                                                        &
@@ -550,7 +551,8 @@ contains
          )
 
     ! ------------------------------------------------------------------------
-    dtime = get_step_size()
+    dtime = real( get_step_size(), r8 )
+
     !! pflotran mass blance check-Carbon
     err_found = .false.
     do fc = 1,filters(ifilter)%num_soilc
@@ -561,6 +563,7 @@ contains
 
         pf_nend_org         = 0._r8
         pf_nend_min         = 0._r8
+        pf_nend_nh4sorb     = 0._r8
         pf_nend             = 0._r8
 
         pf_ninputs_org      = 0._r8
@@ -582,6 +585,7 @@ contains
             pf_nend_min     = pf_nend_min     + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
                                               + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
                                               + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+            pf_nend_nh4sorb = pf_nend_nh4sorb + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
 
             pf_ninputs_min  = pf_ninputs_min  + externaln_to_nh4_vr(c,j)*dzsoi_decomp(j) &
                                               + externaln_to_no3_vr(c,j)*dzsoi_decomp(j)
@@ -599,12 +603,12 @@ contains
         pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
         pf_nend         = pf_nend_org       + pf_nend_min
         pf_ndelta_min   = pf_nend_min       - pf_nbeg_min
-        pf_ndelta       = pf_ndelta_org     + pf_ndelta_min
+        pf_ndelta       = pf_nend           - pf_nbeg         !!pf_ndelta_org     + pf_ndelta_min
         pf_ninputs      = pf_ninputs_org    + pf_ninputs_min
         pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
         pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
         pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
-write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
         ! check for significant errors
         if (abs(pf_errnb) > 1e-8_r8) then
             err_found = .true.
@@ -630,9 +634,9 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
                                     pf_noutputs_gas*dtime,pf_noutputs_veg*dtime
 
             write(iulog,'(20A15)')  "Ndelta_org","Nbeg_org","Nend_org",                     &
-                                    "Ndelta_min","Nbeg_min","Nend_min"
+                                    "Ndelta_min","Nbeg_min","Nend_min","Nend_nh4sorb"
             write(iulog,'(20E15.6)')pf_ndelta_org,pf_nbeg_org,pf_nend_org,                  &
-                                    pf_ndelta_min,pf_nbeg_min,pf_nend_min
+                                    pf_ndelta_min,pf_nbeg_min,pf_nend_min,pf_nend_nh4sorb
             write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
@@ -756,7 +760,9 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
 
     !!wgs:beg----------------------------------------------------------------
-    !! wgs: ACME-v2: add lon0/lat0 to ldomain
+    !! ACME-v2: add calculation of nv/lon0/lat0/lonv(:,:)/latv(:,:) to ldomain
+    !! utils/domainMod.F90: declare variables
+    !! main/surfrdMod.F90 : subroutine surfrd_get_grid(): get nv/lon0/lat0/lonv(:,:)/latv(:,:)
     lon0 = ldomain%lon0
     lat0 = ldomain%lat0
     !!wgs:end----------------------------------------------------------------
@@ -1401,7 +1407,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
   !-----------------------------------------------------------------------
 
     nstep = get_nstep() - pf_clmnstep0 !!nsstep
-    dtime = get_step_size()
+    dtime = real( get_step_size(), r8 )
 
     if (is_first_step() .or. is_first_restart_step()) then
        isinitpf = .TRUE.
@@ -1655,7 +1661,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
          ! Assign local pointers to derived subtypes components (gridcell-level)
          latc       =>  ldomain%latc   , & !  [real(r8) (:)]
          lonc       =>  ldomain%lonc   , & !  [real(r8) (:)]
-         !! latv/lonv missing in ACME1
+         !! wgs: latv/lonv missing in ACME-v1, now added to ACME-v2
          latv       =>  ldomain%latv   , & !  [real(r8) (:,:)]
          lonv       =>  ldomain%lonv   , & !  [real(r8) (:,:)]
 
@@ -2308,8 +2314,6 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     do fc = 1,filters(ifilter)%num_soilc
       c = filters(ifilter)%soilc(fc)
       g = cgridcell(c)
-!      watmin(c,:) = 0.01_r8
-!      sucmin(c,:) = 1.e8_r8
 
 #ifdef COLUMN_MODE
       gcount = c - bounds%begc                 ! 0-based
@@ -2367,21 +2371,21 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
                 endif
 
              endif !!if(.not.pf_frzmode) 
-             soillsat_clmp_loc(cellcount) = sattmp
+             soillsat_clmp_loc(cellcount)  = sattmp
 
              soilpsi_clmp_loc(cellcount)   = psitmp
              soilpress_clmp_loc(cellcount) = psitmp+clm_pf_idata%pressure_reference
 
-             w_scalar_clmp_loc(cellcount)=w_scalar(c,j)
-             o_scalar_clmp_loc(cellcount)=o_scalar(c,j)
+             w_scalar_clmp_loc(cellcount)  = w_scalar(c,j)
+             o_scalar_clmp_loc(cellcount)  = o_scalar(c,j)
 
-             soilvwc_clmp_loc(cellcount) =h2osoi_vol(c,j)
+             soilvwc_clmp_loc(cellcount)   = h2osoi_vol(c,j)
 
           endif !!if (initpfhmode) then
 
           if (initpftmode) then
-             soilt_clmp_loc(cellcount)=t_soisno(c,j)-tfrz
-             t_scalar_clmp_loc(cellcount)=t_scalar(c,j)
+             soilt_clmp_loc(cellcount)   = t_soisno(c,j)-tfrz
+             t_scalar_clmp_loc(cellcount)= t_scalar(c,j)
           endif
 
 #ifdef CLM_PF_OFFLINE
@@ -2553,9 +2557,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
   subroutine get_clm_bgc_conc(clm_bgc_data, bounds, filters, ifilter)
 !! TODO: add phosphorus vars
-! #ifndef FLEXIBLE_POOLS
-!     use clm_varpar, only : i_met_lit, i_cel_lit, i_lig_lit, i_cwd
-! #endif
+
     use ColumnType          , only : col
     use clm_varctl          , only : iulog
     use clm_varpar          , only : ndecomp_pools, nlevdecomp
@@ -2775,7 +2777,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
       col_net_to_decomp_cpools_vr       => clm_bgc_data%externalc_to_decomp_cpools_col  , &
       col_net_to_decomp_npools_vr       => clm_bgc_data%externaln_to_decomp_npools_col  , &
       ! inorg. nitrogen source
-      !! Inputs to NO3/NH4 is calculated in clm_bgc_interfaceMod.F90: subroutine get_clm_bgc_flux
+      !! wgs: Inputs to NO3/NH4 is calculated in clm_bgc_interfaceMod.F90: subroutine get_clm_bgc_flux
 !      ndep_to_sminn                  => nitrogenflux_vars%ndep_to_sminn_col                 , &
 !      nfix_to_sminn                  => nitrogenflux_vars%nfix_to_sminn_col                 , &
 !      fert_to_sminn                  => nitrogenflux_vars%fert_to_sminn_col                 , &
@@ -2801,7 +2803,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
       col_plant_pdemand_vr              => clm_bgc_data%plant_pdemand_vr_col              &
     )
 
-    dtime = get_step_size()
+    dtime = real( get_step_size(), r8 )
 
 
     call VecGetArrayF90(clm_pf_idata%rate_decomp_c_clmp, rate_decomp_c_clm_loc, ierr)
@@ -3068,7 +3070,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      gross_nmin_vr                => clm_bgc_data%gross_nmin_vr_col               &
      )
 ! ------------------------------------------------------------------------
-     dtime = get_step_size()
+     dtime = real( get_step_size(), r8 )
 
      ! soil C/N pool increments set to the previous timestep (i.e., not yet updated)
      decomp_cpools_delta_vr  = 0._r8-decomp_cpools_vr
@@ -3424,7 +3426,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      f_ngas_denit_vr              => clm_bgc_data%f_ngas_denit_vr_col             &
      )
 ! ------------------------------------------------------------------------
-     dtime = get_step_size()
+     dtime = real( get_step_size(), r8 )
      nstep = get_nstep()
 
      ! get the current time-step state variables of aq. phase of interested species
@@ -3450,13 +3452,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      call VecGetArrayReadF90(clm_pf_idata%accngasdeni_vr_clms, accngasdeni_vr_clm_loc, ierr)
      CHKERRQ(ierr)
 
-!     if(clm_pf_idata%ispec_hrimm>0) then
-!        call VecGetArrayReadF90(clm_pf_idata%acctothr_vr_clms, acchr_vr_clm_loc, ierr)
-!        CHKERRQ(ierr)
-!     else
-!        call VecGetArrayReadF90(clm_pf_idata%acchr_vr_clms, acchr_vr_clm_loc, ierr)
-!        CHKERRQ(ierr)
-!     endif
 
      ! env. variables to properties of gases
      if (pf_tmode) then
@@ -3601,10 +3596,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
               f_n2o_soil_vr(c,j) = f_n2o_soil_vr(c,j)*clm_pf_idata%N_molecular_weight*2._r8   ! mole-N2O/m3 --> g-N/m3 soil
               f_n2o_soil_vr(c,j) = f_n2o_soil_vr(c,j)/dtime                ! gN/m3/s
 
-              ! tracking HR from SOM-C reaction network
-!              hr_vr(c,j)           = (acchr_vr_clm_loc(cellcount) &
-!                                    * clm_pf_idata%C_molecular_weight)/dtime
-
               ! tracking gaseous N production from N reaction network
               f_ngas_decomp_vr(c,j)= (accngasmin_vr_clm_loc (cellcount) &
                                     * clm_pf_idata%N_molecular_weight)/dtime
@@ -3621,7 +3612,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
               f_n2_soil_vr(c,j)          = f_n2_soil_vr(c,clm_pf_idata%nzclm_mapped)
               f_n2o_soil_vr(c,j)         = f_n2o_soil_vr(c,clm_pf_idata%nzclm_mapped)
 
-!              hr_vr(c,j)                 = 0._r8
               f_ngas_decomp_vr(c,j)      = 0._r8
               f_ngas_nitri_vr(c,j)       = 0._r8
               f_ngas_denit_vr(c,j)       = 0._r8
@@ -3642,14 +3632,6 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      CHKERRQ(ierr)
      call VecRestoreArrayF90(clm_pf_idata%gn2o_vr_clmp, gn2o_vr_clmp_loc, ierr)
      CHKERRQ(ierr)
-
-!     if(clm_pf_idata%ispec_hrimm>0) then
-!        call VecRestoreArrayReadF90(clm_pf_idata%acctothr_vr_clms, acchr_vr_clm_loc, ierr)
-!        CHKERRQ(ierr)
-!     else
-!        call VecRestoreArrayReadF90(clm_pf_idata%acchr_vr_clms, acchr_vr_clm_loc, ierr)
-!        CHKERRQ(ierr)
-!     endif
 
      call VecRestoreArrayReadF90(clm_pf_idata%accngasmin_vr_clms, accngasmin_vr_clm_loc, ierr)
      CHKERRQ(ierr)
