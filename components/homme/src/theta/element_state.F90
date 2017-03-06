@@ -23,7 +23,7 @@ module element_state
 
     real (kind=real_kind) :: v   (np,np,2,nlev,timelevels)            ! horizontal velocity 
     real (kind=real_kind) :: w   (np,np,nlev,timelevels)              ! vertical velocity                  
-    real (kind=real_kind) :: theta(np,np,nlev,timelevels)             ! potential temperature                       
+    real (kind=real_kind) :: theta_dp_cp(np,np,nlev,timelevels)       ! potential temperature                       
     real (kind=real_kind) :: phi(np,np,nlev,timelevels)               ! geopotential 
     real (kind=real_kind) :: dp3d(np,np,nlev,timelevels)              ! delta p on levels                  
     real (kind=real_kind) :: ps_v(np,np,timelevels)                   ! surface pressure                   
@@ -103,7 +103,7 @@ module element_state
     ! PEvert1  = -phi d(edtadot dpi/deta)deta -etadot dpi/deta dphi/deta
     !
     ! Transfer terms:
-    ! T1 = -< theta grad_exner,u >             (KE<->IE)_1: T1 + S1 = 0
+    ! T01 = -< theta grad_exner,u >             (KE<->IE)_1: T01 + S1 = 0
     ! T2 = gw dp/ds - dp/ds < u,grad(phi)>     (KE<->IE)_2: T2 + S2 = 0
     ! S1 = - exner div(theta u)
     ! S2 = -T2 (the terms are exactly opposite without integration by parts)
@@ -113,6 +113,7 @@ module element_state
     real (kind=real_kind) :: KEvert1(np,np)
     real (kind=real_kind) :: KEvert2(np,np)
     real (kind=real_kind) :: IEvert1(np,np)
+    real (kind=real_kind) :: IEvert2(np,np)
     real (kind=real_kind) :: PEvert1(np,np)
     real (kind=real_kind) :: PEvert2(np,np)
 
@@ -122,7 +123,7 @@ module element_state
     real (kind=real_kind) :: KE2(np,np)
     real (kind=real_kind) :: PEhoriz1(np,np)
 
-    real (kind=real_kind) :: T1(np,np)
+    real (kind=real_kind) :: T01(np,np)
     real (kind=real_kind) :: T2(np,np)
     real (kind=real_kind) :: S1(np,np)
     real (kind=real_kind) :: S2(np,np)
