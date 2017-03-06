@@ -653,6 +653,8 @@ for mct, etc.
   <MPIFC> ftn </MPIFC>
   <MPICC> cc </MPICC>
   <MPICXX> CC </MPICXX>
+  <CXX_LIBS>-lstdc++</CXX_LIBS>
+  <MOAB_PATH>$(MOAB_DIR)</MOAB_PATH>
 </compiler>
 
 <compiler COMPILER="gnu" MACH="mac">

@@ -2067,7 +2067,7 @@
 	     <!-- This increases the stack size, which is necessary
 		  for CICE to run threaded on this machine -->
 	     <env name="OMP_STACKSIZE">64M</env>
-	     
+	     <env name="MOAB_DIR">/lustre/atlas/world-shared/cli112/sarich/EOS/INTEL/16.0</env>
 	   </environment_variables>
 	 </module_system>
 </machine>
