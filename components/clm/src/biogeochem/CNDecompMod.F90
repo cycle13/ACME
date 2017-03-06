@@ -681,9 +681,11 @@ contains
     type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
-    integer :: fc, c, j                                     ! indices
+    integer  :: fc, c, j                                     ! indices
 !    real(r8):: col_plant_ndemand(bounds%begc:bounds%endc)   ! column-level vertically-integrated plant N demand (gN/m2/s)
-    real(r8):: dt                                           ! time step (seconds)
+    real(r8) :: dt                                           ! time step (seconds)
+    real(r8) :: smin_nh4_to_plant_vr_loc(bounds%begc:bounds%endc,1:nlevdecomp)
+    real(r8) :: smin_no3_to_plant_vr_loc(bounds%begc:bounds%endc,1:nlevdecomp)
 
     ! For methane code
     real(r8):: hrsum(bounds%begc:bounds%endc,1:nlevdecomp)                                             !sum of HR (gC/m2/s)
@@ -708,6 +710,10 @@ contains
          fpg                              =>    cnstate_vars%fpg_col                                   , & ! Output: [real(r8) (:)   ]  fraction of potential gpp (no units)
          sminn_to_plant                   =>    nitrogenflux_vars%sminn_to_plant_col                   , & ! Output: [real(r8) (:)     ]  col N uptake (gN/m2/s)
          sminn_to_plant_vr                =>    nitrogenflux_vars%sminn_to_plant_vr_col                , & ! Input:  [real(r8) (:,:)    ]  vertically-resolved N uptake (gN/m3/s)
+
+         smin_no3_to_plant_vr             =>    nitrogenflux_vars%smin_no3_to_plant_vr_col             , & ! Output: [real(r8) (:,:) ]
+         smin_nh4_to_plant_vr             =>    nitrogenflux_vars%smin_nh4_to_plant_vr_col             , & ! Output: [real(r8) (:,:) ]
+
          col_plant_ndemand_vr             =>    nitrogenflux_vars%plant_ndemand_vr_col                 , & ! Input:  [real(r8) (:)     ]  col N uptake (gN/m2/s)
 
          plant_ndemand_col                =>    nitrogenflux_vars%plant_ndemand_col                    , & ! Output:  [real(r8) (:,:) ]
@@ -719,7 +725,10 @@ contains
          decomp_k                         =>    carbonflux_vars%decomp_k_col                           , & ! Output: [real(r8) (:,:,:) ]  rate constant for decomposition (1./sec)
          hr_vr                            =>    carbonflux_vars%hr_vr_col                              , & ! Output: [real(r8) (:,:)   ]  potential HR (gC/m3/s)
          phr_vr                           =>    carbonflux_vars%phr_vr_col                             , & ! Output: [real(r8) (:,:)   ]  potential HR (gC/m3/s)
-         fphr                             =>    carbonflux_vars%fphr_col                                 & ! Output: [real(r8) (:,:)   ]  fraction of potential SOM + LITTER heterotrophic
+         fphr                             =>    carbonflux_vars%fphr_col                               , & ! Output: [real(r8) (:,:)   ]  fraction of potential SOM + LITTER heterotrophic
+
+         smin_no3_vr                      =>    nitrogenstate_vars%smin_no3_vr_col                     , &
+         smin_nh4_vr                      =>    nitrogenstate_vars%smin_nh4_vr_col                       &
          )
 
       ! set time steps
@@ -767,7 +776,6 @@ contains
                 fpi_vr(c,j) = 0.0_r8
             end if
          end do
-
       end do
 
       if (use_lch4) then
@@ -810,6 +818,15 @@ contains
     end if !!if(use_bgc_interface.and.use_pflotran.and.pf_cmode)
 
 !!------------------------------------------------------------------
+!! wgs: save variables before updating
+      do j = 1,nlevdecomp
+            do fc = 1,num_soilc
+               c = filter_soilc(fc)
+               smin_no3_to_plant_vr_loc(c,j) = smin_no3_to_plant_vr(c,j)
+               smin_nh4_to_plant_vr_loc(c,j) = smin_nh4_to_plant_vr(c,j)
+            end do
+      end do
+!!------------------------------------------------------------------
       ! phase-3 Allocation for plants
       call t_startf('CNAllocation - phase-3')
       call CNAllocation3_PlantCNPAlloc (bounds                      , &
@@ -821,7 +838,21 @@ contains
                 phosphorusstate_vars, phosphorusflux_vars)
       call t_stopf('CNAllocation - phase-3')
 !!------------------------------------------------------------------
-
+!! wgs: CNAllocation3_PlantCNPAlloc(): Line 3882-3890:
+!! smin_nh4_to_plant_vr(c,j), smin_no3_to_plant_vr(c,j), sminn_to_plant_vr(c,j) may be adjusted
+!! therefore, we need to update smin_no3_vr(c,j) & smin_nh4_vr(c,j)
+      do fc = 1,num_soilc
+           c = filter_soilc(fc)
+           do j = 1,nlevdecomp
+               smin_no3_vr(c,j) = smin_no3_vr(c,j) - (smin_no3_to_plant_vr(c,j) - smin_no3_to_plant_vr_loc(c,j))*dt
+               smin_nh4_vr(c,j) = smin_nh4_vr(c,j) - (smin_nh4_to_plant_vr(c,j) - smin_nh4_to_plant_vr_loc(c,j))*dt
+               !! better to force smin_no3_to_plant_vr(c,j) <= smin_no3_vr(c,j)/dt in CNAllocation3_PlantCNPAlloc()
+               !! currently smin_no3_to_plant_vr(c,j) = 0 or smin_no3_to_plant_vr(c,j) <= smin_no3_to_plant_vr_loc(c,j)
+               smin_no3_vr(c,j) = max(0._r8, smin_no3_vr(c,j))
+               smin_nh4_vr(c,j) = max(0._r8, smin_nh4_vr(c,j))
+            end do
+      end do
+!!------------------------------------------------------------------
       ! vertically integrate net and gross mineralization fluxes for diagnostic output
       do j = 1,nlevdecomp
          do fc = 1,num_soilc
