@@ -846,8 +846,8 @@ contains
            do j = 1,nlevdecomp
                smin_no3_vr(c,j) = smin_no3_vr(c,j) - (smin_no3_to_plant_vr(c,j) - smin_no3_to_plant_vr_loc(c,j))*dt
                smin_nh4_vr(c,j) = smin_nh4_vr(c,j) - (smin_nh4_to_plant_vr(c,j) - smin_nh4_to_plant_vr_loc(c,j))*dt
-               !! better to force smin_no3_to_plant_vr(c,j) <= smin_no3_vr(c,j)/dt in CNAllocation3_PlantCNPAlloc()
-               !! currently smin_no3_to_plant_vr(c,j) = 0 or smin_no3_to_plant_vr(c,j) <= smin_no3_to_plant_vr_loc(c,j)
+               !! have added controls to ensure smin_no3_to_plant_vr(c,j) <= smin_no3_vr(c,j)/dt in CNAllocation3_PlantCNPAlloc()
+               !! it seems smin_no3_to_plant_vr(c,j) = 0 or smin_no3_to_plant_vr(c,j) <= smin_no3_to_plant_vr_loc(c,j)
                smin_no3_vr(c,j) = max(0._r8, smin_no3_vr(c,j))
                smin_nh4_vr(c,j) = max(0._r8, smin_nh4_vr(c,j))
             end do
