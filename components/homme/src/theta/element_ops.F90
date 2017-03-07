@@ -276,9 +276,6 @@ contains
      if (minval(rho_R_theta(:,:,k))<0) then
         print *,k,minval( (dp3d(:,:,k)+dp3d(:,:,k-1))/2),&
              minval(phi(:,:,k-1)-phi(:,:,k))
-!        print *, minval(rho_R_theta(:,:,k))
-!        print *, minval(kappa_star(:,:,k))
-!        print *, minval(theta_dp_cp(:,:,k))
          print *, minval(phi(:,:,k-1)-phi(:,:,k))
         call abortmp('error: rho<0')
      endif
@@ -478,7 +475,7 @@ contains
   elem%state%ps_v(i,j,n0:n1)     = ps
   elem%state%phi(i,j,k,n0:n1)      = g*zm
   elem%state%phis(i,j)           = phis
-  elem%state%theta_dp_cp(i,j,k,n0:n1)=T*Cp*dp/((p/p0)**kappa)
+  elem%state%theta_dp_cp(i,j,k,n0:n1)=T*Cp*dp/((p/p0)**(-kappa))
 
   end subroutine set_state
 

@@ -785,8 +785,8 @@ subroutine prim_energy_halftimes(elem,hvcoord,tl,n,t_before_advance,nets,nete)
        suml2=0
        do k=1,nlev
           suml(:,:)=suml(:,:)+&
-                elem(ie)%state%theta_dp_cp(:,:,k,t1)*exner(:,:,k)/(Cp*dpt1(:,:,k) )
-          suml2(:,:) = suml2(:,:)  -dpnh(:,:,k)*elem(ie)%state%phi(:,:,k,t1)
+                elem(ie)%state%theta_dp_cp(:,:,k,t1)*exner(:,:,k) )
+          suml2(:,:) = suml2(:,:)  +dpnh(:,:,k)*elem(ie)%state%phi(:,:,k,t1)
        enddo
        elem(ie)%accum%IEner(:,:,n)=suml(:,:) + suml2(:,:) +&
             elem(ie)%state%ps_v(:,:,t1) * elem(ie)%state%phis(:,:)

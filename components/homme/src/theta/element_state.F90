@@ -77,7 +77,7 @@ module element_state
 
     ! Energy equation:
     ! KE_t  = KE1 + KE2 + KEhoriz2 +  KEvert1 + KEvert2 + P1 + T1 + T2 + D1 + Err
-    ! IE_t  = S1 + S2 + IEvert1 + d(p dphi/dt)/deta + ptop dphitop/dt + D2 
+    ! IE_t  = S1 + S2 + IEvert1 + IEvert2 + d(p dphi/dt)/deta + ptop dphitop/dt + D2 
     ! PE_t  = PEhoriz1 + PEvert1 + P2
     !
     ! d(p dphi/dt)/deta + ptop dphitop/dt should vertically integrate to zero
@@ -99,7 +99,8 @@ module element_state
     !
     ! KEvert1  = - etadot u du/deta dpi/deta - 0.5*u^2 d(etadot dpi/deta )/deta
     ! KEvert2  = -etadot w dw/deta dpi/deta - 0.5 w^2 d(etadot dpi/deta)/deta
-    ! IEvert1  = -p^kappa d(theta etadot)/deta - theta etadot d p^kappa / deta
+    ! IEvert1  = -p^kappa d(theta etadot)/deta 
+    ! IEvert2  =  dp/deta *  etadot*dphi/deta
     ! PEvert1  = -phi d(edtadot dpi/deta)deta -etadot dpi/deta dphi/deta
     !
     ! Transfer terms:
