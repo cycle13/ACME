@@ -486,12 +486,12 @@ contains
 
     if (.not. use_ed) then
          if (err_found) then
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:beg"
-            write(iulog,'(A30,I5)')"C Balance Error in Column = ",err_index
-            write(iulog,'(16A15)')"errcb", "C_in-out", "Cdelta","Cinputs","Coutputs","Cbeg","Cend"
-            write(iulog,'(16E15.6)')pf_errcb, (pf_cinputs - pf_coutputs)*dtime, pf_cdelta, &
+            write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:beg  "
+            write(iulog,'(A35,I5,I15)')"Carbon Balance Error in Column = ",err_index, get_nstep()
+            write(iulog,'(10A15)')"errcb", "C_in-out", "Cdelta","Cinputs","Coutputs","Cbeg","Cend"
+            write(iulog,'(10E15.6)')pf_errcb, (pf_cinputs - pf_coutputs)*dtime, pf_cdelta, &
                                     pf_cinputs*dtime,pf_coutputs*dtime,pf_cbeg,pf_cend
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
+            write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:end  "
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
 !                call endrun(msg=errMsg(__FILE__, __LINE__))
@@ -530,7 +530,10 @@ contains
     real(r8) :: pf_noutputs_nit, pf_noutputs_denit                                  !! _gas = _nit + _denit
     real(r8) :: pf_ninputs_org, pf_ninputs_min, pf_ndelta_org,pf_ndelta_min         !! _org:organic; _min:mineral nitrogen
     real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min
-    real(r8) :: pf_nend, pf_nend_org, pf_nend_min, pf_nend_nh4sorb
+    real(r8) :: pf_nend, pf_nend_org, pf_nend_min
+    real(r8) :: pf_nend_no3, pf_nend_nh4, pf_nend_nh4sorb
+    real(r8) :: plant_ndemand, potential_immob, actual_immob, gross_nmin
+    real(r8) :: pf_ngas_org, pf_ngas_min, pf_errnb_org, pf_errnb_min
     !-----------------------------------------------------------------------
 
     associate(                                                                        &
@@ -545,6 +548,12 @@ contains
          f_ngas_nitri_vr              => clm_bgc_data%f_ngas_nitri_vr_col           , &
          f_ngas_denit_vr              => clm_bgc_data%f_ngas_denit_vr_col           , &
          sminn_to_plant_vr            => clm_bgc_data%sminn_to_plant_vr_col         , &
+
+         plant_ndemand_vr             => clm_bgc_data%plant_ndemand_vr_col          , &
+         potential_immob_vr           => clm_bgc_data%potential_immob_vr_col        , &
+         actual_immob_vr              => clm_bgc_data%actual_immob_vr_col           , &
+         gross_nmin_vr                => clm_bgc_data%gross_nmin_vr_col             , &
+
          soil_begnb                   => clm_bgc_data%soil_begnb_col                , & ! Output: [real(r8) (:) ]  carbon mass, beginning of time step (gC/m**2)
          soil_begnb_org               => clm_bgc_data%soil_begnb_org_col            , & !
          soil_begnb_min               => clm_bgc_data%soil_begnb_min_col              & !
@@ -563,6 +572,8 @@ contains
 
         pf_nend_org         = 0._r8
         pf_nend_min         = 0._r8
+        pf_nend_no3         = 0._r8
+        pf_nend_nh4         = 0._r8
         pf_nend_nh4sorb     = 0._r8
         pf_nend             = 0._r8
 
@@ -580,11 +591,20 @@ contains
         pf_ndelta_min       = 0._r8
         pf_ndelta           = 0._r8
 
+        plant_ndemand       = 0._r8
+        potential_immob     = 0._r8
+        actual_immob        = 0._r8
+        gross_nmin          = 0._r8
+
+        pf_ngas_org         = 0._r8
+        pf_ngas_min         = 0._r8
+        pf_errnb_org        = 0._r8
+        pf_errnb_min        = 0._r8
+
         do j = 1, nlevdecomp
             !! sminn_vr(c,j) has been calculated above
-            pf_nend_min     = pf_nend_min     + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
-                                              + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
-                                              + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+            pf_nend_no3     = pf_nend_no3     + smin_no3_vr(c,j)*dzsoi_decomp(j)
+            pf_nend_nh4     = pf_nend_nh4     + smin_nh4_vr(c,j)*dzsoi_decomp(j)
             pf_nend_nh4sorb = pf_nend_nh4sorb + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
 
             pf_ninputs_min  = pf_ninputs_min  + externaln_to_nh4_vr(c,j)*dzsoi_decomp(j) &
@@ -594,13 +614,23 @@ contains
                                               + f_ngas_nitri_vr(c,j)*dzsoi_decomp(j)
             pf_noutputs_denit = pf_noutputs_denit + f_ngas_denit_vr(c,j)*dzsoi_decomp(j)
             pf_noutputs_veg = pf_noutputs_veg + sminn_to_plant_vr(c,j)*dzsoi_decomp(j)
+
+            pf_ngas_org     = pf_ngas_org     + f_ngas_decomp_vr(c,j)*dzsoi_decomp(j)
+            pf_ngas_min     = pf_ngas_min     + f_ngas_denit_vr(c,j)*dzsoi_decomp(j) &
+                                              + f_ngas_nitri_vr(c,j)*dzsoi_decomp(j)
             do l = 1, ndecomp_pools
                 pf_ndelta_org  = pf_ndelta_org  + decomp_npools_delta_vr(c,j,l)*dzsoi_decomp(j)
                 pf_ninputs_org = pf_ninputs_org + externaln_to_decomp_npools(c,j,l)*dzsoi_decomp(j)
             end do
+
+            plant_ndemand   = plant_ndemand   + plant_ndemand_vr(c,j)*dzsoi_decomp(j)
+            potential_immob = potential_immob + potential_immob_vr(c,j)*dzsoi_decomp(j)
+            actual_immob    = actual_immob    + actual_immob_vr(c,j)*dzsoi_decomp(j)
+            gross_nmin      = gross_nmin      + gross_nmin_vr(c,j)*dzsoi_decomp(j)
         end do
 
         pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
+        pf_nend_min     = pf_nend_no3       + pf_nend_nh4 + pf_nend_nh4sorb
         pf_nend         = pf_nend_org       + pf_nend_min
         pf_ndelta_min   = pf_nend_min       - pf_nbeg_min
         pf_ndelta       = pf_nend           - pf_nbeg         !!pf_ndelta_org     + pf_ndelta_min
@@ -608,7 +638,11 @@ contains
         pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
         pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
         pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
-!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+
+        pf_errnb_org    = (pf_ninputs_org - pf_ngas_org - gross_nmin + actual_immob)*dtime - pf_ndelta_org
+        pf_errnb_min    = (pf_ninputs_min - pf_ngas_min + gross_nmin - actual_immob - pf_noutputs_veg)*dtime &
+                        - pf_ndelta_min
         ! check for significant errors
         if (abs(pf_errnb) > 1e-8_r8) then
             err_found = .true.
@@ -618,30 +652,51 @@ contains
 
     if (.not. use_ed) then
          if (err_found) then
-            write(iulog,'(A,100(1h-))')">>>--------NEW PFLOTRAN Mass Balance Check:beg"
-            write(iulog,'(A30,I5)')"N Balance Error in Column = ",err_index
-            write(iulog,'(20A15)')  "errnb", "N_in-out", "Ndelta",                          &
+            write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:beg  "
+            write(iulog,'(A35,I5,I15)')"Nitrogen Balance Error in Column = ",err_index, get_nstep()
+            write(iulog,'(10A15)')  "errnb", "N_in-out", "Ndelta",                          &
                                     "Ninputs","Noutputs", "Nbeg","Nend"
-            write(iulog,'(20E15.6)')pf_errnb, (pf_ninputs - pf_noutputs)*dtime, pf_ndelta,  &
+            write(iulog,'(10E15.6)')pf_errnb, (pf_ninputs - pf_noutputs)*dtime, pf_ndelta,  &
                                     pf_ninputs*dtime,pf_noutputs*dtime,pf_nbeg,pf_nend
-
-            write(iulog,'(20A15)')  "Ninputs_org","Ninputs_min",                            &
+            write(iulog,*)
+            write(iulog,'(10A15)')  "errnb_org","Ndelta_org","Nbeg_org","Nend_org",         &
+                                    "gross_nmin", "actual_immob", "pot_immob"
+            write(iulog,'(10E15.6)')pf_errnb_org,pf_ndelta_org,pf_nbeg_org,pf_nend_org,     &
+                                    gross_nmin*dtime,actual_immob*dtime,potential_immob*dtime
+            write(iulog,*)
+            write(iulog,'(10A15)')  "errnb_min","Ndelta_min","Nbeg_min","Nend_min",         &
+                                    "Nend_no3","Nend_nh4", "Nend_nh4sorb"
+            write(iulog,'(10E15.6)')pf_errnb_min, pf_ndelta_min,pf_nbeg_min,pf_nend_min,    &
+                                    pf_nend_no3,pf_nend_nh4,pf_nend_nh4sorb
+            write(iulog,*)
+            write(iulog,'(10A15)')  "Ninputs_org","Ninputs_min",                            &
                                     "Noutputs_nit","Noutputs_denit",                        &
-                                    "Noutputs_gas","Noutputs_veg"
-
-            write(iulog,'(20E15.6)')pf_ninputs_org*dtime,pf_ninputs_min*dtime,              &
+                                    "Noutputs_gas","Noutputs_veg","plant_Ndemand"
+            write(iulog,'(10E15.6)')pf_ninputs_org*dtime,pf_ninputs_min*dtime,              &
                                     pf_noutputs_nit*dtime,pf_noutputs_denit*dtime,          &
-                                    pf_noutputs_gas*dtime,pf_noutputs_veg*dtime
-
-            write(iulog,'(20A15)')  "Ndelta_org","Nbeg_org","Nend_org",                     &
-                                    "Ndelta_min","Nbeg_min","Nend_min","Nend_nh4sorb"
-            write(iulog,'(20E15.6)')pf_ndelta_org,pf_nbeg_org,pf_nend_org,                  &
-                                    pf_ndelta_min,pf_nbeg_min,pf_nend_min,pf_nend_nh4sorb
-            write(iulog,'(A,100(1h-))')">>>--------PFLOTRAN Mass Balance Check:end"
+                                    pf_noutputs_gas*dtime,pf_noutputs_veg*dtime, plant_ndemand*dtime
+            write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:end  "
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
 !                call endrun(msg=errMsg(__FILE__, __LINE__))
 !            end if
+!!------------------------------------------------------------------------------------
+!!wgs:beg: check whether ALM balance error is caused by pflotran
+!!         by temporarily adjusting no3/nh4 pools using pflotran balance error (pf_errnb)
+!            pf_nend_min         = 0._r8
+!            do j = 1, nlevdecomp
+!                smin_no3_vr(c,j) = smin_no3_vr(c,j) + 0.5_r8*pf_errnb * clm_bgc_data%ndep_prof_col(c,j)
+!                smin_nh4_vr(c,j) = smin_nh4_vr(c,j) + 0.5_r8*pf_errnb * clm_bgc_data%ndep_prof_col(c,j)
+!                pf_nend_min      = pf_nend_min      + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
+!                                                    + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
+!                                                    + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+!            end do
+!            pf_nend         = pf_nend_org       + pf_nend_min
+!            pf_ndelta       = pf_nend           - pf_nbeg         !!pf_ndelta_org     + pf_ndelta_min
+!            pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
+!            write(iulog,*)'>>>DEBUG | CORRECTED pflotran nbalance error = ', pf_errnb, c, get_nstep()
+!!wgs:end
+!!------------------------------------------------------------------------------------
         end if
     end if !!(.not. use_ed)
     end associate
@@ -2343,7 +2398,7 @@ contains
                 ! porosity will be ice-adjusted for PF, if PF freezing-mode is off,
                 ! so need to adjust 'psi' so that 'saturation' in PF is correct
                 sattmp = h2osoi_liq(c,j) / ((watsat(c,j)-itheta)*dz(c,j)*denh2o)
-                sattmp = min(max(0.01d0, sattmp/(watsat(c,j)-itheta)),1._r8)
+                sattmp = min(max(0.01_r8, sattmp/(watsat(c,j)-itheta)),1._r8)
 
                 ! soil matric potential re-done by Clapp-Hornburger method (this is the default used by CLM)
                 ! this value IS different from what CLM used (not ice-content adjusted)
@@ -2359,7 +2414,7 @@ contains
 
              else
                 sattmp = h2osoi_liq(c,j) / (watsat(c,j)*dz(c,j)*denh2o)
-                sattmp = min(max(0.01d0, sattmp/watsat(c,j)),1._r8)
+                sattmp = min(max(0.01_r8, sattmp/watsat(c,j)),1._r8)
 
                 psitmp = soilpsi(c,j)*1.e6_r8  ! MPa -> Pa
                 if (shr_infnan_isnan(soilpsi(c,j)) .or. nstep<=0) then ! only for initialization, in which NOT assigned a value
@@ -2955,6 +3010,9 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
     enddo ! do fc=1,numsoic
 
+!write(iulog,'(A,50(1h-))')">>>DEBUG | get_clm_bgc_rate,plant_ndemand_vr(c,j):"
+!write(iulog,'(A20,12E14.6)')"clm_bgc_data=",col_plant_ndemand_vr(1,1:10)*dtime
+!write(iulog,'(A20,12E14.6)')"plfotran_ndemand = ",(rate_plantndemand_clm_loc(1:10))*clm_pf_idata%N_molecular_weight*dtime
 !-----------------------------------------------------------------------------
     call VecRestoreArrayF90(clm_pf_idata%rate_decomp_c_clmp, rate_decomp_c_clm_loc, ierr)
     CHKERRQ(ierr)

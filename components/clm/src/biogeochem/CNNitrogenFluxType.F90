@@ -3173,8 +3173,7 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
 
           ! assign all no3-N leaching/runoff to all mineral-N
           this%sminn_leached_col(c) = this%smin_no3_leached_col(c) + this%smin_no3_runoff_col(c)
-!write(*,'(A40,I5,10E14.6)')"DEBUG | column/denit/f_n2o_nit=",c,this%denit_col(c)*dtime,this%f_n2o_nit_col(c)*dtime
-!write(*,'(A40,I5,10E14.6)')"DEBUG | column/no3_leach/no3_runoff=",c,this%smin_no3_leached_col(c)*dtime, this%smin_no3_runoff_col(c)*dtime
+
       end do !!fc = 1,num_soilc
     end if !! if (use_pflotran .and. pf_cmode)
 
@@ -3221,8 +3220,8 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
                         + this%dwt_frootn_to_litr_met_n_col(c,j)             &
                         + this%gap_mortality_n_to_litr_met_n_col(c,j)        &
                         + this%harvest_n_to_litr_met_n_col(c,j)              &
-                        + this%m_n_to_litr_met_fire_col(c,j)                 !!&
-!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
+                        + this%m_n_to_litr_met_fire_col(c,j)
+!!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
 
                 elseif (l==i_cel_lit) then
                    this%externaln_to_decomp_npools_col(c,j,l) =              &
@@ -3231,8 +3230,8 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
                         + this%dwt_frootn_to_litr_cel_n_col(c,j)             &
                         + this%gap_mortality_n_to_litr_cel_n_col(c,j)        &
                         + this%harvest_n_to_litr_cel_n_col(c,j)              &
-                        + this%m_n_to_litr_cel_fire_col(c,j)                  !!&
-!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
+                        + this%m_n_to_litr_cel_fire_col(c,j)
+!!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
 
                 elseif (l==i_lig_lit) then
                    this%externaln_to_decomp_npools_col(c,j,l) =              &
@@ -3241,8 +3240,8 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
                         + this%dwt_frootn_to_litr_lig_n_col(c,j)             &
                         + this%gap_mortality_n_to_litr_lig_n_col(c,j)        &
                         + this%harvest_n_to_litr_lig_n_col(c,j)              &
-                        + this%m_n_to_litr_lig_fire_col(c,j)                 !!&
-!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
+                        + this%m_n_to_litr_lig_fire_col(c,j)
+!!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
 
                 ! for cwd
                 elseif (l==i_cwd) then
@@ -3255,10 +3254,10 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
                         + this%fire_mortality_n_to_cwdn_col(c,j)
 
              ! for som n
-!                else
-!                   this%externaln_to_decomp_npools_col(c,j,l) =              &
-!                       this%externaln_to_decomp_npools_col(c,j,l)            &
-!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
+!!                else
+!!                   this%externaln_to_decomp_npools_col(c,j,l) =              &
+!!                       this%externaln_to_decomp_npools_col(c,j,l)            &
+!!                        - this%m_decomp_npools_to_fire_vr_col(c,j,l)
 
                 end if
 
@@ -3283,10 +3282,10 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
           do j = 1, nlevdecomp
              do fc = 1,num_soilc
                 c = filter_soilc(fc)
-                !! wgs: EXCLUDE leaching from external input
+                !! wgs: do not include leaching for external input
 !                this%no3_net_transport_vr_col(c,j) = 0._r8
                 this%no3_net_transport_vr_col(c,j) = this%smin_no3_runoff_vr_col(c,j) + &
-                                               this%smin_no3_leached_vr_col(c,j)
+                                                     this%smin_no3_leached_vr_col(c,j)
                 this%no3_net_transport_delta_col(c) = &
                             this%no3_net_transport_delta_col(c) - &
                             this%no3_net_transport_vr_col(c,j)*dzsoi_decomp(j)

@@ -1038,7 +1038,7 @@ contains
       end do
 
       ! pflotran will need an input from CN: modified 'sum_ndemand_vr' ('potential_immob' excluded).
-      if (use_bgc_interface.and.use_pflotran .and. pf_cmode) then
+!      if (use_bgc_interface.and.use_pflotran .and. pf_cmode) then
             do j = 1, nlevdecomp
                do fc=1, num_soilc
                   c = filter_soilc(fc)
@@ -1046,7 +1046,7 @@ contains
                   plant_pdemand_vr_col(c,j) = plant_pdemand_col(c) * puptake_prof(c,j)
                end do
             end do
-      endif
+!      endif
 
     end associate
 
@@ -3903,7 +3903,7 @@ contains
                       if ( temp_sminp_to_plant(c) > 0._r8) then 
                           sminp_to_plant_vr(c,j) =  sminp_to_plant_vr(c,j) * ( sminp_to_plant(c)/temp_sminp_to_plant(c) )
                           ! ensure that plant uptake rate isn't larger than soil P pool
-                          sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
+!                          sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
                       else
                           sminp_to_plant_vr(c,j) = 0._r8
                       endif 
@@ -3985,7 +3985,7 @@ contains
                   if ( temp_sminp_to_plant(c) > 0._r8) then 
                      sminp_to_plant_vr(c,j) =  sminp_to_plant_vr(c,j) * ( sminp_to_plant(c)/temp_sminp_to_plant(c) )
                      ! ensure that plant uptake rate isn't larger than soil P pool
-                     sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
+!                     sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
                   else
                      sminp_to_plant_vr(c,j) = 0._r8
                   endif 
@@ -4010,7 +4010,7 @@ contains
                   if ( temp_sminp_to_plant(c) > 0._r8) then 
                      sminp_to_plant_vr(c,j) =  sminp_to_plant_vr(c,j) * ( sminp_to_plant(c)/temp_sminp_to_plant(c) )
                      ! ensure that plant uptake rate isn't larger than soil P pool
-                     sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
+!                     sminp_to_plant_vr(c,j) = min(sminp_to_plant_vr(c,j), solutionp_vr(c,j) / dt )
                   else
                      sminp_to_plant_vr(c,j) = 0._r8
                   endif 

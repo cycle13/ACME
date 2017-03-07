@@ -602,6 +602,7 @@ contains
       !
       nfixation_prof                   => cnstate_vars%nfixation_prof_col                       , &
       ndep_prof                        => cnstate_vars%ndep_prof_col                            , &
+      pdep_prof                        => cnstate_vars%pdep_prof_col                            , &
 
       rf_decomp_cascade                => cnstate_vars%rf_decomp_cascade_col                    , &
       pathfrac_decomp_cascade          => cnstate_vars%pathfrac_decomp_cascade_col              , &
@@ -652,6 +653,10 @@ contains
                 clm_bgc_data%pathfrac_decomp_cascade_col(c,:,k)     = pathfrac_decomp_cascade(c,:,k)
 
             end do
+
+            clm_bgc_data%nfixation_prof_col(c,:)            =   nfixation_prof(c,:)
+            clm_bgc_data%ndep_prof_col(c,:)                 =   ndep_prof(c,:)
+            clm_bgc_data%pdep_prof_col(c,:)                 =   pdep_prof(c,:)
 
             clm_bgc_data%externaln_to_nh4_col(c,:)          =   fnh4_dep*ndep_to_sminn(c) * ndep_prof(c,:) +  &
                                                                 fnh4_fert*fert_to_sminn(c) * ndep_prof(c,:) + &

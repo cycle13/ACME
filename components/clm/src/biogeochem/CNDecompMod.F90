@@ -838,6 +838,7 @@ contains
                 phosphorusstate_vars, phosphorusflux_vars)
       call t_stopf('CNAllocation - phase-3')
 !!------------------------------------------------------------------
+    if(use_pflotran.and.pf_cmode) then
 !! wgs: CNAllocation3_PlantCNPAlloc(): Line 3882-3890:
 !! smin_nh4_to_plant_vr(c,j), smin_no3_to_plant_vr(c,j), sminn_to_plant_vr(c,j) may be adjusted
 !! therefore, we need to update smin_no3_vr(c,j) & smin_nh4_vr(c,j)
@@ -852,6 +853,7 @@ contains
                smin_nh4_vr(c,j) = max(0._r8, smin_nh4_vr(c,j))
             end do
       end do
+    end if !!(use_pflotran.and.pf_cmode)
 !!------------------------------------------------------------------
       ! vertically integrate net and gross mineralization fluxes for diagnostic output
       do j = 1,nlevdecomp

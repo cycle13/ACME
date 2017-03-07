@@ -79,6 +79,9 @@ module clm_bgc_interface_data
      ! cnstate_vars:
      real(r8) , pointer :: rf_decomp_cascade_col                    (:,:,:) ! col respired fraction in decomposition step (frac)
      real(r8) , pointer :: pathfrac_decomp_cascade_col              (:,:,:) ! col what fraction of C leaving a given pool passes through a given 
+     real(r8) , pointer :: nfixation_prof_col                       (:,:)   ! col (1/m) profile for N fixation additions
+     real(r8) , pointer :: ndep_prof_col                            (:,:)   ! col (1/m) profile for N fixation additions
+     real(r8) , pointer :: pdep_prof_col                            (:,:)   ! col (1/m) profile for P deposition additions
 
      ! carbonstate_vars:
      real(r8), pointer :: decomp_cpools_vr_col                      (:,:,:) ! col (gC/m3) vertically-resolved decomposing (litter, cwd, soil) c pools
@@ -344,9 +347,11 @@ contains
     ! cnstate_vars:
     allocate(this%rf_decomp_cascade_col(begc:endc,1:nlevdecomp_full,1:ndecomp_cascade_transitions)); 
     this%rf_decomp_cascade_col(:,:,:) = nan
-
     allocate(this%pathfrac_decomp_cascade_col(begc:endc,1:nlevdecomp_full,1:ndecomp_cascade_transitions));     
     this%pathfrac_decomp_cascade_col(:,:,:) = nan
+    allocate(this%nfixation_prof_col    (begc:endc,1:nlevdecomp_full))      ; this%nfixation_prof_col           (:,:) = spval
+    allocate(this%ndep_prof_col         (begc:endc,1:nlevdecomp_full))      ; this%ndep_prof_col                (:,:) = spval
+    allocate(this%pdep_prof_col         (begc:endc,1:nlevdecomp_full))      ; this%pdep_prof_col                (:,:) = spval
 
     ! carbonstate_vars:
     allocate(this%decomp_cpools_vr_col  (begc:endc,1:nlevdecomp_full,1:ndecomp_pools));  this%decomp_cpools_vr_col(:,:,:)= ival

@@ -315,7 +315,7 @@ contains
                end do ! end of column loop
             end do
             
-         end if
+         end if !!(.not. use_nitrif_denitrif)
       endif  !end if is_active_betr_bgc 
 
       ! patch loop

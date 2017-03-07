@@ -5094,8 +5094,8 @@ subroutine CSummary_interface(this, bounds, num_soilc, filter_soilc)
                         + this%gap_mortality_c_to_litr_met_c_col(c,j)        &
                         + this%harvest_c_to_litr_met_c_col(c,j)              &
                         + this%m_c_to_litr_met_fire_col(c,j)                 !!&
-!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
-!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
+!!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
+!!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
 
              elseif (l==i_cel_lit) then
                 this%externalc_to_decomp_cpools_col(c,j,l) =                 &
@@ -5105,8 +5105,8 @@ subroutine CSummary_interface(this, bounds, num_soilc, filter_soilc)
                         + this%gap_mortality_c_to_litr_cel_c_col(c,j)        &
                         + this%harvest_c_to_litr_cel_c_col(c,j)              &
                         + this%m_c_to_litr_cel_fire_col(c,j)                 !!&
-!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
-!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
+!!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
+!!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
 
              elseif (l==i_lig_lit) then
                 this%externalc_to_decomp_cpools_col(c,j,l) =                 &
@@ -5116,8 +5116,8 @@ subroutine CSummary_interface(this, bounds, num_soilc, filter_soilc)
                         + this%gap_mortality_c_to_litr_lig_c_col(c,j)        &
                         + this%harvest_c_to_litr_lig_c_col(c,j)              &
                         + this%m_c_to_litr_lig_fire_col(c,j)                 !!&
-!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
-!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
+!!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
+!!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
 
              ! for cwd
              elseif (l==i_cwd) then
@@ -5128,17 +5128,17 @@ subroutine CSummary_interface(this, bounds, num_soilc, filter_soilc)
                         + this%gap_mortality_c_to_cwdc_col(c,j)              &
                         + this%harvest_c_to_cwdc_col(c,j)                    &
                         + this%fire_mortality_c_to_cwdc_col(c,j)             !!& !!wgs:2017
-!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!& !!wgs:2017
-!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
+!!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!& !!wgs:2017
+!!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
 
              ! for som
              ! no external input to som
              !! wgs:2017
-!             else
-!                this%externalc_to_decomp_cpools_col(c,j,l) =                 &
-!                    this%externalc_to_decomp_cpools_col(c,j,l)               &
-!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
-!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
+!!             else
+!!                this%externalc_to_decomp_cpools_col(c,j,l) =                 &
+!!                    this%externalc_to_decomp_cpools_col(c,j,l)               &
+!!                        + this%decomp_cpools_transport_tendency_col(c,j,l)   !!&
+!!                        - this%m_decomp_cpools_to_fire_vr_col(c,j,l)
 
              end if
 
