@@ -126,8 +126,9 @@ contains
     real(kind=real_kind) :: v1, v2, vco(np,np,2,nlev)
 
     real (kind=real_kind) :: time, time2,time1, scale, dt, dt_split
-    real (kind=real_kind) :: KEvertu,KEvertw,IEvert,IEvert2,PEvert,T1,T2,S1,S2,P1,P2
-    real (kind=real_kind) :: KEhorz,KEhorz2,PEhorz,IEhorz,KEH1,KEH2
+    real (kind=real_kind) :: KEvertu,KEvertw,IEvert,IEvert2,PEvert1,PEvert2
+    real (kind=real_kind) :: T1,T2,S1,S2,P1,P2
+    real (kind=real_kind) :: KEhorz,KEhorz2,PEhorz1,PEhorz2,IEhorz,KEH1,KEH2
     real (kind=real_kind) :: ddt_tot,ddt_diss_tot,ddt_diss
     integer               :: n0, nm1, np1, n0q
     integer               :: npts,n,q
@@ -529,14 +530,26 @@ contains
     do ie=nets,nete
        tmp(:,:,ie) = elem(ie)%accum%PEhoriz1 
     enddo
-    PEhorz = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
-    PEhorz = PEhorz*scale
+    PEhorz1 = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
+    PEhorz1 = PEhorz1*scale
+
+    do ie=nets,nete
+       tmp(:,:,ie) = elem(ie)%accum%PEhoriz2
+    enddo
+    PEhorz2 = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
+    PEhorz2 = PEhorz2*scale
 
     do ie=nets,nete
        tmp(:,:,ie) = elem(ie)%accum%PEvert1
     enddo
-    PEvert = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
-    PEvert = PEvert*scale
+    PEvert1 = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
+    PEvert1 = PEvert1*scale
+
+    do ie=nets,nete
+       tmp(:,:,ie) = elem(ie)%accum%PEvert2
+    enddo
+    PEvert2 = global_integral(elem, tmp(:,:,nets:nete),hybrid,npts,nets,nete)
+    PEvert2 = PEvert2*scale
 
     !   KE->IE
     do ie=nets,nete
@@ -602,7 +615,8 @@ contains
           write(iulog,'(a,2e22.14)')'horiz adv KE-w terms, possibly nonzero   :',KEhorz2
           write(iulog,'(a,2e22.14)')'vert adv IE energy abs/rel, should = 0   :',IEvert+IEvert2,abs(IEvert+IEvert2)/sqrt(IEvert**2+IEvert2**2)
           write(iulog,'(a,2e22.14)')'Tot IE advection vert =0                 :',IEvert,IEvert2
-          write(iulog,'(a,2e22.14)')'Tot PE advection horiz, vert = 0         :',PEhorz,PEvert       
+          write(iulog,'(a,2e22.14)')'Tot PE advection horiz = 0 abs/rel       :',PEhorz1+PEhorz2,abs(PEhorz1+PEhorz2)/sqrt(PEhorz1**2+PEhorz2**2)
+          write(iulog,'(a,2e22.14)')'Tot PE advection vert  = 0 abs/rel       :',PEvert1+PEvert2,abs(PEvert1+PEvert2)/sqrt(PEvert1**2+PEvert2**2)
           write(iulog,'(a,2e22.14)')'(T1+S1 abs/rel = 0)                      :',S1+T1, abs(S1+T1)/sqrt(S1**2+T1**2)
           write(iulog,'(a,2e22.14)')'(S1,T1)                                  :',S1,T1
           write(iulog,'(a,2e22.14)')'(T2+S2 = 0)                              :',T2+S2
@@ -620,7 +634,7 @@ contains
           write(iulog,'(a,3E22.14)') "diss_tot:", ddt_diss_tot
           
           ddt_tot = (PEner(2)-PEner(1))/(dt)
-          ddt_diss_tot = ddt_tot - (PEhorz+PEvert+P2)
+          ddt_diss_tot = ddt_tot - (PEhorz1+PEhorz2+PEvert1+PEvert2+P2)
           ddt_diss = ddt_tot - (P2)
           write(iulog,'(a,3E22.14)') "PE,d/dt,diss:",PEner(2),ddt_tot,ddt_diss
           write(iulog,'(a,3E22.14)') "diss_tot:", ddt_diss_tot
@@ -785,7 +799,7 @@ subroutine prim_energy_halftimes(elem,hvcoord,tl,n,t_before_advance,nets,nete)
        suml2=0
        do k=1,nlev
           suml(:,:)=suml(:,:)+&
-                elem(ie)%state%theta_dp_cp(:,:,k,t1)*exner(:,:,k) )
+                elem(ie)%state%theta_dp_cp(:,:,k,t1)*exner(:,:,k) 
           suml2(:,:) = suml2(:,:)  +dpnh(:,:,k)*elem(ie)%state%phi(:,:,k,t1)
        enddo
        elem(ie)%accum%IEner(:,:,n)=suml(:,:) + suml2(:,:) +&

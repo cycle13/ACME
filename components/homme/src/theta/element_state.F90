@@ -78,7 +78,7 @@ module element_state
     ! Energy equation:
     ! KE_t  = KE1 + KE2 + KEhoriz2 +  KEvert1 + KEvert2 + P1 + T1 + T2 + D1 + Err
     ! IE_t  = S1 + S2 + IEvert1 + IEvert2 + d(p dphi/dt)/deta + ptop dphitop/dt + D2 
-    ! PE_t  = PEhoriz1 + PEvert1 + P2
+    ! PE_t  = PEhoriz1 + PEhoriz2 + PEvert1 + P2
     !
     ! d(p dphi/dt)/deta + ptop dphitop/dt should vertically integrate to zero
     !
@@ -86,7 +86,8 @@ module element_state
     ! KEhoriz* =  KE net horizontal advection  (* = 2 might be zero due to horizontal gradient of vertical velocity)
     ! IEvert*  =  IE net vertical advection    (should be zero)
     ! IEhoriz* =  IE net horizontal advection  (should be zero)
-    ! PEhoriz* =  PE net horizontal advection  (should be zero)
+    ! PEhoriz1+PEhoriz2 =  PE net horizontal advection  (should be zero)
+    ! PEvert1+PEvert2 should = 0
     !
     ! With leapfrog, energy equations are all exact except KE
     ! (has an Err term that goes to zero as dt**2)
@@ -95,13 +96,15 @@ module element_state
     ! KE1 = -0.5*(dpi/deta)*u*grad(u^2)
     ! KE2 = -0.5*u^2 * div( u dpi/deta)
     ! KEhoriz2 = dpi/deta w grad(w)^2 u -0.5 w^2 div(dpi/deta u)
-    ! PEhoriz1 = -phi div(u dpi/deta) - grad(phi)^T u dpi/deta
+    ! PEhoriz1 = -phi div(u dpi/deta)
+    ! PEhoriz2 = -grad(phi)^T u dpi/deta
     !
     ! KEvert1  = - etadot u du/deta dpi/deta - 0.5*u^2 d(etadot dpi/deta )/deta
     ! KEvert2  = -etadot w dw/deta dpi/deta - 0.5 w^2 d(etadot dpi/deta)/deta
     ! IEvert1  = -p^kappa d(theta etadot)/deta 
     ! IEvert2  =  dp/deta *  etadot*dphi/deta
-    ! PEvert1  = -phi d(edtadot dpi/deta)deta -etadot dpi/deta dphi/deta
+    ! PEvert1  = -phi d(edtadot dpi/deta)deta 
+    ! PEvert2  = -etadot dpi/deta dphi/deta
     !
     ! Transfer terms:
     ! T01 = -< theta grad_exner,u >             (KE<->IE)_1: T01 + S1 = 0
@@ -123,6 +126,7 @@ module element_state
     real (kind=real_kind) :: KE1(np,np)
     real (kind=real_kind) :: KE2(np,np)
     real (kind=real_kind) :: PEhoriz1(np,np)
+    real (kind=real_kind) :: PEhoriz2(np,np)
 
     real (kind=real_kind) :: T01(np,np)
     real (kind=real_kind) :: T2(np,np)

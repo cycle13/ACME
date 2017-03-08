@@ -826,7 +826,7 @@ contains
   real (kind=real_kind) :: vtens2(np,np,nlev)
   real (kind=real_kind) :: v_vadv(np,np,2,nlev)   ! velocity vertical advection
   real (kind=real_kind) :: s_state(np,np,nlev,3)  ! scalars w,theta,phi
-  real (kind=real_kind) :: s_vadv(np,np,nlev,2)   ! scalar vertical advection 
+  real (kind=real_kind) :: s_vadv(np,np,nlev,3)   ! scalar vertical advection 
   real (kind=real_kind) :: s_theta_dp_cpadv(np,np,nlev)
   real (kind=real_kind) :: stens(np,np,nlev,3)    ! tendencies w,theta,phi
 
@@ -940,13 +940,15 @@ contains
         ! ==============================================
         s_state(:,:,:,1)=elem(ie)%state%w(:,:,:,n0)
         s_state(:,:,:,2)=elem(ie)%state%phi(:,:,:,n0)
+        s_state(:,:,:,2)=elem(ie)%state%dp3d(:,:,:,n0)
+        call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
    !    this loop constructs d(s * theta_dp_cp)/deta
         do k=1,nlev-1
-            s_theta_dp_cpadv(:,:,k)=eta_dot_dpdn(:,:,k+1)*                       &
-             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-eta_dot_dpdn(:,:,k) &
+            s_theta_dp_cpadv(:,:,k)=s_vadv(:,:,k+1,3)*                       &
+             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-s_vadv(:,:,k,3) &
              *elem(ie)%state%theta_dp_cp(:,:,k,n0)/dp3d(:,:,k)
         end do
-        call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
+        call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
         !call preq_vertadv_upwind(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
      endif
 
@@ -1052,6 +1054,7 @@ contains
      if (compute_diagnostics) then
         elem(ie)%accum%KEhoriz1=0
         elem(ie)%accum%PEhoriz1=0
+        elem(ie)%accum%PEhoriz2=0
         elem(ie)%accum%KE1=0
         elem(ie)%accum%KE2=0
         elem(ie)%accum%KEvert1=0
@@ -1059,6 +1062,7 @@ contains
         elem(ie)%accum%IEvert1=0
         elem(ie)%accum%IEvert2=0
         elem(ie)%accum%PEvert1=0
+        elem(ie)%accum%PEvert2=0
         elem(ie)%accum%T01=0
         elem(ie)%accum%T2=0
         elem(ie)%accum%S1=0
@@ -1100,13 +1104,18 @@ contains
                   -exner(i,j,k)*s_theta_dp_cpadv(i,j,k)                        
                !  Form IEvert2
                   elem(ie)%accum%IEvert2(i,j)=elem(ie)%accum%IEvert2(i,j)      &
-                  +dpnh(i,j,k)*s_vadv(i,j,k,3)
+                  +dpnh(i,j,k)*s_vadv(i,j,k,2)
                !  Form PEhoriz1
                   elem(ie)%accum%PEhoriz1(i,j)=(elem(ie)%accum%PEhoriz1(i,j))  &
-                  -phi(i,j,k)*divdp(i,j,k) - dp3d(i,j,k)*v_gradphi(i,j,k)      
+                  -phi(i,j,k)*divdp(i,j,k) 
+               !  Form PEhoriz2                                                &
+                  elem(ie)%accum%PEhoriz2(i,j)=elem(ie)%accum%PEhoriz2(i,j)    &
+                  -dp3d(i,j,k)*v_gradphi(i,j,k)      
                !  Form PEvert1
                   elem(ie)%accum%PEvert1(i,j) = (elem(ie)%accum%PEvert1(i,j))   &
-                  -phi(i,j,k)*d_eta_dot_dpdn_dn                                 &
+                  -phi(i,j,k)*d_eta_dot_dpdn_dn                                 
+               !  Form PEvert2
+                  elem(ie)%accum%PEvert2(i,j) = elem(ie)%accum%PEvert2(i,j)     &
                   -dp3d(i,j,k)*s_theta_dp_cpadv(i,j,k)
                !  Form T01
                   elem(ie)%accum%T01(i,j)=elem(ie)%accum%T01(i,j)               &
