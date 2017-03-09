@@ -591,8 +591,8 @@ contains
 
 
 #else
-    T1=0; T2=0; S1=0; S2=0; P1=0; P2=0; KEvert=0; IEvert=0; KEhorz=0; IEhorz=0
-    KEhorz2=0;
+    T1=0; T2=0; S1=0; S2=0; P1=0; P2=0; KEvertu=0; KEvertw=0; IEvert=0; KEhorz=0; IEhorz=0
+    KEhorz2=0; KEH1=0; KEH2=0; PEhorz1=0; PEhorz2=0; PEvert1=0; PEvert2=0; 
 #endif
 
 
