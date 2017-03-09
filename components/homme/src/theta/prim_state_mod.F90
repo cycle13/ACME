@@ -619,8 +619,8 @@ contains
           write(iulog,'(a,2e22.14)')'Tot PE advection vert  = 0 abs/rel       :',PEvert1+PEvert2,abs(PEvert1+PEvert2)/sqrt(PEvert1**2+PEvert2**2)
           write(iulog,'(a,2e22.14)')'(T1+S1 abs/rel = 0)                      :',S1+T1, abs(S1+T1)/sqrt(S1**2+T1**2)
           write(iulog,'(a,2e22.14)')'(S1,T1)                                  :',S1,T1
-          write(iulog,'(a,2e22.14)')'(T2+S2 = 0)                              :',T2+S2
-          
+          write(iulog,'(a,2e22.14)')'(T2+S2 = 0)                              :',T2+S2, abs(S2+T2)/sqrt(S2**2+T2**2)
+          write(iulog,'(a,2e22.14)')'(S1,T1)                                  :',S2,T2
           ddt_tot =  (KEner(2)-KEner(1))/(dt)
           ddt_diss_tot = ddt_tot -(KEhorz+KEhorz2+KEvertu+KEvertw+T1+T2+P1) 
           ddt_diss = ddt_tot -(T1+T2+P1+KEhorz2)
@@ -629,7 +629,7 @@ contains
           
           ddt_tot =  (IEner(2)-IEner(1))/(dt)
           ddt_diss_tot = ddt_tot - (S1+S2+IEvert+IEvert2)
-          ddt_diss = ddt_tot - (S1+S2)
+          ddt_diss = ddt_tot - (S1+S2+IEvert+IEvert2)
           write(iulog,'(a,3E22.14)') "IE,d/dt,diss:",IEner(2),ddt_tot,ddt_diss
           write(iulog,'(a,3E22.14)') "diss_tot:", ddt_diss_tot
           
@@ -800,7 +800,7 @@ subroutine prim_energy_halftimes(elem,hvcoord,tl,n,t_before_advance,nets,nete)
        do k=1,nlev
           suml(:,:)=suml(:,:)+&
                 elem(ie)%state%theta_dp_cp(:,:,k,t1)*exner(:,:,k) 
-          suml2(:,:) = suml2(:,:)  +dpnh(:,:,k)*elem(ie)%state%phi(:,:,k,t1)
+          suml2(:,:) = suml2(:,:) -dpnh(:,:,k)*elem(ie)%state%phi(:,:,k,t1)
        enddo
        elem(ie)%accum%IEner(:,:,n)=suml(:,:) + suml2(:,:) +&
             elem(ie)%state%ps_v(:,:,t1) * elem(ie)%state%phis(:,:)

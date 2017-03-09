@@ -948,7 +948,7 @@ contains
              elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-s_vadv(:,:,k,3) &
              *elem(ie)%state%theta_dp_cp(:,:,k,n0)/dp3d(:,:,k)
         end do
-        call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
+        !call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
         !call preq_vertadv_upwind(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
      endif
 
@@ -1131,7 +1131,7 @@ contains
                   v_gradphi(i,j,k))*dpnh(i,j,k)                                 
                !  Form S2
                   elem(ie)%accum%S2(i,j)=elem(ie)%accum%S2(i,j)                 &
-                  -(g*(elem(ie)%state%w(i,j,k,n0))-v_gradphi(i,j,k))            &
+                  +g*(elem(ie)%state%w(i,j,k,n0))-v_gradphi(i,j,k)            &
                   *dpnh(i,j,k)
                !  Form P1
                   elem(ie)%accum%P1(i,j)=elem(ie)%accum%P1(i,j)                 &
