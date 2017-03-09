@@ -1131,7 +1131,7 @@ contains
                   v_gradphi(i,j,k))*dpnh(i,j,k)                                 
                !  Form S2
                   elem(ie)%accum%S2(i,j)=elem(ie)%accum%S2(i,j)                 &
-                  +g*(elem(ie)%state%w(i,j,k,n0))-v_gradphi(i,j,k)            &
+                  -g*(elem(ie)%state%w(i,j,k,n0))+v_gradphi(i,j,k)              &
                   *dpnh(i,j,k)
                !  Form P1
                   elem(ie)%accum%P1(i,j)=elem(ie)%accum%P1(i,j)                 &

@@ -620,7 +620,7 @@ contains
           write(iulog,'(a,2e22.14)')'(T1+S1 abs/rel = 0)                      :',S1+T1, abs(S1+T1)/sqrt(S1**2+T1**2)
           write(iulog,'(a,2e22.14)')'(S1,T1)                                  :',S1,T1
           write(iulog,'(a,2e22.14)')'(T2+S2 = 0)                              :',T2+S2, abs(S2+T2)/sqrt(S2**2+T2**2)
-          write(iulog,'(a,2e22.14)')'(S1,T1)                                  :',S2,T2
+          write(iulog,'(a,2e22.14)')'(S2,T2)                                  :',S2,T2
           ddt_tot =  (KEner(2)-KEner(1))/(dt)
           ddt_diss_tot = ddt_tot -(KEhorz+KEhorz2+KEvertu+KEvertw+T1+T2+P1) 
           ddt_diss = ddt_tot -(T1+T2+P1+KEhorz2)
