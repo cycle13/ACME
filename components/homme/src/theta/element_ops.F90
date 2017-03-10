@@ -267,20 +267,18 @@ contains
 !          (R_star(:,:,k)+R_star(:,:,k-1)) / 4
 !     rho_R_theta(:,:,k) = rho_i(:,:,k)*&
 !          (theta(:,:,k)*kappa_star(:,:,k) +theta(:,:,k-1)*kappa_star(:,:,k-1))/2
-     rho_R_theta(:,:,k) = &
-          ( theta_dp_cp(:,:,k)*kappa_star(:,:,k) +        &
-           theta_dp_cp(:,:,k-1)*kappa_star(:,:,k-1))/2 / &
-            (phi(:,:,k-1)-phi(:,:,k)) 
+     rho_R_theta(:,:,k) =0.5* (theta_dp_cp(:,:,k)*kappa_star(:,:,k)+ &
+                          theta_dp_cp(:,:,k-1)*kappa_star(:,:,k-1))/&
+                          (phi(:,:,k-1)-phi(:,:,k))
 
 
-     if (minval(rho_R_theta(:,:,k))<0) then
+     if (minval(theta_dp_co(:,:,k))<0) then
         print *,k,minval( (dp3d(:,:,k)+dp3d(:,:,k-1))/2),&
-             minval(phi(:,:,k-1)-phi(:,:,k))
-         print *, minval(phi(:,:,k-1)-phi(:,:,k))
+        print *,'phi(k-1)-phik',minval(phi(:,:,k-1)-phi(:,:,k))
+        print *, 'rho_R_theta',minval(rho_R_theta(:,:,k))
         call abortmp('error: rho<0')
      endif
-
-     
+    
      ! theta = T/e
      ! exner = (p/p0)**kappa         p = p0*exner**(1/kappa)
      ! p/exner = rho* Rstar * theta 
