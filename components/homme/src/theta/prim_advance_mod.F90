@@ -939,13 +939,13 @@ contains
         ! Compute vertical advection of T and v from eq. CCM2 (3.b.1)
         ! ==============================================
         s_state(:,:,:,1)=elem(ie)%state%w(:,:,:,n0)
-        s_state(:,:,:,2)=elem(ie)%state%phi(:,:,:,n0)
+        s_state(:,:,:,3)=elem(ie)%state%phi(:,:,:,n0)
         s_state(:,:,:,2)=elem(ie)%state%dp3d(:,:,:,n0)
         call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
    !    this loop constructs d(s * theta_dp_cp)/deta
         do k=1,nlev-1
-            s_theta_dp_cpadv(:,:,k)=s_vadv(:,:,k+1,3)*                       &
-             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-s_vadv(:,:,k,3) &
+            s_theta_dp_cpadv(:,:,k)=s_vadv(:,:,k+1,2)*                       &
+             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-s_vadv(:,:,k,2) &
              *elem(ie)%state%theta_dp_cp(:,:,k,n0)/dp3d(:,:,k)
         end do
         !call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
@@ -1006,7 +1006,7 @@ contains
         v_gradphi(:,:,k) = elem(ie)%state%v(:,:,1,k,n0)*gradphi(:,:,1,k) &
              +elem(ie)%state%v(:,:,2,k,n0)*gradphi(:,:,2,k) 
         ! use of s_vadv(:,:,k,2) here is correct since this corresponds to etadot d(phi)/deta
-        stens(:,:,k,3) = -s_vadv(:,:,k,2) - v_gradphi(:,:,k) + g*elem(ie)%state%w(:,:,k,n0)
+        stens(:,:,k,3) =  -s_vadv(:,:,k,3) - v_gradphi(:,:,k) + g*elem(ie)%state%w(:,:,k,n0)
 
         do j=1,np
            do i=1,np
