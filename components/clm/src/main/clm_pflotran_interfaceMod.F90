@@ -333,7 +333,7 @@ contains
     ! On the radiation time step, calculate the beginning carbon balance for mass
     ! conservation checks.
 
-    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp,nlevdecomp_full
     use clm_varcon      , only : dzsoi_decomp
     !
     ! !ARGUMENTS:
@@ -350,7 +350,8 @@ contains
 
     associate(                                                              &
          decomp_cpools_vr       => clm_bgc_data%decomp_cpools_vr_col      , &
-         soil_begcb             => clm_bgc_data%soil_begcb_col              & ! Output: [real(r8) (:)]  carbon mass, beginning of time step (gC/m**2)
+         soil_begcb             => clm_bgc_data%soil_begcb_col            , & ! Output: [real(r8) (:)]  carbon mass, beginning of time step (gC/m**2)
+         soil_begcb_full        => clm_bgc_data%soil_begcb_col_full         &
          )
     ! calculate beginning column-level soil carbon balance, for mass conservation check
       do fc = 1,filters(ifilter)%num_soilc
@@ -360,7 +361,14 @@ contains
             do l = 1, ndecomp_pools
                 soil_begcb(c) = soil_begcb(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
             end do
-        end do
+         end do
+
+         soil_begcb_full(c) = 0._r8
+         do j = 1, nlevdecomp_full
+            do l = 1, ndecomp_pools
+                soil_begcb_full(c) = soil_begcb_full(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
+            end do
+         end do
       end do
 
     end associate
@@ -413,7 +421,8 @@ contains
                                                   + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
                                                   + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
             do l = 1, ndecomp_pools
-                soil_begnb_org(c) = soil_begnb_org(c) + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
+                soil_begnb_org(c)   = soil_begnb_org(c)                         &
+                                    + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
             end do
         end do !!j = 1, nlevdecomp
 
@@ -440,12 +449,12 @@ contains
     type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
     !
     ! !LOCAL VARIABLES:
-    integer  :: c,j,l     ! indices
-    integer  :: fc             ! lake filter indices
-    real(r8) :: dtime            ! land model time step (sec)
+    integer  :: c,j,l                                                               ! indices
+    integer  :: fc                                                                  ! lake filter indices
+    real(r8) :: dtime                                                               ! land model time step (sec)
     integer  :: err_index                                                           ! indices
     logical  :: err_found                                                           ! error flag
-    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend
+    real(r8) :: pf_cinputs, pf_coutputs, pf_cdelta,pf_errcb, pf_cbeg, pf_cend       ! balance check varialbes
     !-----------------------------------------------------------------------
 
     associate(                                                                    &
@@ -510,7 +519,7 @@ contains
     ! !USES:
     use clm_time_manager, only : get_step_size,get_nstep
     use clm_varctl      , only : iulog, use_ed
-    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp, nlevdecomp_full
     use clm_varcon      , only : dzsoi_decomp
     ! !ARGUMENTS:
     type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
@@ -519,21 +528,22 @@ contains
     type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
     !
     ! !LOCAL VARIABLES:
-    integer  :: c,j,l     ! indices
-    integer  :: fc             ! lake filter indices
-    real(r8) :: dtime            ! land model time step (sec)
+    integer  :: c,j,l                                                               ! indices
+    integer  :: fc                                                                  ! lake filter indices
+    real(r8) :: dtime                                                               ! land model time step (sec)
     integer  :: err_index                                                           ! indices
     logical  :: err_found                                                           ! error flag
 
-    real(r8) :: pf_ninputs, pf_noutputs, pf_ndelta,pf_errnb
+    real(r8) :: pf_ninputs, pf_noutputs, pf_ndelta,pf_errnb                         !! _errnb: mass balance error; _ndelta: difference in pool sizes between end & beginning
     real(r8) :: pf_noutputs_gas, pf_noutputs_veg                                    !! _gas:nitrogen gases; _veg:plant uptake of NO3/NH4
     real(r8) :: pf_noutputs_nit, pf_noutputs_denit                                  !! _gas = _nit + _denit
     real(r8) :: pf_ninputs_org, pf_ninputs_min, pf_ndelta_org,pf_ndelta_min         !! _org:organic; _min:mineral nitrogen
-    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min
-    real(r8) :: pf_nend, pf_nend_org, pf_nend_min
-    real(r8) :: pf_nend_no3, pf_nend_nh4, pf_nend_nh4sorb
-    real(r8) :: plant_ndemand, potential_immob, actual_immob, gross_nmin
-    real(r8) :: pf_ngas_org, pf_ngas_min, pf_errnb_org, pf_errnb_min
+    real(r8) :: pf_nbeg, pf_nbeg_org, pf_nbeg_min                                   !! _nbeg: Nitrogen mass at the beginning of time-step
+    real(r8) :: pf_nend, pf_nend_org, pf_nend_min                                   !! _end: Nitrogen mass at the end of time-step
+    real(r8) :: pf_nend_no3, pf_nend_nh4, pf_nend_nh4sorb                           !! 3 mineral N pools at the end of time-step
+    real(r8) :: plant_ndemand, potential_immob, actual_immob, gross_nmin            !! _immob: N immobilization; _nmin: N mineralization
+    real(r8) :: pf_ngas_org, pf_ngas_min, pf_errnb_org, pf_errnb_min                !! _ngas_org: N gas from decomposition; _ngas_min: N gas from nitrification & denitrification
+    real(r8) :: pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
     !-----------------------------------------------------------------------
 
     associate(                                                                        &
@@ -627,7 +637,23 @@ contains
             potential_immob = potential_immob + potential_immob_vr(c,j)*dzsoi_decomp(j)
             actual_immob    = actual_immob    + actual_immob_vr(c,j)*dzsoi_decomp(j)
             gross_nmin      = gross_nmin      + gross_nmin_vr(c,j)*dzsoi_decomp(j)
-        end do
+        end do !!j = 1, nlevdecomp
+
+!!wgs:beg:
+        pf_ndelta_bottom     = 0._r8
+        pf_ndelta_bottom_org = 0._r8
+        pf_ndelta_bottom_min = 0._r8
+        do j=nlevdecomp+1, nlevdecomp_full
+            pf_ndelta_bottom_min = pf_ndelta_bottom_min + smin_no3_vr(c,j)*dzsoi_decomp(j) &
+                                                        + smin_nh4_vr(c,j)*dzsoi_decomp(j) &
+                                                        + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+            do l = 1, ndecomp_pools
+                pf_ndelta_bottom_org = pf_ndelta_bottom_org + decomp_npools_delta_vr(c,j,l)*dzsoi_decomp(j)
+            end do
+
+        end do !!j=nlevdecomp+1, nlevdecomp_full
+        pf_ndelta_bottom = pf_ndelta_bottom_org + pf_ndelta_bottom_min
+!!wgs:end
 
         pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
         pf_nend_min     = pf_nend_no3       + pf_nend_nh4 + pf_nend_nh4sorb
@@ -638,7 +664,9 @@ contains
         pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
         pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
         pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
-write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+!!        pf_errnb        = pf_errnb - pf_ndelta_bottom
+!!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
         pf_errnb_org    = (pf_ninputs_org - pf_ngas_org - gross_nmin + actual_immob)*dtime - pf_ndelta_org
         pf_errnb_min    = (pf_ninputs_min - pf_ngas_min + gross_nmin - actual_immob - pf_noutputs_veg)*dtime &
@@ -675,6 +703,9 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
             write(iulog,'(10E15.6)')pf_ninputs_org*dtime,pf_ninputs_min*dtime,              &
                                     pf_noutputs_nit*dtime,pf_noutputs_denit*dtime,          &
                                     pf_noutputs_gas*dtime,pf_noutputs_veg*dtime, plant_ndemand*dtime
+            write(iulog,*)
+            write(iulog,'(10A15)')  "Nend_bottom","Nend_b_org", "Nend_b_min"
+            write(iulog,'(10E15.6)')pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
             write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:end  "
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
@@ -1435,6 +1466,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 !    use clm_pflotran_interface_data
 !     use PFLOTRAN_Constants_module
 !     use pflotran_clm_setmapping_module
+    use clm_varctl        , only : iulog
     use spmdMod           , only : mpicom, masterproc, iam, npes
     use clm_time_manager  , only : get_step_size, get_nstep, nsstep, nestep,       &
                                    is_first_step, is_first_restart_step, calc_nestep
@@ -1476,25 +1508,25 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
       call calc_nestep()  !! nestep
        total_clmstep = nestep - pf_clmnstep0!!nestep - nsstep
        ispfprint = .true.               ! turn-on or shut-off PF's *.h5 output
-
+write(iulog,*)">>>DEBUG: 0 pflotranModelUpdateFinalWaypoint"
        call pflotranModelUpdateFinalWaypoint(pflotran_m, total_clmstep*dtime, dtime, ispfprint)
-
+write(iulog,*)">>>DEBUG: 0 get_clm_soil_dimension"
        !! wgs:beg------------------------------------------------
        !! wgs: move from 'interface_init'
        ! force CLM soil domain into PFLOTRAN subsurface grids
        call get_clm_soil_dimension(clm_bgc_data, bounds)
-
+write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
        ! Currently always set soil hydraulic/BGC properties from CLM to PF
        call get_clm_soil_properties(clm_bgc_data, bounds, filters)
-
+write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
        ! Get top surface area of 3-D pflotran subsurface domain
        call pflotranModelGetTopFaceArea(pflotran_m)
 
        !! wgs:end------------------------------------------------
-
+write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
        ! always initializing soil 'TH' states from CLM to pflotran
        call get_clm_soil_th(clm_bgc_data, .not.initth_pf2clm, .not.initth_pf2clm, bounds, filters, ifilter)
-
+write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     endif
@@ -1503,16 +1535,18 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     ! (1)
     ! if PF T/H mode not available, have to pass those from CLM to global variable in PF to drive BGC/H
     if (.not. isinitpf .and. (.not.pf_tmode .or. .not.pf_hmode)) then    ! always initialize from CLM to pF, if comment out this 'if'block
+write(iulog,*)">>>DEBUG: get_clm_soil_th"
        call get_clm_soil_th(clm_bgc_data, .TRUE., .TRUE., bounds, filters, ifilter)
-
+write(iulog,*)">>>DEBUG: pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     end if
 
     ! ice-len adjusted porostiy
     if (.not.pf_frzmode) then
+write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
         call get_clm_iceadj_porosity(clm_bgc_data, bounds, filters, ifilter)
-
+write(iulog,*)">>>DEBUG: pfResetPorosity"
         call pflotranModelResetSoilPorosityFromCLM(pflotran_m)
 
     endif
@@ -1527,7 +1561,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     ! (4a) always (re-)initialize PFLOTRAN soil bgc state variables from CLM-CN
 
        !if (isinitpf) then    ! if only initialize ONCE, uncomment this 'if ... endif' block.
-
+write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
           call get_clm_bgc_conc(clm_bgc_data, bounds, filters, ifilter)
           call pflotranModelSetBgcConcFromCLM(pflotran_m)
           if ((.not.pf_hmode .or. .not.pf_frzmode)) then
@@ -1543,11 +1577,11 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
         if (.not.pf_hmode .or. .not.pf_frzmode) then
           call pflotranModelUpdateAqConcFromCLM(pflotran_m)
         endif
-
+write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     ! (4b) bgc rate (fluxes) from CLM to PFLOTRAN
         call get_clm_bgc_rate(clm_bgc_data, bounds, filters, ifilter)
         call pflotranModelSetBgcRatesFromCLM(pflotran_m)
-
+write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     endif
 
     ! (5) the main callings of PFLOTRAN
@@ -1558,16 +1592,16 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     else
        ispfprint = .FALSE.
     endif
-
+write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
     call pflotranModelStepperRunTillPauseTime( pflotran_m, (nstep+1.0d0)*dtime, dtime, ispfprint )
     call mpi_barrier(mpicom, ierr)
 
 
     ! (6) update CLM variables from PFLOTRAN
-
+write(iulog,*)">>>DEBUG: pflotranModelGetBgcVariablesFromPF"
     if (pf_cmode) then
         call pflotranModelGetBgcVariablesFromPF( pflotran_m)      ! bgc variables
-
+write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
         call update_soil_bgc_pf2clm(clm_bgc_data, bounds, filters, ifilter)
 
         ! need to save the current time-step PF porosity/liq. saturation for bgc species mass conservation
@@ -1656,6 +1690,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     use ColumnType      , only : col
 
     use clm_varpar      , only : nlevgrnd
+    use clm_varcon      , only : re        !!re = SHR_CONST_REARTH*0.001_r8 !radius of earth (km)
     use domainMod       , only : ldomain
     use landunit_varcon , only : istsoil, istcrop
 
@@ -1822,7 +1857,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
        endif !if (ldomain%nv==4 .or. 3)
 
-    end do
+    end do !!g = bounds%begg, bounds%endg
 
     !!!!
     call VecGetArrayF90(clm_pf_idata%cellid_clmp,  cellid_clm_loc,  ierr)
@@ -1892,14 +1927,14 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
                   lats = latv(g,1:4)
                   lons = lonv(g,1:4)
                   dxsoil_clm_loc(cellcount) = abs(lons(1)+lons(4)-lons(2)-lons(3))/2.0_r8     &
-                                               * cwtgcell(c) * ldomain%frac(g)
+                                            * cwtgcell(c) * ldomain%frac(g)
                     ! note: since in 'column_wise' mode, the columns are in 1D array by x-axis,
                     ! only need to scale 'dx' by column area fraction
                   dysoil_clm_loc(cellcount) = abs(lats(1)+lats(2)-lats(3)-lats(4))/2.0_r8
 
                else
                   dxsoil_clm_loc(cellcount) = larea(g)/(re**2)  &       ! in degrees of great circle length
-                                               * cwtgcell(c) * ldomain%frac(g)
+                                            * cwtgcell(c) * ldomain%frac(g)
                   dysoil_clm_loc(cellcount) = larea(g)/(re**2)
                endif
 
@@ -1915,8 +1950,8 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
             cellid_clm_loc(cellcount) = (grc%gindex(g)-1)*clm_pf_idata%nzclm_mapped + j  ! 1-based
 
-            xsoil_clm_loc(cellcount) = lonc(g)
-            ysoil_clm_loc(cellcount) = latc(g)
+            xsoil_clm_loc(cellcount)  = lonc(g)
+            ysoil_clm_loc(cellcount)  = latc(g)
             dxsoil_clm_loc(cellcount) = -9999.d0
             dysoil_clm_loc(cellcount) = -9999.d0
 
@@ -1941,7 +1976,6 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
     call VecRestoreArrayF90(clm_pf_idata%cellid_clmp,  cellid_clm_loc,  ierr)
     CHKERRQ(ierr)
-
     call VecRestoreArrayF90(clm_pf_idata%zisoil_clmp,  zisoil_clm_loc,  ierr)
     CHKERRQ(ierr)
     call VecRestoreArrayF90(clm_pf_idata%dxsoil_clmp,  dxsoil_clm_loc,  ierr)
@@ -2067,20 +2101,15 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
       !! in ACME, decomp_rate_constants have been call in 'CNEcosystemDynNoLeaching1' before pflotran-run
 !       if (use_century_decomp) then
 !         call decomp_rate_constants_bgc(bounds, filters(1)%num_soilc, filters(1)%soilc)  !!wgs: mismatch variables
-! !         subroutine decomp_rate_constants_bgc(bounds, num_soilc, filter_soilc, &
-! !        canopystate_vars, soilstate_vars, temperature_vars, ch4_vars, carbonflux_vars)
 !       else 
 !         call decomp_rate_constants_cn(bounds, filters(1)%num_soilc, filters(1)%soilc)   !!wgs: mismatch variables
-! !         subroutine decomp_rate_constants_cn(bounds, &
-! !         num_soilc, filter_soilc, &
-! !         canopystate_vars, soilstate_vars, temperature_vars, ch4_vars, carbonflux_vars, cnstate_vars)
 !       end if
       !! wgs:end---------------------------------------------------------------------------
 
       CN_ratio_mass_to_mol = clm_pf_idata%N_molecular_weight/clm_pf_idata%C_molecular_weight
       clm_pf_idata%decomp_element_ratios(:,1) = 1.0_r8
       clm_pf_idata%decomp_element_ratios(:,2) = 1.0_r8/initial_cn_ratio(1:ndecomp_pools) &
-                                                /CN_ratio_mass_to_mol                       ! ratio in moles
+                                              /CN_ratio_mass_to_mol                       ! ratio in moles
 
       ! note: the following 'kd' already corrected by ad-factors for each pool
       clm_pf_idata%ck_decomp_c = kd_decomp_pools(1:ndecomp_pools)
@@ -2095,8 +2124,8 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
       clm_pf_idata%fr_decomp_c = 0._r8
       do k = 1, ndecomp_cascade_transitions
-        ki=decomp_cascade_con%cascade_donor_pool(k)
-        kj=decomp_cascade_con%cascade_receiver_pool(k)
+        ki = decomp_cascade_con%cascade_donor_pool(k)
+        kj = decomp_cascade_con%cascade_receiver_pool(k)
 
         if (ki>0) then
           ! taking the first 'cell' as default ('pathfrac' is 'cell'-related, which will be adjusted if needed)
@@ -2113,7 +2142,7 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
           if (kj>0) then
             clm_pf_idata%fr_decomp_c(ki,kj) = (1.0_r8-rf_decomp_cascade(soilc1,layer1,k)) &
-                         * pathfrac_decomp_cascade(soilc1,layer1,k)
+                                            * pathfrac_decomp_cascade(soilc1,layer1,k)
           else
             if(clm_pf_idata%fr_decomp_c(ki,ki) .ne. 1.0) then
                ! if no receivor, respiration fraction must be 1.0
@@ -2151,14 +2180,14 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 !     call VecGetArrayF90(clm_pf_idata%zsoi_clmp,  zsoi_clm_loc,  ierr)
 !     CHKERRQ(ierr)
 
-    hksat_x_clm_loc(:) = 0._r8
-    hksat_y_clm_loc(:) = 0._r8
-    hksat_z_clm_loc(:) = 0._r8
-    sucsat_clm_loc(:)  = 0._r8
-    watsat_clm_loc(:)  = 0._r8
-    bsw_clm_loc(:)     = 0._r8
-    watfc_clm_loc(:)   = 0._r8
-    bulkdensity_dry_clm_loc(:) =  0._r8
+    hksat_x_clm_loc(:)          = 0._r8
+    hksat_y_clm_loc(:)          = 0._r8
+    hksat_z_clm_loc(:)          = 0._r8
+    sucsat_clm_loc(:)           = 0._r8
+    watsat_clm_loc(:)           = 0._r8
+    bsw_clm_loc(:)              = 0._r8
+    watfc_clm_loc(:)            = 0._r8
+    bulkdensity_dry_clm_loc(:)  = 0._r8
 
     gcount = 0
     do c = bounds%begc, bounds%endc
@@ -2439,8 +2468,8 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
           endif !!if (initpfhmode) then
 
           if (initpftmode) then
-             soilt_clmp_loc(cellcount)   = t_soisno(c,j)-tfrz
-             t_scalar_clmp_loc(cellcount)= t_scalar(c,j)
+             soilt_clmp_loc(cellcount)     = t_soisno(c,j)-tfrz
+             t_scalar_clmp_loc(cellcount)  = t_scalar(c,j)
           endif
 
 #ifdef CLM_PF_OFFLINE
@@ -2577,7 +2606,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
                itheta = h2osoi_ice(c,j) / (dz(c,j) * denice)
                itheta = min(itheta, 0.99_r8*watsat(c,j))
                adjporosity_clmp_loc(cellcount ) = watsat(c,j) - itheta
-               soilisat_clmp_loc(cellcount ) = itheta/watsat(c,j)
+               soilisat_clmp_loc(cellcount )    = itheta/watsat(c,j)
              else
                call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer number is greater than " // &
                  " 'clm_varpar%nlevgrnd'. Please check")
@@ -2705,25 +2734,25 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
       smin_nh4_vr_clm_loc(:)      = 0._r8
       smin_nh4sorb_vr_clm_loc(:)  = 0._r8
 
-      do j = 1, clm_pf_idata%nzclm_mapped
+      do j = 1, clm_pf_idata%nzclm_mapped !! clm_pf_idata%nzclm_mapped=15
           cellcount = gcount*clm_pf_idata%nzclm_mapped + j    ! 1-based
 
           ! note: all clm-pf soil layers are 'clm_pf_idata%nzclm_mapped' for both TH/BGC,
           !       but in CLM, T is within 'nlevgrnd', H is within 'nlevsoi', bgc within 'nlevdecomp'
 
-          if(j <= nlevdecomp) then
+          if(j <= nlevdecomp) then  !!nlevdecomp = 10, nlevdecomp_full = 15
 
              do k = 1, ndecomp_pools
                 vec_offset = (k-1)*clm_pf_idata%nlclm_sub        ! 0-based
                 ! decomp_pool vec: 'cell' first, then 'species' (i.e. cell by cell for 1 species, then species by species)
                 ! Tips: then when doing 3-D data-mapping, no need to stride the vecs BUT to do segmentation.
 
-                decomp_cpools_vr_clm_loc(vec_offset+cellcount) = decomp_cpools_vr(c,j,k)   &
-                     /clm_pf_idata%C_molecular_weight
+                decomp_cpools_vr_clm_loc(vec_offset+cellcount)  = decomp_cpools_vr(c,j,k)       &
+                                                                /clm_pf_idata%C_molecular_weight
 
                 if (clm_pf_idata%floating_cn_ratio(k)) then
-                  decomp_npools_vr_clm_loc(vec_offset+cellcount) = decomp_npools_vr(c,j,k) &
-                     /clm_pf_idata%N_molecular_weight
+                  decomp_npools_vr_clm_loc(vec_offset+cellcount)= decomp_npools_vr(c,j,k)       &
+                                                                /clm_pf_idata%N_molecular_weight
                 else
                   decomp_npools_vr_clm_loc(vec_offset+cellcount) =   &
                       decomp_cpools_vr_clm_loc(vec_offset+cellcount) &
@@ -2733,11 +2762,11 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
              enddo ! do k=1, ndecomp_pools
 
              smin_no3_vr_clm_loc(cellcount)      = smin_no3_vr(c,j) &
-                        /clm_pf_idata%N_molecular_weight
+                                                /clm_pf_idata%N_molecular_weight
              smin_nh4_vr_clm_loc(cellcount)      = smin_nh4_vr(c,j) &
-                        /clm_pf_idata%N_molecular_weight
+                                                /clm_pf_idata%N_molecular_weight
              smin_nh4sorb_vr_clm_loc(cellcount)  = smin_nh4sorb_vr(c,j) &
-                        /clm_pf_idata%N_molecular_weight
+                                                /clm_pf_idata%N_molecular_weight
 
            endif
 
@@ -3131,8 +3160,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
      dtime = real( get_step_size(), r8 )
 
      ! soil C/N pool increments set to the previous timestep (i.e., not yet updated)
-     decomp_cpools_delta_vr  = 0._r8-decomp_cpools_vr
-     decomp_npools_delta_vr  = 0._r8-decomp_npools_vr
+     decomp_cpools_delta_vr  = 0._r8 - decomp_cpools_vr
+     decomp_npools_delta_vr  = 0._r8 - decomp_npools_vr
 
      ! clm-pf interface data updated
 ! FLEXIBLE_POOLS
@@ -3202,14 +3231,15 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
       if (mapped_gcount_skip(gcount+1)) cycle  ! skip inactive grid
 #endif
 
-      do j = 1, nlevdecomp
+!      do j = 1, nlevdecomp
+      do j = 1, nlevdecomp_full
 
           hr_vr(c,j)              = 0._r8
           gross_nmin_vr(c,j)      = 0._r8
           actual_immob_vr(c,j)    = 0._r8
           potential_immob_vr(c,j) = 0._r8
 
-          if(j <= clm_pf_idata%nzclm_mapped) then
+          if(j <= clm_pf_idata%nzclm_mapped) then  !!clm_pf_idata%nzclm_mapped = 15
 
               cellcount = gcount*clm_pf_idata%nzclm_mapped + j   ! 1-based
 
@@ -3228,8 +3258,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
                                 + decomp_npools_vr_clm_loc(vec_offset+cellcount)      &
                                 * clm_pf_idata%N_molecular_weight ) !!/dtime
                  else
-                     decomp_npools_delta_vr(c,j,k) = decomp_cpools_delta_vr(c,j,k)/ &
-                        initial_cn_ratio(k)      ! initial_cn_ratio: already in unit of mass
+                     decomp_npools_delta_vr(c,j,k) = decomp_cpools_delta_vr(c,j,k) &
+                                                   /initial_cn_ratio(k)      ! initial_cn_ratio: already in unit of mass
                  endif
 
                  if (abs(decomp_cpools_delta_vr(c,j,k))<=1.d-20) decomp_cpools_delta_vr(c,j,k)=0._r8
@@ -3237,78 +3267,78 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
                  ! tracking HR/NMIN/NIMM/NIMMP from SOM-C reaction network
                  ! if total 'hr/nmin/nimm/nimp' unknown, have to add up
-                  if (clm_pf_idata%ispec_decomp_hr(k)>0 .and. clm_pf_idata%ispec_hrimm<=0) then
-                     hr_vr(c,j) = hr_vr(c,j)                            &
-                           + (acchr_vr_clm_loc(vec_offset+cellcount)    &
-                           * clm_pf_idata%C_molecular_weight)/dtime
-                  endif
+                 if (clm_pf_idata%ispec_decomp_hr(k)>0 .and. clm_pf_idata%ispec_hrimm<=0) then
+                    hr_vr(c,j)  = hr_vr(c,j)                                 &
+                                + (acchr_vr_clm_loc(vec_offset+cellcount)    &
+                                * clm_pf_idata%C_molecular_weight)/dtime
+                 endif
 
                  !
                  if (clm_pf_idata%ispec_decomp_nmin(k)>0 .and. clm_pf_idata%ispec_nmin<=0) then
-                    gross_nmin_vr(c,j)  = gross_nmin_vr(c,j)            &
-                          + (accnmin_vr_clm_loc(vec_offset+cellcount)   &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                    gross_nmin_vr(c,j)  = gross_nmin_vr(c,j)                        &
+                                        + (accnmin_vr_clm_loc(vec_offset+cellcount) &
+                                        * clm_pf_idata%N_molecular_weight)/dtime
                  endif
 
                  !
                  if (clm_pf_idata%ispec_decomp_nimm(k)>0 .and. clm_pf_idata%ispec_nimm<=0) then
-                    actual_immob_vr(c,j) = actual_immob_vr(c,j)         &
-                          + (accnimm_vr_clm_loc(vec_offset+cellcount)   &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                    actual_immob_vr(c,j)= actual_immob_vr(c,j)                      &
+                                        + (accnimm_vr_clm_loc(vec_offset+cellcount) &
+                                        * clm_pf_idata%N_molecular_weight)/dtime
                  endif
 
                  !
                  if (clm_pf_idata%ispec_decomp_nimp(k)>0 .and. clm_pf_idata%ispec_nimp<=0) then
-                    potential_immob_vr(c,j) = potential_immob_vr(c,j)   &
-                          + (accnimmp_vr_clm_loc(vec_offset+cellcount)  &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                    potential_immob_vr(c,j) = potential_immob_vr(c,j)                       &
+                                            + (accnimmp_vr_clm_loc(vec_offset+cellcount)    &
+                                            * clm_pf_idata%N_molecular_weight)/dtime
                  endif
 
               enddo ! do k=1, ndecomp_pools
 
               ! if total 'hr/nmin/nimm/nimp' known
-               if (clm_pf_idata%ispec_hrimm>0) then
-                  hr_vr(c,j) = hr_vr(c,j)                            &
-                           + (acchr_vr_clm_loc(cellcount)            &
-                           * clm_pf_idata%C_molecular_weight)/dtime
-               endif
+              if (clm_pf_idata%ispec_hrimm>0) then
+                  hr_vr(c,j)    = hr_vr(c,j)                                &
+                                + (acchr_vr_clm_loc(cellcount)              &
+                                * clm_pf_idata%C_molecular_weight)/dtime
+              endif
 
               if (clm_pf_idata%ispec_nmin>0) then
-                 gross_nmin_vr(c,j)  = gross_nmin_vr(c,j)           &
-                          + (accnmin_vr_clm_loc(cellcount)          &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                 gross_nmin_vr(c,j) = gross_nmin_vr(c,j)                    &
+                                    + (accnmin_vr_clm_loc(cellcount)        &
+                                    * clm_pf_idata%N_molecular_weight)/dtime
               endif
               if (clm_pf_idata%ispec_nimm>0) then
-                 actual_immob_vr(c,j) = actual_immob_vr(c,j)        &
-                          + (accnimm_vr_clm_loc(cellcount)          &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                 actual_immob_vr(c,j)   = actual_immob_vr(c,j)              &
+                                        + (accnimm_vr_clm_loc(cellcount)    &
+                                        * clm_pf_idata%N_molecular_weight)/dtime
               endif
               if (clm_pf_idata%ispec_nimp>0) then
-                 potential_immob_vr(c,j) = potential_immob_vr(c,j)  &
-                          + (accnimmp_vr_clm_loc(cellcount)         &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                 potential_immob_vr(c,j)= potential_immob_vr(c,j)           &
+                                        + (accnimmp_vr_clm_loc(cellcount)   &
+                                        * clm_pf_idata%N_molecular_weight)/dtime
               endif
 
 !! wgs-beg:--------------------------------------------------------------------------------
 !! directly update the 'smin' N pools (must bypass the 'CNNStateUpdate1,2,3' relevant to soil N)
-              smin_no3_vr(c,j) = &
-                           smin_no3_vr_clm_loc(cellcount)*clm_pf_idata%N_molecular_weight
+              smin_no3_vr(c,j)  = smin_no3_vr_clm_loc(cellcount)            &
+                                * clm_pf_idata%N_molecular_weight
 
-              smin_nh4_vr(c,j) = &
-                           smin_nh4_vr_clm_loc(cellcount)*clm_pf_idata%N_molecular_weight
+              smin_nh4_vr(c,j)  = smin_nh4_vr_clm_loc(cellcount)            &
+                                * clm_pf_idata%N_molecular_weight
 
-              smin_nh4sorb_vr(c,j) = &
-                           smin_nh4sorb_vr_clm_loc(cellcount)*clm_pf_idata%N_molecular_weight
+              smin_nh4sorb_vr(c,j)  = smin_nh4sorb_vr_clm_loc(cellcount)    &
+                                    * clm_pf_idata%N_molecular_weight
 
               sminn_vr(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j) + smin_nh4sorb_vr(c,j)
 !! wgs-end:--------------------------------------------------------------------------------
 
               !! flows or changes
               smin_nh4_to_plant_vr(c,j) = (accextrnh4_vr_clm_loc(cellcount)  &
-                          * clm_pf_idata%N_molecular_weight)/dtime
+                                        * clm_pf_idata%N_molecular_weight)/dtime
               smin_no3_to_plant_vr(c,j) = (accextrno3_vr_clm_loc(cellcount)  &
-                          * clm_pf_idata%N_molecular_weight)/dtime
-              sminn_to_plant_vr(c,j) = smin_nh4_to_plant_vr(c,j) + smin_no3_to_plant_vr(c,j)
+                                        * clm_pf_idata%N_molecular_weight)/dtime
+              sminn_to_plant_vr(c,j)    = smin_nh4_to_plant_vr(c,j) + smin_no3_to_plant_vr(c,j)
 
           else    ! just in case 'clm_pf_idata%nzclm_mapped<nlevdcomp', all set to ZERO (different from TH)
 
@@ -3317,13 +3347,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
                  decomp_npools_delta_vr(c,j,k) = 0._r8
               enddo
 
-               hr_vr(c,j)                 = 0._r8
-
-!               sminn_delta_vr(c,j)        = 0._r8
-!               smin_no3_delta_vr(c,j)     = 0._r8
-!               smin_nh4_delta_vr(c,j)     = 0._r8
-!               smin_nh4sorb_delta_vr(c,j) = 0._r8
-
+              hr_vr(c,j)                 = 0._r8
               smin_nh4_to_plant_vr(c,j)  = 0._r8
               smin_no3_to_plant_vr(c,j)  = 0._r8
               sminn_to_plant_vr(c,j)     = 0._r8
@@ -3331,10 +3355,13 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
               potential_immob_vr(c,j)    = 0._r8
               actual_immob_vr(c,j)       = 0._r8
 
-          endif
+!               sminn_delta_vr(c,j)        = 0._r8
+!               smin_no3_delta_vr(c,j)     = 0._r8
+!               smin_nh4_delta_vr(c,j)     = 0._r8
+!               smin_nh4sorb_delta_vr(c,j) = 0._r8
 
-       enddo
-
+          endif !!(j <= clm_pf_idata%nzclm_mapped)
+       enddo !!j = 1, nlevdecomp
      enddo ! do fc = 1, filters(ifilter)%num_soilc
 
 

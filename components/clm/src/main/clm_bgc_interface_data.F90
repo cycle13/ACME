@@ -24,6 +24,7 @@ module clm_bgc_interface_data
 
      ! clm_varpar
      integer                    :: nlevdecomp                               ! num of CLM soil layers that are mapped to/from PFLOTRAN
+     integer                    :: nlevdecomp_full                          ! number of biogeochemical layers, (includes lower layers that are biogeochemically inactive)
      integer                    :: ndecomp_pools                            ! num of decomposition pools
 
      ! decomp_cascade_con
@@ -240,11 +241,16 @@ module clm_bgc_interface_data
      real(r8), pointer :: forc_pch4_grc                             (:)     ! CH4 partial pressure (Pa)
 
      ! mass balance check:
+     !! summary of layer 1:nlevdecomp
      real(r8), pointer :: soil_begcb_col                            (:)     ! soil organic carbon mass, beginning of time step (gC/m**2)
      real(r8), pointer :: soil_begnb_col                            (:)     ! soil nitrogen mass, beginning of time step (gN/m**2)
      real(r8), pointer :: soil_begnb_org_col                        (:)     ! soil organic nitrogen mass, beginning of time step (gN/m**2)
      real(r8), pointer :: soil_begnb_min_col                        (:)     ! soil mineral nitrogen mass, beginning of time step (gN/m**2) = no3 + nh4 + nh4sorb
-
+     !! summary of layer 1:nlevdecomp_full
+     real(r8), pointer :: soil_begcb_col_full                       (:)     ! soil organic carbon mass, beginning of time step (gC/m**2)
+     real(r8), pointer :: soil_begnb_col_full                       (:)     ! soil nitrogen mass, beginning of time step (gN/m**2)
+     real(r8), pointer :: soil_begnb_org_col_full                   (:)     ! soil organic nitrogen mass, beginning of time step (gN/m**2)
+     real(r8), pointer :: soil_begnb_min_col_full                   (:)     ! soil mineral nitrogen mass, beginning of time step (gN/m**2) = no3 + nh4 + nh4sorb
      !!------------------------------------------------------------------------------------------
      !! pflotran variables: END
      !!------------------------------------------------------------------------------------------
@@ -514,6 +520,11 @@ contains
     allocate(this%soil_begnb_col                (begc:endc))                ; this%soil_begnb_col                (:)   = ival
     allocate(this%soil_begnb_org_col            (begc:endc))                ; this%soil_begnb_org_col            (:)   = ival
     allocate(this%soil_begnb_min_col            (begc:endc))                ; this%soil_begnb_min_col            (:)   = ival
+
+    allocate(this%soil_begcb_col_full           (begc:endc))                ; this%soil_begcb_col_full           (:)   = ival
+    allocate(this%soil_begnb_col_full           (begc:endc))                ; this%soil_begnb_col_full           (:)   = ival
+    allocate(this%soil_begnb_org_col_full       (begc:endc))                ; this%soil_begnb_org_col_full       (:)   = ival
+    allocate(this%soil_begnb_min_col_full       (begc:endc))                ; this%soil_begnb_min_col_full       (:)   = ival
     !!------------------------------------------------------------------------------------------
     !! pflotran variables: END
     !!------------------------------------------------------------------------------------------

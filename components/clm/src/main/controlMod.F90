@@ -375,6 +375,7 @@ contains
        end if
 
        if (use_pflotran) then
+            use_bgc_interface = .true.
             use_clm_bgc = .false.
             !! enable 'use_nitrif_denitrif' to initilize Nh4 & NO3 pools, NOT to implement 'nitrif_denitrif'
             use_nitrif_denitrif = .true.
