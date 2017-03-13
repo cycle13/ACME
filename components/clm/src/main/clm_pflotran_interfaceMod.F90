@@ -1796,7 +1796,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | begg,endg=",bounds%begg, bounds%endg
 
     do g = bounds%begg, bounds%endg
       gcount = g - bounds%begg                               ! 0-based
-write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | gcount,g,begg,endg=",gcount,g,bounds%begg, bounds%endg
+write(iulog,'(A,10I10)')">>>DEBUG | Soil Dimension | gcount,g,begg,endg=",gcount,g,bounds%begg, bounds%endg
       ! re-calculating 2-D grid area if vertices are known from input file
       ! NOTE: this will over-write the grid area read-in from either 'ldomain' file or 'surfdata' file
       if (ldomain%nv==4 .or. ldomain%nv==3) then
@@ -1897,7 +1897,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | loc Initialization: end"
     do j = 1, clm_pf_idata%nzclm_mapped
 
        if (j <= nlevgrnd) then
-write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=",j,clm_pf_idata%nzclm_mapped
+write(iulog,'(A,10I10)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=",j,clm_pf_idata%nzclm_mapped
 
 #ifdef COLUMN_MODE
 write(iulog,'(A)')">>>DEBUG | Soil Dimension | COLUMN_MODE"
@@ -1905,7 +1905,7 @@ write(iulog,'(A)')">>>DEBUG | Soil Dimension | COLUMN_MODE"
         do c = bounds%begc, bounds%endc
             g = cgridcell(c)
             l = clandunit(c)
-write(iulog,'(A,10I5)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
+write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
             ! note that filters%soilc includes 'istsoil' and 'istcrop'
             ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
             if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
@@ -1921,7 +1921,7 @@ write(iulog,'(A,10I5)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltyp
 
                ! top face area, scaled by active column weight and land fraction
                toparea_clm_loc(cellcount) = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
-write(iulog,'(A,10I5)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
+write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
 write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
@@ -1943,9 +1943,9 @@ write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
                                             * cwtgcell(c) * ldomain%frac(g)
                   dysoil_clm_loc(cellcount) = larea(g)/(re**2)
                endif
-
-            endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
 write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
+            endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
+
 !write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
         enddo ! do c = bounds%begc, bounds%endc
 
