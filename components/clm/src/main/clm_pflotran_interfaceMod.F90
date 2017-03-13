@@ -1900,6 +1900,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | loc Initialization: end"
 write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=",j,clm_pf_idata%nzclm_mapped
 
 #ifdef COLUMN_MODE
+write(iulog,'(A)')">>>DEBUG | Soil Dimension | POINT_MODE"
         gcount = 0
         do c = bounds%begc, bounds%endc
             g = cgridcell(c)
@@ -1946,7 +1947,7 @@ write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=
         enddo ! do c = bounds%begc, bounds%endc
 
 #else
-
+write(iulog,'(A)')">>>DEBUG | Soil Dimension | COLUMN_MODE"
         do g = bounds%begg, bounds%endg
             gcount = g - bounds%begg                           ! 0-based
             cellcount = gcount*clm_pf_idata%nzclm_mapped + j   ! 1-based
