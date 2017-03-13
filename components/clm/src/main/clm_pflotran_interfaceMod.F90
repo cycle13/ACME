@@ -1861,7 +1861,7 @@ write(iulog,'(A,I5,10E14.6)')">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,
        endif !if (ldomain%nv==4 .or. 3)
 write(iulog,'(A,10E14.6)')">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),dysoil_clm(gcount+1)
     end do !!g = bounds%begg, bounds%endg
-
+write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: beg"
     !!!!
     call VecGetArrayF90(clm_pf_idata%cellid_clmp,  cellid_clm_loc,  ierr)
     CHKERRQ(ierr)
@@ -1883,7 +1883,7 @@ write(iulog,'(A,10E14.6)')">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_cl
     CHKERRQ(ierr)
     call VecGetArrayF90(clm_pf_idata%zsoil_clmp,  zsoil_clm_loc,  ierr)
     CHKERRQ(ierr)
-
+write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: end"
     zisoil_clm_loc(:)   = 0._r8
     dxsoil_clm_loc(:)   = 0._r8
     dysoil_clm_loc(:)   = 0._r8
@@ -1893,11 +1893,11 @@ write(iulog,'(A,10E14.6)')">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_cl
     xsoil_clm_loc(:)    = 0._r8
     ysoil_clm_loc(:)    = 0._r8
     zsoil_clm_loc(:)    = 0._r8
-
+write(iulog,*)">>>DEBUG | Soil Dimension | loc Initialization: end"
     do j = 1, clm_pf_idata%nzclm_mapped
 
        if (j <= nlevgrnd) then
-
+write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=",j,clm_pf_idata%nzclm_mapped
 
 #ifdef COLUMN_MODE
         gcount = 0
