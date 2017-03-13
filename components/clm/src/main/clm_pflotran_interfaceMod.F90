@@ -1949,33 +1949,33 @@ write(iulog,*)">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),
         do g = bounds%begg, bounds%endg
             gcount = g - bounds%begg                           ! 0-based
             cellcount = gcount*clm_pf_idata%nzclm_mapped + j   ! 1-based
-
+write(iulog,*)">>>DEBUG | soil_dimension | g,cellcount=",g,cellcount
             cellid_clm_loc(cellcount) = (grc%gindex(g)-1)*clm_pf_idata%nzclm_mapped + j  ! 1-based
-
+write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
             xsoil_clm_loc(cellcount)  = lonc(g)
             ysoil_clm_loc(cellcount)  = latc(g)
             dxsoil_clm_loc(cellcount) = -9999.d0
             dysoil_clm_loc(cellcount) = -9999.d0
-
+write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
             !
             dzsoil_clm_loc(cellcount) = dz(xwtgcell_c(gcount+1), j)                ! cell vertical thickness (m), by column of max. weight in a grid
             zisoil_clm_loc(cellcount) = -zi(xwtgcell_c(gcount+1), j) + lelev(g)    ! cell-node elevation (m)
             zsoil_clm_loc(cellcount)  = z(xwtgcell_c(gcount+1), j)                 ! cell-center vertical depth from surface (m)
-
+write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
             ! top face area, scaled by active column weight (summed) and land fraction
             toparea_clm_loc(cellcount) = wtgcell_sum(gcount+1) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
-
+write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
         enddo ! do g = bounds%begg, bounds%endg
-write(iulog,'(A,50(1h-))')">>>DEBUG | get_clm_soil_dimension"
-write(iulog,'(A40,10E14.6)')">>>DEBUG | cellid=",(cellid_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | zisoil=",(zisoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | dxsoil=",(dxsoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | dysoil=",(dysoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | dzsoil=",(dzsoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | toparea=",(toparea_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | xsoil=",(xsoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | ysoil=",(ysoil_clm_loc(1:10))
-write(iulog,'(A40,10E14.6)')">>>DEBUG | zsoil=",(zsoil_clm_loc(1:10))
+!write(iulog,'(A,50(1h-))')">>>DEBUG | get_clm_soil_dimension"
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | cellid=",(cellid_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | zisoil=",(zisoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | dxsoil=",(dxsoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | dysoil=",(dysoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | dzsoil=",(dzsoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | toparea=",(toparea_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | xsoil=",(xsoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | ysoil=",(ysoil_clm_loc(1:10))
+!write(iulog,'(A40,10E14.6)')">>>DEBUG | zsoil=",(zsoil_clm_loc(1:10))
 #endif
 
       else
