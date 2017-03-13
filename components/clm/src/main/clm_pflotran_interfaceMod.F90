@@ -1796,6 +1796,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | begg,endg=",bounds%begg, bounds%endg
 
     do g = bounds%begg, bounds%endg
       gcount = g - bounds%begg                               ! 0-based
+write(iulog,'(A,10I5)')">>>DEBUG | Soil Dimension | gcount,g,begg,endg=",gcount,g,bounds%begg, bounds%endg
       ! re-calculating 2-D grid area if vertices are known from input file
       ! NOTE: this will over-write the grid area read-in from either 'ldomain' file or 'surfdata' file
       if (ldomain%nv==4 .or. ldomain%nv==3) then
@@ -1815,7 +1816,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | begg,endg=",bounds%begg, bounds%endg
          else
            larea(g) = dummy1 * 1.e-6_r8
          endif
-write(iulog,*)">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,lons=",ldomain%nv,larea(g),lats,lons
+write(iulog,'(A,I5,10E14.6)')">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,lons=",ldomain%nv,larea(g),lats,lons
          ! for 1-D grid, either 'dx' or 'dy' may be variable and acceptable in the model
          ! (though, currently NOT YET used for PF mesh)
          ! (NOTE: for 2-D grid, dx/dy in lon/lat can NOT be variable)
@@ -1858,7 +1859,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,lons=",ldomain%
          endif  !if(.not.ldomain%isgrid2d)
 
        endif !if (ldomain%nv==4 .or. 3)
-write(iulog,*)">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),dysoil_clm(gcount+1)
+write(iulog,'(A,10E14.6)')">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),dysoil_clm(gcount+1)
     end do !!g = bounds%begg, bounds%endg
 
     !!!!
@@ -1949,7 +1950,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),
         do g = bounds%begg, bounds%endg
             gcount = g - bounds%begg                           ! 0-based
             cellcount = gcount*clm_pf_idata%nzclm_mapped + j   ! 1-based
-write(iulog,*)">>>DEBUG | soil_dimension | g,cellcount=",g,cellcount
+write(iulog,*)">>>DEBUG | soil_dimension | gcount,g,cellcount=",gcount,g,cellcount
             cellid_clm_loc(cellcount) = (grc%gindex(g)-1)*clm_pf_idata%nzclm_mapped + j  ! 1-based
 write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
             xsoil_clm_loc(cellcount)  = lonc(g)
