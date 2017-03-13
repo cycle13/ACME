@@ -1905,7 +1905,7 @@ write(iulog,'(A)')">>>DEBUG | Soil Dimension | COLUMN_MODE"
         do c = bounds%begc, bounds%endc
             g = cgridcell(c)
             l = clandunit(c)
-write(iulog,'(A,10I5)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,begc,endc
+write(iulog,'(A,10I5)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
             ! note that filters%soilc includes 'istsoil' and 'istcrop'
             ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
             if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
