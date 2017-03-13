@@ -1689,6 +1689,7 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
     use LandunitType    , only : lun
     use ColumnType      , only : col
 
+    use clm_varctl      , only : iulog
     use clm_varpar      , only : nlevgrnd
     use clm_varcon      , only : re        !!re = SHR_CONST_REARTH*0.001_r8 !radius of earth (km)
     use domainMod       , only : ldomain
@@ -1791,6 +1792,7 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
 
     enddo
 #endif
+write(iulog,*)">>>DEBUG | Soil Dimension | begg,endg=",bounds%begg, bounds%endg
 
     do g = bounds%begg, bounds%endg
       gcount = g - bounds%begg                               ! 0-based
@@ -1813,7 +1815,7 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
          else
            larea(g) = dummy1 * 1.e-6_r8
          endif
-
+write(iulog,*)">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,lons=",ldomain%nv,larea(g),lats,lons
          ! for 1-D grid, either 'dx' or 'dy' may be variable and acceptable in the model
          ! (though, currently NOT YET used for PF mesh)
          ! (NOTE: for 2-D grid, dx/dy in lon/lat can NOT be variable)
@@ -1856,7 +1858,7 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
          endif  !if(.not.ldomain%isgrid2d)
 
        endif !if (ldomain%nv==4 .or. 3)
-
+write(iulog,*)">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),dysoil_clm(gcount+1)
     end do !!g = bounds%begg, bounds%endg
 
     !!!!
@@ -1964,6 +1966,16 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
             toparea_clm_loc(cellcount) = wtgcell_sum(gcount+1) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
 
         enddo ! do g = bounds%begg, bounds%endg
+write(iulog,'(A,50(1h-))')">>>DEBUG | get_clm_soil_dimension"
+write(iulog,'(A40,10E14.6)')">>>DEBUG | cellid=",(cellid_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | zisoil=",(zisoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | dxsoil=",(dxsoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | dysoil=",(dysoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | dzsoil=",(dzsoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | toparea=",(toparea_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | xsoil=",(xsoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | ysoil=",(ysoil_clm_loc(1:10))
+write(iulog,'(A40,10E14.6)')">>>DEBUG | zsoil=",(zsoil_clm_loc(1:10))
 #endif
 
       else
