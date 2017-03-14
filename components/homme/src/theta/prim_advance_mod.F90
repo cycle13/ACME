@@ -594,7 +594,7 @@ contains
 #endif
            do k=1,nlev
               exner(:,:,k) = ( (p_i(:,:,k) + p_i(:,:,k+1))/(2*p0)) **kappa
-              theta_ref(:,:,k,ie) = (T0/exner(:,:,k) + T1)
+              theta_ref(:,:,k,ie) = (T0/exner(:,:,k) + T1)*Cp*dp_ref(:,:,k,ie)
 #if 0
               theta_ref(:,:,k,ie)=0
               phi_ref(:,:,k,ie)=0
@@ -944,8 +944,8 @@ contains
         call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
    !    this loop constructs d(s * theta_dp_cp)/deta
         do k=1,nlev-1
-            s_theta_dp_cpadv(:,:,k)=s_vadv(:,:,k+1,2)*                       &
-             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k)-s_vadv(:,:,k,2) &
+            s_theta_dp_cpadv(:,:,k)=eta_dot_dpdn(:,:,k+1)*                            &
+             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k+1)-eta_dot_dpdn(:,:,k) &
              *elem(ie)%state%theta_dp_cp(:,:,k,n0)/dp3d(:,:,k)
         end do
         !call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)

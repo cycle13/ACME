@@ -272,10 +272,10 @@ contains
                           (phi(:,:,k-1)-phi(:,:,k))
 
 
-     if (minval(theta_dp_co(:,:,k))<0) then
-        print *,k,minval( (dp3d(:,:,k)+dp3d(:,:,k-1))/2),&
+     if (minval(rho_R_theta(:,:,k))<0) then
+        print *,k,minval( (dp3d(:,:,k)+dp3d(:,:,k-1))/2)
         print *,'phi(k-1)-phik',minval(phi(:,:,k-1)-phi(:,:,k))
-        print *, 'rho_R_theta',minval(rho_R_theta(:,:,k))
+        print *, 'theta_dp_cp',minval(theta_dp_cp(:,:,k))
         call abortmp('error: rho<0')
      endif
     

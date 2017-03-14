@@ -95,6 +95,7 @@ contains
     real (kind=real_kind) :: umin_local(nets:nete), umax_local(nets:nete), usum_local(nets:nete), &
          vmin_local(nets:nete), vmax_local(nets:nete), vsum_local(nets:nete), &
          tmin_local(nets:nete), tmax_local(nets:nete), tsum_local(nets:nete), &
+         thetamin_local(nets:nete), thetamax_local(nets:nete), thetasum_local(nets:nete), &
          psmin_local(nets:nete),psmax_local(nets:nete),pssum_local(nets:nete), &
          fumin_local(nets:nete),fumax_local(nets:nete),fusum_local(nets:nete), &
          fvmin_local(nets:nete),fvmax_local(nets:nete),fvsum_local(nets:nete), &
@@ -106,14 +107,14 @@ contains
 
 
     real (kind=real_kind) :: umin_p, vmin_p, tmin_p, qvmin_p(qsize_d),&
-         psmin_p, dpmin_p
+         psmin_p, dpmin_p, thetamin_p
 
 
     real (kind=real_kind) :: umax_p, vmax_p, tmax_p, qvmax_p(qsize_d),&
-         psmax_p, dpmax_p
+         psmax_p, dpmax_p, thetamax_p
 
     real (kind=real_kind) :: usum_p, vsum_p, tsum_p, qvsum_p(qsize_d),&
-         pssum_p, dpsum_p
+         pssum_p, dpsum_p, thetasum_p
 
     real (kind=real_kind) :: fusum_p, fvsum_p, ftsum_p, fqsum_p
     real (kind=real_kind) :: fumin_p, fvmin_p, ftmin_p, fqmin_p
@@ -216,6 +217,7 @@ contains
        vmax_local(ie)    = MAXVAL(elem(ie)%state%v(:,:,2,:,n0))
        wmax_local(ie)    = MAXVAL(elem(ie)%state%w(:,:,:,n0))
        phimax_local(ie)  = MAXVAL(dphi(:,:,:))
+       thetamax_local(ie) = MAXVAL(elem(ie)%state%theta_dp_cp(:,:,:,n0)) 
 
        fumax_local(ie)    = MAXVAL(elem(ie)%derived%FM(:,:,1,:))
        fvmax_local(ie)    = MAXVAL(elem(ie)%derived%FM(:,:,2,:))
@@ -233,6 +235,7 @@ contains
        umin_local(ie)    = MINVAL(elem(ie)%state%v(:,:,1,:,n0))
        vmin_local(ie)    = MINVAL(elem(ie)%state%v(:,:,2,:,n0))
        Wmin_local(ie)    = MINVAL(elem(ie)%state%w(:,:,:,n0))
+       thetamin_local(ie) = MINVAL(elem(ie)%state%theta_dp_cp(:,:,:,n0))
        phimin_local(ie)  = MINVAL(dphi)
 
        Fumin_local(ie)    = MINVAL(elem(ie)%derived%FM(:,:,1,:))
@@ -253,6 +256,7 @@ contains
        usum_local(ie)    = SUM(elem(ie)%state%v(:,:,1,:,n0))
        vsum_local(ie)    = SUM(elem(ie)%state%v(:,:,2,:,n0))
        Wsum_local(ie)    = SUM(elem(ie)%state%w(:,:,:,n0))
+       thetasum_local(ie)= SUM(elem(ie)%state%theta_dp_cp(:,:,:,n0))
        phisum_local(ie)  = SUM(dphi)
        Fusum_local(ie)   = SUM(elem(ie)%derived%FM(:,:,1,:))
        Fvsum_local(ie)   = SUM(elem(ie)%derived%FM(:,:,2,:))
@@ -283,6 +287,7 @@ contains
        global_shared_buf(ie,9) = Wsum_local(ie)
        global_shared_buf(ie,10)= dpsum_local(ie)
        global_shared_buf(ie,11)= phisum_local(ie)
+       global_shared_buf(ie,12)=thetasum_local(ie)
     end do
 
     !JMD This is a Thread Safe Reduction 
@@ -294,6 +299,9 @@ contains
 
     tmin_p = ParallelMin(tmin_local,hybrid)
     tmax_p = ParallelMax(tmax_local,hybrid)
+
+    thetamin_p = ParallelMin(thetamin_local,hybrid)
+    thetamax_p = ParallelMax(thetamax_local,hybrid)
     
     if (rsplit>0)then
        dpmin_p = ParallelMin(dpmin_local,hybrid)
@@ -321,7 +329,7 @@ contains
     phimin_p = ParallelMin(phimin_local,hybrid)
     phimax_p = ParallelMax(phimax_local,hybrid)
 
-    call wrap_repro_sum(nvars=11, comm=hybrid%par%comm)
+    call wrap_repro_sum(nvars=12, comm=hybrid%par%comm)
     usum_p = global_shared_sum(1)
     vsum_p = global_shared_sum(2)
     tsum_p = global_shared_sum(3)
@@ -333,6 +341,7 @@ contains
     Wsum_p = global_shared_sum(9)
     dpsum_p = global_shared_sum(10)
     phisum_p = global_shared_sum(11)
+    thetasum_p= global_shared_sum(12)
 
 
     scale=1/g                                  ! assume code is using Pa
@@ -363,6 +372,7 @@ contains
        write(iulog,100) "v     = ",vmin_p,vmax_p,vsum_p
        write(iulog,100) "w     = ",wmin_p,wmax_p,wsum_p
        write(iulog,100) "tdiag = ",tmin_p,tmax_p,tsum_p
+       write(iulog,100) "theta = ",thetamin_p,thetamax_p,thetasum_p
        write(iulog,100) "dz(m) = ",phimin_p/g,phimax_p/g,phisum_p/g
        if (rsplit>0) &
        write(iulog,100) "dp    = ",dpmin_p,dpmax_p,dpsum_p
