@@ -939,8 +939,8 @@ contains
         ! Compute vertical advection of T and v from eq. CCM2 (3.b.1)
         ! ==============================================
         s_state(:,:,:,1)=elem(ie)%state%w(:,:,:,n0)
+        s_state(:,:,:,2)=elem(ie)%state%theta_dp_cp(:,:,:,n0)
         s_state(:,:,:,3)=elem(ie)%state%phi(:,:,:,n0)
-        s_state(:,:,:,2)=elem(ie)%state%dp3d(:,:,:,n0)
         call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
    !    this loop constructs d(s * theta_dp_cp)/deta
         do k=1,nlev-1
