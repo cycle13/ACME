@@ -647,7 +647,7 @@
 	<value compset="AR95_CAM">2</value>
 	<value compset="AR97_CAM">26</value>
 	<value compset="DF02_CAM">12</value>
-        <value compset="RICO_CAM">3</value>
+        <value compset="RICO_CAM">1</value>
         <value compset="MACE_CAM">12</value>
       </values>
     </entry>

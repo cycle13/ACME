@@ -245,8 +245,8 @@ integer :: &
    real(r8) :: prc_exp_in               = huge(1.0_r8)
    real(r8) :: prc_exp1_in              = huge(1.0_r8)
    real(r8) :: cld_sed_in               = huge(1.0_r8) !scale fac for cloud sedimentation velocity
-   real(r8) :: nccons                    = huge(1.0_r8)
-   real(r8) :: nicons                    = huge(1.0_r8)
+   real(r8) :: nccons                   = huge(1.0_r8)
+   real(r8) :: nicons                   = huge(1.0_r8)
    logical  :: mg_prc_coeff_fix_in      = .false. !temporary variable to maintain BFB, MUST be removed
    logical  :: rrtmg_temp_fix           = .false. !temporary variable to maintain BFB, MUST be removed
 
@@ -271,8 +271,8 @@ subroutine micro_mg_cam_readnl(nlfile)
   ! Namelist variables
   logical :: micro_mg_do_cldice = .true. ! do_cldice = .true., MG microphysics is prognosing cldice
   logical :: micro_mg_do_cldliq = .true. ! do_cldliq = .true., MG microphysics is prognosing cldliq
-  logical :: micro_do_nccons    = .false.! 
-  logical :: micro_do_nicons    = .false. 
+  logical :: micro_do_nccons    = .false.! micro_do_nccons = .true, MG does NOT predict numliq 
+  logical :: micro_do_nicons    = .false.! micro_do_nicons = .true.,MG does NOT predict numice
   integer :: micro_mg_num_steps = 1      ! Number of substepping iterations done by MG (1.5 only for now).
   real(r8) :: micro_nccons, micro_nicons
 
@@ -354,8 +354,8 @@ subroutine micro_mg_cam_readnl(nlfile)
   call mpibcast(micro_mg_dcs,                1, mpir8,  0, mpicom)
   call mpibcast(micro_mg_berg_eff_factor,    1, mpir8,  0, mpicom)
   call mpibcast(ice_sed_ai,                  1, mpir8,  0, mpicom)
-  call mpibcast(nccons,                       1, mpir8,  0, mpicom)
-  call mpibcast(nicons,                       1, mpir8,  0, mpicom)
+  call mpibcast(nccons,                      1, mpir8,  0, mpicom)
+  call mpibcast(nicons,                      1, mpir8,  0, mpicom)
   call mpibcast(micro_mg_precip_frac_method, 16, mpichar,0, mpicom)
 
 #endif

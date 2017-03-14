@@ -1102,7 +1102,7 @@ contains
 !------------------------------------------------------------------------
 !------------------------------------------------------------------------
   subroutine read_next_trcdata(state, flds, file )
-!---------------------------Bereket Lebassi added----------------------
+    
     use shr_const_mod, only:pi => shr_const_pi
     use physics_types,only : physics_state
     use ppgrid,           only: pcols, pver, pverp,begchunk,endchunk
@@ -1111,15 +1111,13 @@ contains
     use iop,              only: scm_dgnum,scm_std,scm_num,scm_div
     use rad_constituents, only: rad_cnst_get_info, rad_cnst_get_aer_props, &
                             rad_cnst_get_mode_props, rad_cnst_get_mode_num
-!----------------------------End BLH--------------------------------------  
+    
     implicit none
 
     type (trfile), intent(inout) :: file
     type (trfld),intent(inout) :: flds(:)
-!------------------------------Bereket Lebassi---------------------------    
     type(physics_state), intent(in)    :: state(begchunk:endchunk)
-!    type(physics_state), target,intent(in)    :: state
-!------------------------------End BLH----------------------------------
+    
     integer :: recnos(4),i,f,nflds      ! 
     integer :: cnt4(4)            ! array of counts for each dimension
     integer :: strt4(4)           ! array of starting indices
@@ -1131,66 +1129,58 @@ contains
     integer :: cur_yr, cur_mon, cur_day, cur_sec, yr1, yr2, mon, date, sec
     real(r8) :: series1_time, series2_time
     type(file_desc_t) :: fid1, fid2
-!+++----------------------------------------BLH added---------------------------
-   integer :: nspec,nmodes,n,ii,kk,l1,k,lchnk
-   real(r8) :: profile_p(pver),pp(pver),meanP,meanO,sumii,volfrac,specdens,aero_den(6)
-   real(r8) :: q_a(3,6)
-   real(r8) :: rho(pcols,pver)        ! air density (kg m-3)
-   character(len=20) :: aername
-   character(len=3) :: arnam(7) = (/'so4','pom','soa','bc ','dst','ncl','num'/)
+   
+    integer :: nspec,nmodes,n,ii,kk,l1,k,lchnk
+    real(r8) :: profile_p(pver),pp(pver),meanP,meanO,sumii,volfrac,specdens,aero_den(6)
+    real(r8) :: q_a(3,6)
+    real(r8) :: rho(pcols,pver)        ! air density (kg m-3)
+    character(len=20) :: aername
+    character(len=3) :: arnam(7) = (/'so4','pom','soa','bc ','dst','ncl','num'/)
 
-!+++------------------------------------end---------------------------------------   
     nflds = size(flds)
     times_found = .false.
 
-!=====================================Bereket Lebassi Habtezion==================
-!=========================================11/01/2014=============================
-     if(single_column .and. scm_observed_aero) then
+    if(single_column .and. scm_observed_aero) then
 
-                     call ver_profile_aero(pp, state(begchunk)%pmid)
-!-The following do loop gets the species properties and calculates the aerosol
-!mass mixing ratio of each species from observed total number and size distribution
-!properties in the unit kg/m^3 for the 3 modes. Data is read from the forcing file.
-!For mode 1 (accumulation mode) q_a(1,1)=q(so4),q_a(1,2)=q(pom),q_a(1,3)=q(soa),
-!q_a(1,4)=q(bc),q_a(1,5)=q(dst),q_a(1,6)=q(ncl).
-!For mode 2 (aitken mode) q_a(2,1)=q(so4),q_a(2,2)=q(soa),q_a(2,3)=q(ncl).
-!For mode 3 (coarse mode) q_a(3,1)=q(dst),q_a(3,2)=q(ncl),q_a(3,3)=q(so4).
+      call ver_profile_aero(pp, state(begchunk)%pmid)
+      ! The following do loop gets the species properties and calculates the aerosol
+      ! mass mixing ratio of each species from observed total number and size distribution
+      ! properties in the unit kg/m^3 for the 3 modes. Data is read from the forcing file.
+      ! For mode 1 (accumulation mode) q_a(1,1)=q(so4),q_a(1,2)=q(pom),q_a(1,3)=q(soa),
+      ! q_a(1,4)=q(bc),q_a(1,5)=q(dst),q_a(1,6)=q(ncl).
+      ! For mode 2 (aitken mode) q_a(2,1)=q(so4),q_a(2,2)=q(soa),q_a(2,3)=q(ncl).
+      ! For mode 3 (coarse mode) q_a(3,1)=q(dst),q_a(3,2)=q(ncl),q_a(3,3)=q(so4).
 
-                     call rad_cnst_get_info(0, nmodes=nmodes)
-                     do n=1, nmodes
-                         call rad_cnst_get_info(0, n, nspec=nspec)
-                      do l1 = 1, nspec
-                         call rad_cnst_get_aer_props(0, n,l1,density_aer=specdens)
-                         call rad_cnst_get_aer_props(0, n, l1, aername=aername)
-                            aero_den(l1)=specdens
-                            q_a(n,l1) = specdens*scm_div(n,l1)*scm_num(n)*((pi/6.0_r8)*( &
-                                        scm_dgnum(n)**3)*exp(4.5_r8*(log(scm_std(n))**2) )) 
-                      enddo
-                     enddo
-                     do k = 1, pver
-                       do ii = 1, state(begchunk)%ncol
-                       rho(ii,k) = state(begchunk)%pmid(ii,k)/(rair*state(begchunk)%t(ii,k))
-                      enddo
-                     enddo
-      end if
-!================================================END=========================================
-
-     do while( .not. times_found )
-        call find_times( recnos, fids, file%curr_mod_time,file,file%datatimem,file%datatimep, times_found )
-           if ( .not. times_found ) then
-              call check_files( file, fids, recnos, times_found )
-           endif
+      call rad_cnst_get_info(0, nmodes=nmodes)
+      do n=1, nmodes
+        call rad_cnst_get_info(0, n, nspec=nspec)
+        do l1 = 1, nspec
+          call rad_cnst_get_aer_props(0, n,l1,density_aer=specdens)
+          call rad_cnst_get_aer_props(0, n, l1, aername=aername)
+          aero_den(l1)=specdens
+          q_a(n,l1) = specdens*scm_div(n,l1)*scm_num(n)*((pi/6.0_r8)*( &
+                      scm_dgnum(n)**3)*exp(4.5_r8*(log(scm_std(n))**2) )) 
+        enddo
       enddo
+      
+      do k = 1, pver
+        do ii = 1, state(begchunk)%ncol
+          rho(ii,k) = state(begchunk)%pmid(ii,k)/(rair*state(begchunk)%t(ii,k))
+        enddo
+      enddo
+    end if
 
-!-------------------------------------------------------------- 
-!       If stepTime, then no time interpolation is to be done
-!--------------------------------------------------------------
-!=============================Bereket Lebassi Habtezion====================
-! If single column do not interpolate aerosol data, just use the step function
+    do while( .not. times_found )
+      call find_times( recnos, fids, file%curr_mod_time,file,file%datatimem,file%datatimep, times_found )
+      if ( .not. times_found ) then
+        call check_files( file, fids, recnos, times_found )
+      endif
+    enddo
+
+    ! If single column do not interpolate aerosol data, just use the step function
     if(single_column) then
-     file%stepTime = .true.
+      file%stepTime = .true.
     endif
-!===================================End===================================
 
     if (file%stepTime) then
        file%interp_recs = 1
@@ -1287,71 +1277,70 @@ contains
              strt4(flds(f)%coords(TIMDIM)) = recnos(i)
              call read_3d_trc( fids(i), flds(f)%var_id, flds(f)%input(i)%data, strt4, cnt4, file, &
                   (/ flds(f)%order(LONDIM),flds(f)%order(LATDIM),flds(f)%order(LEVDIM) /))
-!===========================================Bereket Lebassi Habtezion=============================
-!===============================================11/01/2014=======================================
-!This section sets the observed aersol mass and number mixing ratios in the
-!appropriate variables. The observed aerosol inforamtion is read from the
-!forcing file as total number and size distribution parameters. Then the total 
-!volume is calculated.Using the desnsity of each species, the mass is calculated. 
-!Finally the number is partition among the each species using the species fraction 
-!data read from the forcing file.  
-!
+
+             !
+             ! This section sets the observed aersol mass and number mixing ratios in the
+             ! appropriate variables. The observed aerosol inforamtion is read from the
+             ! forcing file as total number and size distribution parameters. Then the total 
+             ! volume is calculated.Using the desnsity of each species, the mass is calculated. 
+             ! Finally the number is partition among the each species using the species fraction 
+             ! data read from the forcing file.  
+             !
              if(single_column .and. scm_observed_aero) then
-                   kk=index(trim(flds(f)%fldnam),'_')-1
+                kk=index(trim(flds(f)%fldnam),'_')-1
                 if(index(trim(flds(f)%fldnam),'1') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(2)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(2)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(2).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(2),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(3)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(3)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(3).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(3),flds(f)%input(i)%data, &
                                rho,pp,q_a(1,3),state(begchunk)%ncol)
-                    elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(4)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(4)),flds(f)%input(i)%data, &
+                    elseif(flds(f)%fldnam(1:kk).eq.arnam(4).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(4),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,4),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(5)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(5)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(5).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(5),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,5),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
                                 rho,pp,q_a(1,6),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(1),state(begchunk)%ncol)
                      endif
                 elseif(index(trim(flds(f)%fldnam),'2') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
                                 rho,pp,q_a(2,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(3)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(3)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(3).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(3),flds(f)%input(i)%data, &
                                rho,pp,q_a(2,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
                                 rho,pp,q_a(2,3),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(2),state(begchunk)%ncol)
                      endif
                 elseif(index(trim(flds(f)%fldnam),'3') > 0 .and.index(trim(flds(f)%fldnam),'log') < 1) then
-                     if(flds(f)%fldnam(1:kk).eq.trim(arnam(1)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(1)),flds(f)%input(i)%data, &
+                     if(flds(f)%fldnam(1:kk).eq.arnam(1).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(1),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,3),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(5)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(5)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(5).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(5),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,1),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(6)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(6)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(6).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(6),flds(f)%input(i)%data, &
                                 rho,pp,q_a(3,2),state(begchunk)%ncol)
-                     elseif(flds(f)%fldnam(1:kk).eq.trim(arnam(7)).and.index(trim(flds(f)%fldnam),'log') < 1) then
-                           call replace_aero_data(flds(f)%fldnam,trim(arnam(7)),flds(f)%input(i)%data, &
+                     elseif(flds(f)%fldnam(1:kk).eq.arnam(7).and.index(trim(flds(f)%fldnam),'log') < 1) then
+                           call replace_aero_data(flds(f)%fldnam,arnam(7),flds(f)%input(i)%data, &
                                 rho,pp,scm_num(3),state(begchunk)%ncol)
                      endif
                 endif 
-              endif !scm_observed_aero
-!=============================================End BLH========================================        
+             endif !scm_observed_aero
           endif
 
        enddo
@@ -1369,8 +1358,7 @@ contains
 
   end subroutine read_next_trcdata
 
-!=====================================Bereket Lebassi Habtezion========================
-!========================================01/11/2014====================================
+!--------------------------------------------------------------------------------
 !This subroutine replaces the climatological aerosol information by the observed
 !once after they are read
 !
@@ -1382,21 +1370,23 @@ contains
          real(r8), intent(in) :: rho(pcols,pver),pp(pver) 
          real(r8) :: sumii,meanO
          real(r8), intent(in) :: q_mix
-         character(len=32),intent(in) ::aerofulnam,spnam
+         character(len=32),intent(in) ::aerofulnam
+         character(len=3),intent(in) :: spnam
          character(len=32) ::aerosubnam
          integer, intent(in) :: ncoli 
          integer :: ii,k,countj
-                
+               
                 if(trim(aerofulnam(1:2)).eq.'bc') then
                   aerosubnam=aerofulnam(1:4)
                 else
                   aerosubnam=aerofulnam(1:5)
                 endif
+           
            if((trim(aerosubnam).eq.(trim(spnam)//'_a').or.trim(aerosubnam).eq.(trim(spnam)//'_c')) &
                .and.index(trim(aerofulnam),'log') < 1) then
 
                      aero_q_data=q_mix
-
+                   write(*,*) 'replace aerosol data'
                    sumii=0._r8
                    countj =0
                   do ii = 1, ncoli
@@ -1419,10 +1409,10 @@ contains
                     endif
                   enddo
               endif
+
    end subroutine replace_aero_data
    
-!===============================Bereket Lebassi Habtezion===============================
-!===================================11/01/2014==========================================
+!---------------------------------------------------------------------------
 !This subroutine generates a heavyside type profiles for the observed aerosol.
 !This setting is constant profile upto 500mb and then exponentially decreasing to zero
 !at the top of the atmosphere. The level of initial decay is controlled by
@@ -1453,8 +1443,6 @@ contains
           endif
         enddo 
    end subroutine ver_profile_aero
-
-!=======================================END BLH==============================================
 
 !------------------------------------------------------------------------
 

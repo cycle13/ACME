@@ -1017,7 +1017,6 @@
                write(nu_diag,*) 'Because you have selected the column model flag'
                write(nu_diag,*) 'Please set nx_global=ny_global=1 in file'
                write(nu_diag,*) 'ice_domain_size.F and recompile'
-               write(nu_diag,*) 'nx_global and ny_global', nx_global, ny_global
                call abort_ice ('latlongrid: check nx_global, ny_global')
             endif
          end if

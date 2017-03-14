@@ -24,10 +24,10 @@ use cam_abortutils,      only: endrun
 use error_messages,  only: handle_err
 use cam_control_mod, only: lambm0, obliqr, mvelpp, eccen
 use scamMod,         only: scm_crm_mode, single_column,have_cld,cldobs,&
-                           have_clwp,clwpobs,have_tg,tground
+                           have_clwp,clwpobs,have_tg,tground,swrad_off,&
+                           lwrad_off
 use perf_mod,        only: t_startf, t_stopf
 use cam_logfile,     only: iulog
-use scamMod,    only: swrad_off, lwrad_off
 
 use rad_constituents, only: N_DIAG, rad_cnst_get_call_list, rad_cnst_get_info
 use radconstants,     only: rrtmg_sw_cloudsim_band, rrtmg_lw_cloudsim_band, nswbands, nlwbands
@@ -1194,15 +1194,6 @@ end function radiation_nextsw_cday
                      fnl(:,:) = 0._r8
                      fcnl(:,:) = 0._r8
                      fldsc(:) = 0._r8
-                     !PMC: I think this pointer isn't defined unless
-                     !spectralflux=.true.
-                     !I don't understand why lu and ld are passed to
-                     !rad_rrtmg_lw since
-                     !they are pointers which should be accessible across
-                     !subroutines anyways.
-                     !I guess it doesn't matter since people doing SCAM won't
-                     !care about 
-                     !spectrally resolved radiation?
                   end if !lwrad_off
 
                   !  Output fluxes at 200 mb

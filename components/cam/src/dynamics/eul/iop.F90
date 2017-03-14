@@ -35,7 +35,8 @@ module iop
   real(r8), allocatable, target :: divq3dsav(:,:,:,:)
   real(r8), allocatable, target :: divt3dsav(:,:,:)       
   real(r8), allocatable, target :: betasav(:)
-  real(r8), allocatable, target :: scm_dgnum( : ),scm_std( : ),scm_num( :), scm_div(:,:)
+  real(r8), allocatable, target :: scm_dgnum( : ),scm_std( : ),&
+                                   scm_num( :), scm_div(:,:)
   integer :: closelatidx,closelonidx,latid,lonid,levid,timeid
 
   real(r8):: closelat,closelon
@@ -127,7 +128,8 @@ subroutine readiopdata( )
 !------------------------------Locals-----------------------------------
 !     
    integer NCID, status
-   integer time_dimID, lev_dimID,  lev_varID,mod_dimID,mod_varID,sps_varID,sps_dimID
+   integer time_dimID, lev_dimID,lev_varID,mod_dimID,&
+           mod_varID,sps_varID,sps_dimID
    integer tsec_varID, bdate_varID,varid
    integer i,j
    integer nlev, nmod, nsps
@@ -235,9 +237,9 @@ subroutine readiopdata( )
 
    call handle_ncerr( nf90_get_var (ncid, lev_varID, dplevs(:nlev)),&
                     'readiopdata.F90', __LINE__)
-!====================================BLH===================================
-!                        read observed aersol data
-!-------------------------------------------------------------------------     
+
+! =====================================================
+!     read observed aersol data
  
  if(scm_observed_aero) then
    status = NF90_INQ_DIMID( ncid, 'mod', mod_dimID )

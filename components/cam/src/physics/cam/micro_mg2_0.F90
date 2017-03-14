@@ -126,11 +126,6 @@ public :: &
 ! Private module parameters
 !=========================================================
 
-! parameters for specified ice and droplet number concentration
-! note: these are local in-cloud values, not grid-mean
-!real(r8), parameter :: ncnst = 100.e6_r8    ! droplet num concentration when nccons=.true. (m-3)
-!real(r8), parameter :: ninst = 0.1e6_r8     ! ice num concentration when nicons=.true. (m-3)
-
 !Range of cloudsat reflectivities (dBz) for analytic simulator
 real(r8), parameter :: csmin = -30._r8
 real(r8), parameter :: csmax = 26._r8
