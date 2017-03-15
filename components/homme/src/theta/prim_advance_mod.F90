@@ -367,8 +367,6 @@ contains
 
   subroutine applyCAMforcing(elem,hvcoord,np1,np1_qdp,dt,nets,nete)
 
-  use physical_constants, only: Cp
-
   implicit none
   type (element_t),       intent(inout) :: elem(:)
   real (kind=real_kind),  intent(in)    :: dt
@@ -442,7 +440,7 @@ contains
 
 
   subroutine applyCAMforcing_dynamics(elem,hvcoord,np1,np1_qdp,dt,nets,nete)
-
+  use physical_constants, only: Cp
   use hybvcoord_mod,  only: hvcoord_t
 
   implicit none
@@ -468,9 +466,10 @@ contains
           elem(ie)%state%phi(:,:,:,np1),elem(ie)%state%phis(:,:),&
           elem(ie)%state%Qdp(:,:,:,1,np1_qdp),pnh,dpnh,exner)
 
-
+     ! Note: CAM physics uses cp, not cp_star, so lets use that here
      elem(ie)%state%theta_dp_cp(:,:,:,np1) = elem(ie)%state%theta_dp_cp(:,:,:,np1) + &
-          dt*elem(ie)%derived%FT(:,:,:) / exner(:,:,:)
+          dt*elem(ie)%derived%FT(:,:,:) *Cp*dp(:,:,:)/ exner(:,:,:)
+     ! TODO: add to above cp*theta*FQps = theta_cp_dp*FQps/dp
      elem(ie)%state%v(:,:,:,:,np1) = elem(ie)%state%v(:,:,:,:,np1) + dt*elem(ie)%derived%FM(:,:,1:2,:)
      elem(ie)%state%w(:,:,:,np1) = elem(ie)%state%w(:,:,:,np1) + dt*elem(ie)%derived%FM(:,:,3,:)
   enddo
@@ -800,6 +799,7 @@ contains
   real (kind=real_kind), pointer, dimension(:,:,:)   :: dp3d
   real (kind=real_kind), pointer, dimension(:,:,:)   :: theta_dp_cp
 
+  real (kind=real_kind) :: theta_cp(np,np,nlev)
   real (kind=real_kind) :: omega_p(np,np,nlev)
   real (kind=real_kind) :: vort(np,np,nlev)      ! vorticity
   real (kind=real_kind) :: divdp(np,np,nlev)     
@@ -840,7 +840,8 @@ contains
   do ie=nets,nete
      dp3d  => elem(ie)%state%dp3d(:,:,:,n0)
      theta_dp_cp  => elem(ie)%state%theta_dp_cp(:,:,:,n0)
-
+     theta_cp  => theta_dp_cp(:,:,:,n0)/dp3d(:,:,:)
+     
      if (theta_hydrostatic_mode) then
         phi => elem(ie)%derived%phi(:,:,:)
 
@@ -849,8 +850,9 @@ contains
         
         ! Compute Hydrostatic equation
         do k=1,nlev
-           !temp(:,:,k) = Cp*theta_dp_cp(:,:,k)*(exner_i(:,:,k+1)-exner_i(:,:,k))
-           !temp(:,:,k) = dp3d(:,:,k) * ( Rgas*theta_dp_cp(:,:,k)*exner(:,:,k)/pnh(:,:,k))
+           ! TODO: use kappa_star ???
+           !temp(:,:,k) = Cp*theta(:,:,k)*(exner_i(:,:,k+1)-exner_i(:,:,k))
+           !temp(:,:,k) = dp3d(:,:,k) * ( Rgas*theta(:,:,k)*exner(:,:,k)/pnh(:,:,k))
            temp(:,:,k) = kappa*theta_dp_cp(:,:,k)*exner(:,:,k)/pnh(:,:,k)
         enddo
         !call preq_hydrostatic(phi,elem(ie)%state%phis,T_v,p,dp)
@@ -938,18 +940,30 @@ contains
         ! ===========================================================
         ! Compute vertical advection of T and v from eq. CCM2 (3.b.1)
         ! ==============================================
+        ! TODO: remove theta from s_state and s_vadv
         s_state(:,:,:,1)=elem(ie)%state%w(:,:,:,n0)
-        s_state(:,:,:,2)=elem(ie)%state%theta_dp_cp(:,:,:,n0)
+        s_state(:,:,:,2)=elem(ie)%theta_dp_cp(:,:,:,n0)
         s_state(:,:,:,3)=elem(ie)%state%phi(:,:,:,n0)
         call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
-   !    this loop constructs d(s * theta_dp_cp)/deta
-        do k=1,nlev-1
-            s_theta_dp_cpadv(:,:,k)=eta_dot_dpdn(:,:,k+1)*                            &
-             elem(ie)%state%theta_dp_cp(:,:,k+1,n0)/dp3d(:,:,k+1)-eta_dot_dpdn(:,:,k) &
-             *elem(ie)%state%theta_dp_cp(:,:,k,n0)/dp3d(:,:,k)
-        end do
         !call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
         !call preq_vertadv_upwind(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
+
+        !    this loop constructs d( eta-dot * theta_dp_cp)/deta
+        !   d( eta_dot_dpdn * theta*cp)
+        !  so we need to compute theta_cp form theta_dp_cp and average to interfaces
+        k=1
+        s_theta_dp_cpadv(:,:,k)= &
+             eta_dot_dpdn(:,:,k+1)* (theta_cp(:,:,k+1)+theta_cp(:,:,k))/2  
+
+        k=nlev
+        s_theta_dp_cpadv(:,:,k)= - &
+             eta_dot_dpdn(:,:,k)  * (theta_cp(:,:,k)+theta_cp(:,:,k-1))/2  
+
+        do k=2,nlev-1
+           s_theta_dp_cpadv(:,:,k)= &
+              eta_dot_dpdn(:,:,k+1)* (theta_cp(:,:,k+1)+theta_cp(:,:,k))/2  - &
+              eta_dot_dpdn(:,:,k)  * (theta_cp(:,:,k)+theta_cp(:,:,k-1))/2  
+        end do
      endif
 
 
@@ -998,8 +1012,7 @@ contains
         v_theta(:,:,2,k) =                                             &
           elem(ie)%state%v(:,:,2,k,n0)                                 &
           *elem(ie)%state%theta_dp_cp(:,:,k,n0)
-        div_v_theta(:,:,k)=divergence_sphere(v_theta(:,:,:,k),         &
-        deriv,elem(ie))
+        div_v_theta(:,:,k)=divergence_sphere(v_theta(:,:,:,k),deriv,elem(ie))
         stens(:,:,k,2)=-s_theta_dp_cpadv(:,:,k)-div_v_theta(:,:,k)
  
         gradphi(:,:,:,k) = gradient_sphere(phi(:,:,k),deriv,elem(ie)%Dinv)
@@ -1027,12 +1040,12 @@ contains
               vtens1(i,j,k) = -v_vadv(i,j,1,k) &
                    + v2*(elem(ie)%fcor(i,j) + vort(i,j,k))        &
                    - gradKE(i,j,1,k) -gradphi(i,j,1,k)*dpnh_dp(i,j,k) &
-                   -theta_dp_cp(i,j,k)*gradexner(i,j,1,k)/dp3d(i,j,k)
+                   -theta_cp(i,j,k)*gradexner(i,j,1,k)
 
               vtens2(i,j,k) = -v_vadv(i,j,2,k) &
                    - v1*(elem(ie)%fcor(i,j) + vort(i,j,k)) &
                    - gradKE(i,j,2,k) -gradphi(i,j,2,k)*dpnh_dp(i,j,k) &
-                   -theta_dp_cp(i,j,k)*gradexner(i,j,2,k)/dp3d(i,j,k)
+                   -theta_cp(i,j,k)*gradexner(i,j,2,k)
            end do
         end do
      end do vertloop

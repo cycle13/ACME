@@ -84,6 +84,13 @@ contains
   real (kind=real_kind) :: kappa_star(np,np,nlev)
   real (kind=real_kind) :: Qt(np,np,nlev)
   integer :: k
+
+  do k=1,nlev
+     dp(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
+          ( hvcoord%hybi(k+1) - hvcoord%hybi(k) )*elem%state%ps_v(:,:,nt)
+  enddo
+
+  !TODO: compute cp_star, change Cp to cp_star
   
   pottemp(:,:,:) = elem%state%theta_dp_cp(:,:,:,nt)/(Cp*dp(:,:,:))
   
@@ -121,7 +128,8 @@ contains
           dp,elem%state%phi(:,:,:,nt),elem%state%phis(:,:),elem%state%Qdp(:,:,:,1,ntQ),&
           pnh,dpnh,exner)
 
-
+  !TODO: compute cp_star, change Cp to cp_star
+  
 #if (defined COLUMN_OPENMP)
   !$omp parallel do default(shared), private(k)
 #endif
@@ -461,6 +469,8 @@ contains
   subroutine set_state(u,v,w,T,ps,phis,p,dp,zm, g,  i,j,k,elem,n0,n1)
 !
 ! set state variables at node(i,j,k) at layer midpoints
+! used by idealized tests for dry initial conditions
+! so we use constants cp, kappa  
 !
   real(real_kind),  intent(in)    :: u,v,w,T,ps,phis,p,dp,zm,g
   integer,          intent(in)    :: i,j,k,n0,n1
