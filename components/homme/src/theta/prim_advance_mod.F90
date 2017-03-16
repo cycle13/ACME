@@ -84,7 +84,8 @@ contains
     use control_mod,    only: prescribed_wind, qsplit, tstep_type, rsplit, qsplit, integration
     use edge_mod,       only: edgevpack, edgevunpack, initEdgeBuffer
     use edgetype_mod,   only: EdgeBuffer_t
-    use reduction_mod,  only: reductionbuffer_ordered_1d_t
+    use reduction_mod,  only: reductionbuffer_ordered_1d_t, parallelmax,parallelmin
+
     use time_mod,       only: timelevel_qdp, tevolve
 
 #ifdef TRILINOS
@@ -105,10 +106,14 @@ contains
     logical,               intent(in)            :: compute_diagnostics
 
     real (kind=real_kind) ::  dt2, time, dt_vis, x, eta_ave_w
-    real (kind=real_kind) ::  statetemp(np,np,nlev,2), dampfac
+    real (kind=real_kind) ::  statetempfp(nets:nete,np,np,nlev,6)
+    real (kind=real_kind) ::  statetemp(nets:nete,np,np,nlev,6)
+    real (kind=real_kind) ::  fpunorm,fpvnorm,fpwnorm,fpthetanorm,fpdpnorm,fpphinorm
+    real (kind=real_kind) ::  fptol,fpnorm(nets:nete,6),fperr(6),fperrmax
+
 
     integer :: ie,nm1,n0,np1,nstep,method,qsplit_stage,k, qn0
-    integer :: n,i,j,lx,lenx,ktolcounter,ktol
+    integer :: n,i,j,lx,lenx,maxiter,itercount
 
     call t_startf('prim_advance_exp')
     nm1   = tl%nm1
@@ -164,6 +169,11 @@ contains
     else
        method = tstep_type                ! other RK variants
     endif
+   
+! set up the implicit solver parameters
+  maxiter=15
+  fptol=1e-4
+
 
 #ifndef CAM
     ! if "prescribed wind" set dynamics explicitly and skip time-integration
@@ -330,92 +340,90 @@ contains
        call t_stopf("LF_timestep") 
     else if (method == 7) then ! use implicit Euler method
        call t_startf("LF_timestep")
-       call compute_and_apply_rhs(np1,n0,n0,qn0,dt,elem,hvcoord,hybrid,&
+!   save the value of x_n in statetemp
+       call compute_and_apply_rhs(np1,n0,n0,qn0,0.d0,elem,hvcoord,hybrid,&
             deriv,nets,nete,compute_diagnostics,0d0)
-       ktol=20
-       ktolcounter=1
-       dampfac=1d-4
-       print *, 'hey'
    !   classic fixed point iteration
-       do while ( ktolcounter < ktol)
-          call compute_and_apply_rhs(np1,n0,np1,qn0,dt,elem,hvcoord,hybrid,&
+       fperrmax=2.0*fptol 
+       itercount=1
+       do while  (( itercount < maxiter).and.(fperrmax > fptol)) 
+           do ie=nets,nete
+             statetempfp(ie,:,:,:,1)= elem(ie)%state%v(:,:,1,:,np1)
+             statetempfp(ie,:,:,:,2)= elem(ie)%state%v(:,:,2,:,np1)
+             statetempfp(ie,:,:,:,3)= elem(ie)%state%w(:,:,:,np1)
+             statetempfp(ie,:,:,:,4)= elem(ie)%state%phi(:,:,:,np1)
+             statetempfp(ie,:,:,:,5)= elem(ie)%state%theta(:,:,:,np1)
+             statetempfp(ie,:,:,:,6)= elem(ie)%state%dp3d(:,:,:,np1)
+           enddo
+           call compute_and_apply_rhs(np1,n0,np1,qn0,dt,elem,hvcoord,hybrid,&
               deriv,nets,nete,.false.,0d0)
-          ktolcounter=ktolcounter+1
-          print *, ktolcounter
-       end do
-   !    do while (ktolcounter < ktol)
-   !       do ie=nets,nete
-   !         elem(ie)%state%v(:,:,:,:,nm1)= dampfac*elem(ie)%state%v(:,:,:,:,n0) &
-   !         +(1.d0-dampfac)*elem(ie)%state%v(:,:,:,:,np1)
-   !         elem(ie)%state%theta(:,:,:,nm1)= dampfac*elem(ie)%state%theta(:,:,:,n0) &
-   !         +(1.d0-dampfac)*elem(ie)%state%theta(:,:,:,np1)
-   !         elem(ie)%state%dp3d(:,:,:,nm1)= dampfac*elem(ie)%state%dp3d(:,:,:,n0) &
-   !         +(1.d0-dampfac)*elem(ie)%state%dp3d(:,:,:,np1) 
-   !         elem(ie)%state%w(:,:,:,nm1)= elem(ie)%state%w(:,:,:,nm1) &
-   !         +(1.d0-dampfac)* elem(ie)%state%w(:,:,:,np1)
-   !         elem(ie)%state%phi(:,:,:,nm1)= dampfac*elem(ie)%state%phi(:,:,:,nm1) &
-   !         +(1.d0-dampfac)* elem(ie)%state%phi(:,:,:,np1)
-   !       enddo
-   !       call compute_and_apply_rhs(np1,nm1,np1,qn0,dampfac*dt,elem,hvcoord,hybrid,&
-   !         deriv,nets,nete,.false.,0d0)   
-   !       ktolcounter=ktolcounter+1
-   !       print *, ktolcounter
-   !    end do
-       call t_stopf("LF_timestep")
-    else if (method == 8) then ! use BDF2
-       call t_startf("LF_timestep")
-
-       if (tl%nm1 == 0) then
-          call compute_and_apply_rhs(np1,n0,n0,qn0,dt,elem,hvcoord,hybrid,&
-            deriv,nets,nete,compute_diagnostics,0d0)
-       else
-          call compute_and_apply_rhs(np1,n0,n0,qn0,0.d0,elem,hvcoord,hybrid,&
-            deriv,nets,nete,compute_diagnostics,0d0)
-       end if
-       ktol=100
-       ktolcounter=1
-       dampfac=1d-4
-   !    print *, 'hey'
-   !   classic fixed point iteration
-       do ie=nets,nete
-         elem(ie)%state%v(:,:,:,:,n0)= dampfac*elem(ie)%state%v(:,:,:,:,nm1)/3.d0  &
-          +4.d0*elem(ie)%state%v(:,:,:,:,n0)/3.d0
-         elem(ie)%state%theta(:,:,:,n0)= dampfac*elem(ie)%state%theta(:,:,:,nm1)/3.d0   &
-          +4.d0*elem(ie)%state%theta(:,:,:,n0)/3.d0
-         elem(ie)%state%dp3d(:,:,:,n0)= dampfac*elem(ie)%state%dp3d(:,:,:,nm1)/3.d0 &
-          +4.d0*elem(ie)%state%dp3d(:,:,:,n0)/3.d0
-         elem(ie)%state%w(:,:,:,n0)= elem(ie)%state%w(:,:,:,nm1)/3.d0 &
-          +4.d0* elem(ie)%state%w(:,:,:,n0)/3.d0
-         elem(ie)%state%phi(:,:,:,n0)= dampfac*elem(ie)%state%phi(:,:,:,nm1)/3.d0 &
-          +4.d0* elem(ie)%state%phi(:,:,:,np1)/3.d0
+           do ie=nets,nete
+             fpnorm(ie,1)=MAXVAL(statetempfp(ie,:,:,:,1) - elem(ie)%state%v(:,:,1,:,np1))
+             fpnorm(ie,2)=MAXVAL( statetempfp(ie,:,:,:,2) - elem(ie)%state%v(:,:,2,:,np1))
+             fpnorm(ie,3)=MAXVAL( statetempfp(ie,:,:,:,3) - elem(ie)%state%w(:,:,:,np1))
+             fpnorm(ie,4)=MAXVAL(statetempfp(ie,:,:,:,4) - elem(ie)%state%phi(:,:,:,np1))
+             fpnorm(ie,5)=MAXVAL(statetempfp(ie,:,:,:,5) - elem(ie)%state%theta(:,:,:,np1))
+             fpnorm(ie,6)=MAXVAL( statetempfp(ie,:,:,:,6) - elem(ie)%state%dp3d(:,:,:,np1))
+           enddo
+           do i=1,6
+             fperr(i)=ParallelMax(fpnorm(:,i),hybrid)
+           enddo
+           fperrmax=MAXVAL(fperr(:))
+           itercount=itercount+1
        enddo
-       do while ( ktolcounter < ktol)
-          call compute_and_apply_rhs(np1,n0,np1,qn0,2.d0*dt/3.d0,elem,hvcoord,hybrid,&
-            deriv,nets,nete,compute_diagnostics,0d0)
-          ktolcounter=ktolcounter+1
-          print *, ktolcounter
-       end do
        call t_stopf("LF_timestep")
-    else if (method == 9) then ! trapezoidal method
-       call t_startf("LF_timestep")
-       if (tl%nm1 == 0) then
-          call compute_and_apply_rhs(np1,n0,n0,qn0,dt,elem,hvcoord,hybrid,&
-            deriv,nets,nete,compute_diagnostics,0d0)
-       else
-          call compute_and_apply_rhs(np1,n0,n0,qn0,0.d0,elem,hvcoord,hybrid,&
-            deriv,nets,nete,compute_diagnostics,0d0)
-       end if
-       ktol=20
-       ktolcounter=1
-       dampfac=1d-4
-       print *, 'hey'
+    else if (method == 8) then ! trapezoidal method
+      call t_startf("LF_timestep")
+      call compute_and_apply_rhs(np1,n0,n0,qn0,0.d0,elem,hvcoord,hybrid,&
+           deriv,nets,nete,compute_diagnostics,0d0)
+!   save the value of x_n in statetemp
+      do ie=nets,nete
+        statetemp(ie,:,:,:,1)= elem(ie)%state%v(:,:,1,:,n0)
+        statetemp(ie,:,:,:,2)= elem(ie)%state%v(:,:,2,:,n0)
+        statetemp(ie,:,:,:,3)= elem(ie)%state%w(:,:,:,n0)
+        statetemp(ie,:,:,:,4)= elem(ie)%state%phi(:,:,:,n0)
+        statetemp(ie,:,:,:,5)= elem(ie)%state%theta(:,:,:,n0)
+        statetemp(ie,:,:,:,6)= elem(ie)%state%dp3d(:,:,:,n0)
+      enddo
+!    save the value of x_n + 0.5*dt * f(x_n) at n0
+      call compute_and_apply_rhs(n0,n0,n0,qn0,0.5*dt,elem,hvcoord,hybrid,&
+           deriv,nets,nete,compute_diagnostics,0d0)
    !   classic fixed point iteration
-       do while ( ktolcounter < ktol)
-          call compute_and_apply_rhs(np1,n0,np1,qn0,dt,elem,hvcoord,hybrid,&
+      do while (( itercount < maxiter) .and. (fperrmax > fptol))
+        do ie=nets,nete
+           statetempfp(ie,:,:,:,1)= elem(ie)%state%v(:,:,1,:,np1)
+           statetempfp(ie,:,:,:,2)= elem(ie)%state%v(:,:,2,:,np1)
+           statetempfp(ie,:,:,:,3)= elem(ie)%state%w(:,:,:,np1)
+           statetempfp(ie,:,:,:,4)= elem(ie)%state%phi(:,:,:,np1)
+           statetempfp(ie,:,:,:,5)= elem(ie)%state%theta(:,:,:,np1)
+           statetempfp(ie,:,:,:,6)= elem(ie)%state%dp3d(:,:,:,np1)
+        enddo
+!     set np1 as  (x_n + 0.5*dt*f(x_n)+0.5*f(x)
+        call compute_and_apply_rhs(np1,n0,np1,qn0,0.5*dt,elem,hvcoord,hybrid,&
               deriv,nets,nete,.false.,0d0)
-          ktolcounter=ktolcounter+1
-          print *, ktolcounter
-       end do
+        do ie=nets,nete
+          fpnorm(ie,1)=MAXVAL( statetempfp(ie,:,:,:,1) - elem(ie)%state%v(:,:,1,:,np1))
+          fpnorm(ie,2)=MAXVAL( statetempfp(ie,:,:,:,2) - elem(ie)%state%v(:,:,2,:,np1))
+          fpnorm(ie,3)=MAXVAL( statetempfp(ie,:,:,:,3) - elem(ie)%state%w(:,:,:,np1))
+          fpnorm(ie,4)=MAXVAL(statetempfp(ie,:,:,:,4) - elem(ie)%state%phi(:,:,:,np1))
+          fpnorm(ie,5)=MAXVAL(statetempfp(ie,:,:,:,5) - elem(ie)%state%theta(:,:,:,np1))
+          fpnorm(ie,6)=MAXVAL( statetempfp(ie,:,:,:,6) - elem(ie)%state%dp3d(:,:,:,np1))
+        enddo
+        do i=1,6
+             fperr(i)=ParallelMax(fpnorm(:,i),hybrid)
+        enddo
+        fperrmax = MAXVAL(fperr(:))
+          itercount=itercount+1
+       enddo
+! write x_n back at n0
+       do ie=nets,nete
+          elem(ie)%state%v(:,:,1,:,n0)=statetemp(ie,:,:,:,1)
+          elem(ie)%state%v(:,:,2,:,n0)=statetemp(ie,:,:,:,2)
+          elem(ie)%state%w(:,:,:,n0)=statetemp(ie,:,:,:,3)
+          elem(ie)%state%phi(:,:,:,n0)=statetemp(ie,:,:,:,4)
+          elem(ie)%state%theta(:,:,:,n0)=statetemp(ie,:,:,:,5)
+          elem(ie)%state%dp3d(:,:,:,n0)=statetemp(ie,:,:,:,6)
+       enddo
        call t_stopf("LF_timestep")
     else
        call abortmp('ERROR: bad choice of tstep_type')
