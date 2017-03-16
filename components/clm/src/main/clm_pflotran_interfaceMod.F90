@@ -357,18 +357,18 @@ contains
       do fc = 1,filters(ifilter)%num_soilc
         c = filters(ifilter)%soilc(fc)
          soil_begcb(c) = 0._r8
-         do j = 1, nlevdecomp
+         do j = 1, nlevdecomp_full
             do l = 1, ndecomp_pools
                 soil_begcb(c) = soil_begcb(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
             end do
          end do
 
-         soil_begcb_full(c) = 0._r8
-         do j = 1, nlevdecomp_full
-            do l = 1, ndecomp_pools
-                soil_begcb_full(c) = soil_begcb_full(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
-            end do
-         end do
+!         soil_begcb_full(c) = 0._r8
+!         do j = 1, nlevdecomp_full
+!            do l = 1, ndecomp_pools
+!                soil_begcb_full(c) = soil_begcb_full(c) + decomp_cpools_vr(c,j,l)*dzsoi_decomp(j)
+!            end do
+!         end do
       end do
 
     end associate
@@ -383,7 +383,7 @@ contains
     ! On the radiation time step, calculate the beginning carbon balance for mass
     ! conservation checks.
 
-    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp, nlevdecomp_full
     use clm_varcon      , only : dzsoi_decomp
     !
     ! !ARGUMENTS:
@@ -415,7 +415,7 @@ contains
         soil_begnb_org(c) = 0._r8
         soil_begnb_min(c) = 0._r8
 
-        do j = 1, nlevdecomp
+        do j = 1, nlevdecomp_full
 !!do NOT directly use sminn_vr(c,j), it does NOT always equal to (no3+nh4+nh4sorb) herein due to unknown reason
             soil_begnb_min(c) = soil_begnb_min(c) + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
                                                   + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
@@ -440,7 +440,7 @@ contains
     ! !USES:
     use clm_time_manager, only : get_step_size, get_nstep
     use clm_varctl      , only : iulog, use_ed
-    use clm_varpar      , only : ndecomp_pools, nlevdecomp
+    use clm_varpar      , only : ndecomp_pools, nlevdecomp, nlevdecomp_full
     use clm_varcon      , only : dzsoi_decomp
     ! !ARGUMENTS:
     type(bounds_type) , intent(in)    :: bounds      ! bounds of current process
@@ -475,7 +475,7 @@ contains
         pf_coutputs = 0._r8
         pf_cdelta   = 0._r8
 
-        do j = 1, nlevdecomp
+        do j = 1, nlevdecomp_full
             pf_coutputs = pf_coutputs + hr_vr(c,j)*dzsoi_decomp(j)
             do l = 1, ndecomp_pools
                 pf_cinputs = pf_cinputs + externalc(c,j,l)*dzsoi_decomp(j)
@@ -543,7 +543,13 @@ contains
     real(r8) :: pf_nend_no3, pf_nend_nh4, pf_nend_nh4sorb                           !! 3 mineral N pools at the end of time-step
     real(r8) :: plant_ndemand, potential_immob, actual_immob, gross_nmin            !! _immob: N immobilization; _nmin: N mineralization
     real(r8) :: pf_ngas_org, pf_ngas_min, pf_errnb_org, pf_errnb_min                !! _ngas_org: N gas from decomposition; _ngas_min: N gas from nitrification & denitrification
+    real(r8) :: pf_nbeg_bottom_org
+    real(r8) :: pf_nend_bottom, pf_nend_bottom_org, pf_nend_bottom_min
     real(r8) :: pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
+
+    real(r8) :: pf_errnb_org_vr(1:nlevdecomp_full)
+    real(r8) :: pf_ndelta_org_vr(1:nlevdecomp_full)
+    real(r8) :: pf_ninputs_org_vr(1:nlevdecomp_full)
     !-----------------------------------------------------------------------
 
     associate(                                                                        &
@@ -551,6 +557,7 @@ contains
          externaln_to_no3_vr          => clm_bgc_data%externaln_to_no3_col          , &
          externaln_to_nh4_vr          => clm_bgc_data%externaln_to_nh4_col          , &
          decomp_npools_delta_vr       => clm_bgc_data%decomp_npools_sourcesink_col  , &
+         decomp_npools_vr             => clm_bgc_data%decomp_npools_vr_col          , &
          smin_no3_vr                  => clm_bgc_data%smin_no3_vr_col               , &
          smin_nh4_vr                  => clm_bgc_data%smin_nh4_vr_col               , &
          smin_nh4sorb_vr              => clm_bgc_data%smin_nh4sorb_vr_col           , &
@@ -611,7 +618,7 @@ contains
         pf_errnb_org        = 0._r8
         pf_errnb_min        = 0._r8
 
-        do j = 1, nlevdecomp
+        do j = 1, nlevdecomp_full
             !! sminn_vr(c,j) has been calculated above
             pf_nend_no3     = pf_nend_no3     + smin_no3_vr(c,j)*dzsoi_decomp(j)
             pf_nend_nh4     = pf_nend_nh4     + smin_nh4_vr(c,j)*dzsoi_decomp(j)
@@ -640,19 +647,43 @@ contains
         end do !!j = 1, nlevdecomp
 
 !!wgs:beg:
+        pf_nend_bottom     = 0._r8
+        pf_nend_bottom_org = 0._r8
+        pf_nend_bottom_min = 0._r8
+        pf_nbeg_bottom_org = 0._r8
+
         pf_ndelta_bottom     = 0._r8
         pf_ndelta_bottom_org = 0._r8
         pf_ndelta_bottom_min = 0._r8
         do j=nlevdecomp+1, nlevdecomp_full
-            pf_ndelta_bottom_min = pf_ndelta_bottom_min + smin_no3_vr(c,j)*dzsoi_decomp(j) &
-                                                        + smin_nh4_vr(c,j)*dzsoi_decomp(j) &
-                                                        + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
+            pf_nend_bottom_min = pf_nend_bottom_min + smin_no3_vr(c,j)*dzsoi_decomp(j) &
+                                                    + smin_nh4_vr(c,j)*dzsoi_decomp(j) &
+                                                    + smin_nh4sorb_vr(c,j)*dzsoi_decomp(j)
             do l = 1, ndecomp_pools
                 pf_ndelta_bottom_org = pf_ndelta_bottom_org + decomp_npools_delta_vr(c,j,l)*dzsoi_decomp(j)
+                pf_nbeg_bottom_org   = pf_nbeg_bottom_org   + decomp_npools_vr(c,j,l)*dzsoi_decomp(j)
             end do
 
         end do !!j=nlevdecomp+1, nlevdecomp_full
-        pf_ndelta_bottom = pf_ndelta_bottom_org + pf_ndelta_bottom_min
+        pf_nend_bottom_org = pf_nbeg_bottom_org + pf_ndelta_bottom_org
+        pf_nend_bottom = pf_nend_bottom_org + pf_nend_bottom_min
+
+        !! check SON balance at each layer
+        pf_errnb_org_vr(:) = 0._r8
+        pf_ndelta_org_vr(:) = 0._r8
+        pf_ninputs_org_vr(:) = 0._r8
+        do j = 1, nlevdecomp_full
+
+            do l = 1, ndecomp_pools
+                pf_ndelta_org_vr(j)  = pf_ndelta_org_vr(j)  + decomp_npools_delta_vr(c,j,l)
+                pf_ninputs_org_vr(j) = pf_ninputs_org_vr(j) + externaln_to_decomp_npools(c,j,l)
+            end do
+            pf_errnb_org_vr(j)    = (pf_ninputs_org_vr(j) - f_ngas_decomp_vr(c,j)     &
+                        - gross_nmin_vr(c,j) + actual_immob_vr(c,j))*dtime  &
+                        - pf_ndelta_org_vr(j)
+            pf_errnb_org_vr(j)    = pf_errnb_org_vr(j)*dzsoi_decomp(j)
+        end do
+
 !!wgs:end
 
         pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
@@ -664,12 +695,15 @@ contains
         pf_noutputs_gas = pf_noutputs_nit   + pf_noutputs_denit
         pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
         pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
-!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
+write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 !!        pf_errnb        = pf_errnb - pf_ndelta_bottom
 !!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
-        pf_errnb_org    = (pf_ninputs_org - pf_ngas_org - gross_nmin + actual_immob)*dtime - pf_ndelta_org
-        pf_errnb_min    = (pf_ninputs_min - pf_ngas_min + gross_nmin - actual_immob - pf_noutputs_veg)*dtime &
+        pf_errnb_org    = (pf_ninputs_org - pf_ngas_org     &
+                        - gross_nmin + actual_immob)*dtime  &
+                        - pf_ndelta_org
+        pf_errnb_min    = (pf_ninputs_min - pf_ngas_min     &
+                        + gross_nmin - actual_immob - pf_noutputs_veg)*dtime &
                         - pf_ndelta_min
         ! check for significant errors
         if (abs(pf_errnb) > 1e-8_r8) then
@@ -704,8 +738,21 @@ contains
                                     pf_noutputs_nit*dtime,pf_noutputs_denit*dtime,          &
                                     pf_noutputs_gas*dtime,pf_noutputs_veg*dtime, plant_ndemand*dtime
             write(iulog,*)
-            write(iulog,'(10A15)')  "Nend_bottom","Nend_b_org", "Nend_b_min"
-            write(iulog,'(10E15.6)')pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
+            write(iulog,'(10A15)')  "Ngas_org","Ngas_min",                                  &
+                                    "Nend_bottom","Nend_bot_min","Nbeg_bot_org","Nend_bot_org", "Ndelta_bot_org"
+            write(iulog,'(10E15.6)')pf_ngas_org*dtime,pf_ngas_min*dtime,                    &
+                                    pf_nend_bottom, pf_nend_bottom_min, pf_nbeg_bottom_org,pf_nend_bottom_org, pf_ndelta_bottom_org
+            write(iulog,*)
+            write(iulog,'(A10,20A15)')  "Layer","errbn_org","ndelta_org","ninputs","ngas","gross_nmin","actual_immob"
+            do j = 1, nlevdecomp_full
+                write(iulog,'(I10,15E15.6)')j,pf_errnb_org_vr(j),                           &
+                                            pf_ndelta_org_vr(j)*dzsoi_decomp(j),            &
+                                            pf_ninputs_org_vr(j)*dtime*dzsoi_decomp(j),     &
+                                            f_ngas_decomp_vr(c,j)*dtime*dzsoi_decomp(j),    &
+                                            gross_nmin_vr(c,j)*dtime*dzsoi_decomp(j),       &
+                                            actual_immob_vr(c,j)*dtime*dzsoi_decomp(j)
+
+            end do
             write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:end  "
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
@@ -1508,25 +1555,25 @@ contains
       call calc_nestep()  !! nestep
        total_clmstep = nestep - pf_clmnstep0!!nestep - nsstep
        ispfprint = .true.               ! turn-on or shut-off PF's *.h5 output
-write(iulog,*)">>>DEBUG: 0 pflotranModelUpdateFinalWaypoint"
+!write(iulog,*)">>>DEBUG: 0 pflotranModelUpdateFinalWaypoint"
        call pflotranModelUpdateFinalWaypoint(pflotran_m, total_clmstep*dtime, dtime, ispfprint)
-write(iulog,*)">>>DEBUG: 0 get_clm_soil_dimension"
+!write(iulog,*)">>>DEBUG: 0 get_clm_soil_dimension"
        !! wgs:beg------------------------------------------------
        !! wgs: move from 'interface_init'
        ! force CLM soil domain into PFLOTRAN subsurface grids
        call get_clm_soil_dimension(clm_bgc_data, bounds)
-write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
+!write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
        ! Currently always set soil hydraulic/BGC properties from CLM to PF
        call get_clm_soil_properties(clm_bgc_data, bounds, filters)
-write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
+!write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
        ! Get top surface area of 3-D pflotran subsurface domain
        call pflotranModelGetTopFaceArea(pflotran_m)
 
        !! wgs:end------------------------------------------------
-write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
+!write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
        ! always initializing soil 'TH' states from CLM to pflotran
        call get_clm_soil_th(clm_bgc_data, .not.initth_pf2clm, .not.initth_pf2clm, bounds, filters, ifilter)
-write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
+!write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     endif
@@ -1535,18 +1582,18 @@ write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
     ! (1)
     ! if PF T/H mode not available, have to pass those from CLM to global variable in PF to drive BGC/H
     if (.not. isinitpf .and. (.not.pf_tmode .or. .not.pf_hmode)) then    ! always initialize from CLM to pF, if comment out this 'if'block
-write(iulog,*)">>>DEBUG: get_clm_soil_th"
+!write(iulog,*)">>>DEBUG: get_clm_soil_th"
        call get_clm_soil_th(clm_bgc_data, .TRUE., .TRUE., bounds, filters, ifilter)
-write(iulog,*)">>>DEBUG: pfUpdateTHfromCLM"
+!write(iulog,*)">>>DEBUG: pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     end if
 
     ! ice-len adjusted porostiy
     if (.not.pf_frzmode) then
-write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
+!write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
         call get_clm_iceadj_porosity(clm_bgc_data, bounds, filters, ifilter)
-write(iulog,*)">>>DEBUG: pfResetPorosity"
+!write(iulog,*)">>>DEBUG: pfResetPorosity"
         call pflotranModelResetSoilPorosityFromCLM(pflotran_m)
 
     endif
@@ -1561,7 +1608,7 @@ write(iulog,*)">>>DEBUG: pfResetPorosity"
     ! (4a) always (re-)initialize PFLOTRAN soil bgc state variables from CLM-CN
 
        !if (isinitpf) then    ! if only initialize ONCE, uncomment this 'if ... endif' block.
-write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
+!write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
           call get_clm_bgc_conc(clm_bgc_data, bounds, filters, ifilter)
           call pflotranModelSetBgcConcFromCLM(pflotran_m)
           if ((.not.pf_hmode .or. .not.pf_frzmode)) then
@@ -1577,11 +1624,11 @@ write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
         if (.not.pf_hmode .or. .not.pf_frzmode) then
           call pflotranModelUpdateAqConcFromCLM(pflotran_m)
         endif
-write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
+!write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     ! (4b) bgc rate (fluxes) from CLM to PFLOTRAN
         call get_clm_bgc_rate(clm_bgc_data, bounds, filters, ifilter)
         call pflotranModelSetBgcRatesFromCLM(pflotran_m)
-write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
+!write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     endif
 
     ! (5) the main callings of PFLOTRAN
@@ -1592,16 +1639,16 @@ write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     else
        ispfprint = .FALSE.
     endif
-write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
+!write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
     call pflotranModelStepperRunTillPauseTime( pflotran_m, (nstep+1.0d0)*dtime, dtime, ispfprint )
     call mpi_barrier(mpicom, ierr)
 
 
     ! (6) update CLM variables from PFLOTRAN
-write(iulog,*)">>>DEBUG: pflotranModelGetBgcVariablesFromPF"
+!write(iulog,*)">>>DEBUG: pflotranModelGetBgcVariablesFromPF"
     if (pf_cmode) then
         call pflotranModelGetBgcVariablesFromPF( pflotran_m)      ! bgc variables
-write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
+!write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
         call update_soil_bgc_pf2clm(clm_bgc_data, bounds, filters, ifilter)
 
         ! need to save the current time-step PF porosity/liq. saturation for bgc species mass conservation
@@ -1792,11 +1839,10 @@ write(iulog,*)">>>DEBUG: update_soil_bgc_pf2clm"
 
     enddo
 #endif
-write(iulog,*)">>>DEBUG | Soil Dimension | begg,endg=",bounds%begg, bounds%endg
 
     do g = bounds%begg, bounds%endg
       gcount = g - bounds%begg                               ! 0-based
-write(iulog,'(A,10I10)')">>>DEBUG | Soil Dimension | gcount,g,begg,endg=",gcount,g,bounds%begg, bounds%endg
+
       ! re-calculating 2-D grid area if vertices are known from input file
       ! NOTE: this will over-write the grid area read-in from either 'ldomain' file or 'surfdata' file
       if (ldomain%nv==4 .or. ldomain%nv==3) then
@@ -1816,7 +1862,7 @@ write(iulog,'(A,10I10)')">>>DEBUG | Soil Dimension | gcount,g,begg,endg=",gcount
          else
            larea(g) = dummy1 * 1.e-6_r8
          endif
-write(iulog,'(A,I5,10E14.6)')">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,lons=",ldomain%nv,larea(g),lats,lons
+
          ! for 1-D grid, either 'dx' or 'dy' may be variable and acceptable in the model
          ! (though, currently NOT YET used for PF mesh)
          ! (NOTE: for 2-D grid, dx/dy in lon/lat can NOT be variable)
@@ -1859,9 +1905,9 @@ write(iulog,'(A,I5,10E14.6)')">>>DEBUG | Soil Dimension | ldomain%nv,larea,lats,
          endif  !if(.not.ldomain%isgrid2d)
 
        endif !if (ldomain%nv==4 .or. 3)
-write(iulog,'(A,10E14.6)')">>>DEBUG | Soil Dimension | dxsoil,dysoil=",dxsoil_clm(gcount+1),dysoil_clm(gcount+1)
+
     end do !!g = bounds%begg, bounds%endg
-write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: beg"
+
     !!!!
     call VecGetArrayF90(clm_pf_idata%cellid_clmp,  cellid_clm_loc,  ierr)
     CHKERRQ(ierr)
@@ -1883,7 +1929,7 @@ write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: beg"
     CHKERRQ(ierr)
     call VecGetArrayF90(clm_pf_idata%zsoil_clmp,  zsoil_clm_loc,  ierr)
     CHKERRQ(ierr)
-write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: end"
+
     zisoil_clm_loc(:)   = 0._r8
     dxsoil_clm_loc(:)   = 0._r8
     dysoil_clm_loc(:)   = 0._r8
@@ -1893,11 +1939,10 @@ write(iulog,*)">>>DEBUG | Soil Dimension | VecGetArrayF90: end"
     xsoil_clm_loc(:)    = 0._r8
     ysoil_clm_loc(:)    = 0._r8
     zsoil_clm_loc(:)    = 0._r8
-write(iulog,*)">>>DEBUG | Soil Dimension | loc Initialization: end"
+
     do j = 1, clm_pf_idata%nzclm_mapped
 
        if (j <= nlevgrnd) then
-write(iulog,'(A,10I10)')">>>DEBUG | Soil Dimension | j,clm_pf_idata%nzclm_mapped=",j,clm_pf_idata%nzclm_mapped
 
 #ifdef COLUMN_MODE
 write(iulog,'(A)')">>>DEBUG | Soil Dimension | COLUMN_MODE"
@@ -2651,7 +2696,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
     use ColumnType          , only : col
     use clm_varctl          , only : iulog
-    use clm_varpar          , only : ndecomp_pools, nlevdecomp
+    use clm_varpar          , only : ndecomp_pools, nlevdecomp, nlevdecomp_full
 
     implicit none
 
@@ -2747,8 +2792,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
           ! note: all clm-pf soil layers are 'clm_pf_idata%nzclm_mapped' for both TH/BGC,
           !       but in CLM, T is within 'nlevgrnd', H is within 'nlevsoi', bgc within 'nlevdecomp'
 
-          if(j <= nlevdecomp) then  !!nlevdecomp = 10, nlevdecomp_full = 15
-
+!          if(j <= nlevdecomp) then  !!nlevdecomp = 10, nlevdecomp_full = 15
+          if(j <= nlevdecomp_full) then
              do k = 1, ndecomp_pools
                 vec_offset = (k-1)*clm_pf_idata%nlclm_sub        ! 0-based
                 ! decomp_pool vec: 'cell' first, then 'species' (i.e. cell by cell for 1 species, then species by species)
@@ -3442,7 +3487,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
      use ColumnType         , only : col
      use clm_time_manager   , only : get_step_size, get_nstep
-     use clm_varpar         , only : nlevdecomp
+     use clm_varpar         , only : nlevdecomp, nlevdecomp_full
      use clm_varcon         , only : tfrz
 
      use clm_varctl         , only : pf_tmode, pf_hmode, pf_frzmode
@@ -3620,7 +3665,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
        total_p = forc_pbot(g)
 
-       do j = 1, nlevdecomp
+!       do j = 1, nlevdecomp
+       do j = 1, nlevdecomp_full
           
           if(j <= clm_pf_idata%nzclm_mapped) then
               cellcount = gcount*clm_pf_idata%nzclm_mapped+j
