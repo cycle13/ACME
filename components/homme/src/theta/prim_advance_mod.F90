@@ -999,14 +999,6 @@ contains
         v_gradw(:,:,k) = elem(ie)%state%v(:,:,1,k,n0)*vtemp(:,:,1) &
              +elem(ie)%state%v(:,:,2,k,n0)*vtemp(:,:,2) 
         stens(:,:,k,1) = -s_vadv(:,:,k,1) - v_gradw(:,:,k) -  g*(1-dpnh_dp(:,:,k) )
-
-!================ Not the conservation form
-!        vtemp(:,:,:)   = gradient_sphere(theta(:,:,k),deriv,elem(ie)%Dinv)
-!        v_gradtheta(:,:,k) = elem(ie)%state%v(:,:,1,k,n0)*vtemp(:,:,1) &
-!             +elem(ie)%state%v(:,:,2,k,n0)*vtemp(:,:,2)
-!        stens(:,:,k,2) = -s_vadv(:,:,k,2) - v_gradtheta(:,:,k)
-!================
-!       The following the big-theta equation in conservation form
         v_theta(:,:,1,k) = elem(ie)%state%v(:,:,1,k,n0)*               &
           elem(ie)%state%theta_dp_cp(:,:,k,n0)
         v_theta(:,:,2,k) =                                             &
