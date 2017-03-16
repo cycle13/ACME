@@ -798,7 +798,7 @@ contains
   real (kind=real_kind), pointer, dimension(:,:,:)   :: phi
   real (kind=real_kind), pointer, dimension(:,:,:)   :: dp3d
   real (kind=real_kind), pointer, dimension(:,:,:)   :: theta_dp_cp
-
+   
   real (kind=real_kind) :: theta_cp(np,np,nlev)
   real (kind=real_kind) :: omega_p(np,np,nlev)
   real (kind=real_kind) :: vort(np,np,nlev)      ! vorticity
@@ -840,7 +840,7 @@ contains
   do ie=nets,nete
      dp3d  => elem(ie)%state%dp3d(:,:,:,n0)
      theta_dp_cp  => elem(ie)%state%theta_dp_cp(:,:,:,n0)
-     theta_cp  => theta_dp_cp(:,:,:,n0)/dp3d(:,:,:)
+     theta_cp(:,:,:) = theta_dp_cp(:,:,:)/dp3d(:,:,:)
      
      if (theta_hydrostatic_mode) then
         phi => elem(ie)%derived%phi(:,:,:)
@@ -942,7 +942,7 @@ contains
         ! ==============================================
         ! TODO: remove theta from s_state and s_vadv
         s_state(:,:,:,1)=elem(ie)%state%w(:,:,:,n0)
-        s_state(:,:,:,2)=elem(ie)%theta_dp_cp(:,:,:,n0)
+        s_state(:,:,:,2)=elem(ie)%state%theta_dp_cp(:,:,:,n0)
         s_state(:,:,:,3)=elem(ie)%state%phi(:,:,:,n0)
         call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,3,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
         !call preq_vertadv_v(elem(ie)%state%v(:,:,:,:,n0),s_state,2,eta_dot_dpdn,dp3d,v_vadv,s_vadv)
