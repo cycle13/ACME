@@ -138,14 +138,12 @@ if ( $OCN_GRID eq 'oEC60to30' ) {
 chdir "$CASEBUILD/mpas-oconf";
 
 #--------------------------------------------------------------------
-# Generate input data file
+# Generate input data file with stream-specified files
 #--------------------------------------------------------------------
 
 open(my $input_list, "+>", "$CASEBUILD/mpas-o.input_data_list");
 print $input_list "mesh = $DIN_LOC_ROOT/ocn/mpas-o/$OCN_MASK/$grid_prefix.$grid_date.nc\n";
 print $input_list "ic = $DIN_LOC_ROOT/ocn/mpas-o/$OCN_MASK/$ic_prefix.$ic_date.nc\n";
-#print $input_list "full_graph = $DIN_LOC_ROOT/ocn/mpas-o/$OCN_MASK/$decomp_prefix$grid_date\n";
-print $input_list "graph$NTASKS_OCN = $DIN_LOC_ROOT/ocn/mpas-o/$OCN_MASK/$decomp_prefix$grid_date.part.$NTASKS_OCN\n";
 close($input_list);
 
 #--------------------------------------------------------------------
