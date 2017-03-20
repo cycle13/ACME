@@ -475,33 +475,8 @@
   </compset>
 
   <compset>
-    <alias>FSCM4A95</alias>
-    <lname>AR95_CAM4%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>FSCM5A97</alias>
-    <lname>AR97_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>FSCM5DF02</alias>
-    <lname>DF02_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>FSCM5RICO</alias>
-    <lname>RICO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>FSCM5MACE</alias>
-    <lname>MACE_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>FSCM5RACO</alias>
-    <lname>RACO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+    <alias>FSCM5</alias>
+    <lname>SCM5_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset> 
 
   <compset>
@@ -547,34 +522,9 @@
   </compset>
   
   <compset>
-    <alias>F_ARM97_SCAM5</alias>
-    <lname>AR97_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>  
-  
-  <compset>
-    <alias>F_DCRF02_SCAM5</alias>
-    <lname>DF02_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+    <alias>F_SCAM5</alias>
+    <lname>SCAM_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset>
-
-  <compset>
-    <alias>FDCRF02_SCAM5</alias>
-    <lname>DF01_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset> 
-
-  <compset>
-    <alias>F_RICO_SCAM5</alias>
-    <lname>RICO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
-    <alias>F_MPACE_SCAM5</alias> 
-    <lname>MACE_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset>   
-
-  <compset>
-    <alias>F_RACORO_SCAM5</alias>
-    <lname>RACO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
-  </compset> 
 
   <entries>
 
@@ -599,31 +549,12 @@
 	<value  compset="RCP[2468]_CAM\d+">2005-01-01</value>
 	<value  compset="C2R[68]_CAM">1950-01-01</value> 
 	<value  compset="C2R4_CAM">2004-01-01</value>
-	<value  compset="AR95_CAM">1995-07-18</value>
-	<value  compset="AR97_CAM">1997-06-19</value>
-	<value  compset="DF02_CAM">1999-07-11</value>
-        <value  compset="DF01_CAM">1999-07-10</value>
-        <value  compset="RICO_CAM">2004-12-16</value>
-        <value  compset="MACE_CAM">1999-10-09</value>
-        <value  compset="RACO_CAM">2009-05-01</value> 
       </values>
     </entry>
 
     <entry id="CALENDAR"> 
       <values>
 	<value  compset="GEOS_">GREGORIAN</value>
-      </values>
-    </entry>
-
-    <entry id="START_TOD"> 
-      <values>
-	<value  compset="AR95_CAM">19800</value>
-	<value  compset="AR97_CAM">84585</value>
-        <value  compset="RACO_CAM">0</value> 
-	<value  compset="DF02_CAM">0</value>
-        <value  compset="DF01_CAM">0</value>
-        <value  compset="RICO_CAM">0</value>
-        <value  compset="MACE_CAM">61200</value>
       </values>
     </entry>
 
@@ -650,41 +581,6 @@
 	<value grid="a%1.9x2.5_l%1.9x2.5_oi%1.9x2.5_r%r05_m%gx1v6"	compset="AMIP_CAM5_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV"	 >ccsm4_init</value>
       </values>
     </entry>
-
-    <entry id="STOP_OPTION"> 
-      <values>
-	<value compset="AR95_CAM">ndays</value>
-	<value compset="AR97_CAM">ndays</value>
-        <value compset="RACO_CAM">ndays</value> 
-	<value compset="DF02_CAM">nhours</value>
-        <value compset="DF01_CAM">nhours</value>
-        <value compset="RICO_CAM">ndays</value>
-        <value compset="MACE_CAM">nhours</value>
-      </values>
-    </entry>
-
-    <entry id="STOP_N"> 
-      <values>
-	<value compset="AR95_CAM">2</value>
-	<value compset="AR97_CAM">26</value>
-        <value compset="RACO_CAM">30</value> 
-	<value compset="DF02_CAM">12</value>
-        <value compset="DF01_CAM">12</value>
-        <value compset="RICO_CAM">1</value>
-        <value compset="MACE_CAM">12</value>
-      </values>
-    </entry>
-  
-    <entry id="MASK_GRID"> 
-      <values>
-	<value compset="AR97_CAM">USGS</value>
-        <value compset="RACO_CAM">USGS</value> 
-	<value compset="DF02_CAM">USGS</value>
-        <value compset="DF01_CAM">USGS</value>
-        <value compset="RICO_CAM">USGS</value>
-        <value compset="MACE_CAM">USGS</value>
-      </values>
-    </entry>    
 
     <entry id="GET_REFCASE"> 
       <values>
