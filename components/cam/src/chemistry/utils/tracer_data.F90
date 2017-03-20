@@ -1386,7 +1386,6 @@ contains
                .and.index(trim(aerofulnam),'log') < 1) then
 
                      aero_q_data=q_mix
-                   write(*,*) 'replace aerosol data'
                    sumii=0._r8
                    countj =0
                   do ii = 1, ncoli

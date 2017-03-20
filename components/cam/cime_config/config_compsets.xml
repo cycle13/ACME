@@ -500,6 +500,11 @@
   </compset>
 
   <compset>
+    <alias>FSCM5RACO</alias>
+    <lname>RACO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+  </compset> 
+
+  <compset>
     <alias>FC4AQUAP</alias>
     <lname>2000_CAM4_SLND_SICE_AQUAP_SROF_SGLC_SWAV</lname>
   </compset>
@@ -549,6 +554,11 @@
   <compset>
     <alias>F_DCRF02_SCAM5</alias>
     <lname>DF02_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <alias>FDCRF02_SCAM5</alias>
+    <lname>DF01_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset> 
 
   <compset>
@@ -560,6 +570,11 @@
     <alias>F_MPACE_SCAM5</alias> 
     <lname>MACE_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset>   
+
+  <compset>
+    <alias>F_RACORO_SCAM5</alias>
+    <lname>RACO_CAM5%SCAM_CLM40%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+  </compset> 
 
   <entries>
 
@@ -587,8 +602,10 @@
 	<value  compset="AR95_CAM">1995-07-18</value>
 	<value  compset="AR97_CAM">1997-06-19</value>
 	<value  compset="DF02_CAM">1999-07-11</value>
+        <value  compset="DF01_CAM">1999-07-10</value>
         <value  compset="RICO_CAM">2004-12-16</value>
         <value  compset="MACE_CAM">1999-10-09</value>
+        <value  compset="RACO_CAM">2009-05-01</value> 
       </values>
     </entry>
 
@@ -602,7 +619,9 @@
       <values>
 	<value  compset="AR95_CAM">19800</value>
 	<value  compset="AR97_CAM">84585</value>
+        <value  compset="RACO_CAM">0</value> 
 	<value  compset="DF02_CAM">0</value>
+        <value  compset="DF01_CAM">0</value>
         <value  compset="RICO_CAM">0</value>
         <value  compset="MACE_CAM">61200</value>
       </values>
@@ -636,7 +655,9 @@
       <values>
 	<value compset="AR95_CAM">ndays</value>
 	<value compset="AR97_CAM">ndays</value>
+        <value compset="RACO_CAM">ndays</value> 
 	<value compset="DF02_CAM">nhours</value>
+        <value compset="DF01_CAM">nhours</value>
         <value compset="RICO_CAM">ndays</value>
         <value compset="MACE_CAM">nhours</value>
       </values>
@@ -646,7 +667,9 @@
       <values>
 	<value compset="AR95_CAM">2</value>
 	<value compset="AR97_CAM">26</value>
+        <value compset="RACO_CAM">30</value> 
 	<value compset="DF02_CAM">12</value>
+        <value compset="DF01_CAM">12</value>
         <value compset="RICO_CAM">1</value>
         <value compset="MACE_CAM">12</value>
       </values>
@@ -655,7 +678,9 @@
     <entry id="MASK_GRID"> 
       <values>
 	<value compset="AR97_CAM">USGS</value>
+        <value compset="RACO_CAM">USGS</value> 
 	<value compset="DF02_CAM">USGS</value>
+        <value compset="DF01_CAM">USGS</value>
         <value compset="RICO_CAM">USGS</value>
         <value compset="MACE_CAM">USGS</value>
       </values>
