@@ -490,6 +490,12 @@
       <alias>ne30_oECv3_ICG</alias>
     </grid>
 
+    <grid compset="(CAM5.+CLM.+MPASO%SPUNUP)">
+      <sname>ne120np4_oRRS18to6v3_ICG</sname>
+      <lname>a%ne120np4_l%ne120np4_oi%oRRS18to6v3_ICG_r%r0125_m%oRRS18to6v3_g%null_w%null</lname>
+      <alias>ne120_oRRS18v3_ICG</alias>
+    </grid>
+
     <grid compset="(DOCN|XOCN|SOCN|AQUAP)">
       <sname>ne60np4_ne60np4</sname>
       <alias>ne60_ne60</alias>
@@ -1295,6 +1301,22 @@
       <support>Experimental, under development</support>
     </domain>
 
+    <domain name="oRRS18to6">
+      <nx>3697425</nx>
+      <ny>1</ny>
+      <desc>oRRS18to6 is an MPAS ocean grid with a mesh density function that is roughly proportional to the Rossby radius of deformation, with 18 km gridcells at low and 6 km gridcells at high latitudes:</desc>
+      <file ice_mask="oRRS18to6">domain.ocn.oRRS18to6.160831.nc</file>
+      <file ocn_mask="oRRS18to6">domain.ocn.oRRS18to6.160831.nc</file>
+    </domain>
+
+    <domain name="oRRS18to6v3">
+      <nx>3693225</nx>
+      <ny>1</ny>
+      <desc>oRRS18to6v3 is an MPAS ocean grid with a mesh density function that is roughly proportional to the Rossby radius of deformation, with 18 km gridcells at low and 6 km gridcells at high latitudes:</desc>
+      <file ice_mask="oRRS18to6v3">domain.ocn.oRRS18to6v3.170111.nc</file>
+      <file ocn_mask="oRRS18to6v3">domain.ocn.oRRS18to6v3.170111.nc</file>
+    </domain>
+
     <domain name="oEC60to30_ICG">
       <nx>234988</nx>
       <ny>1</ny>
@@ -1311,18 +1333,10 @@
       <file ocn_mask="oEC60to30v3">domain.ocn.oEC60to30v3.161222.nc</file>
     </domain>
 
-    <domain name="oRRS18to6">
-      <nx>3697425</nx>
-      <ny>1</ny>
-      <desc>oRRS18to6 is an MPAS ocean grid with a mesh density function that is roughly proportional to the Rossby radius of deformation, with 18 km gridcells at low and 6 km gridcells at high latitudes:</desc>
-      <file ice_mask="oRRS18to6">domain.ocn.oRRS18to6.160831.nc</file>
-      <file ocn_mask="oRRS18to6">domain.ocn.oRRS18to6.160831.nc</file>
-    </domain>
-
-    <domain name="oRRS18to6v3">
+    <domain name="oRRS18to6v3_ICG">
       <nx>3693225</nx>
       <ny>1</ny>
-      <desc>oRRS18to6v3 is an MPAS ocean grid with a mesh density function that is roughly proportional to the Rossby radius of deformation, with 18 km gridcells at low and 6 km gridcells at high latitudes:</desc>
+      <desc>oRRS18to6v3_ICG is an MPAS ocean grid with a mesh density function that is roughly proportional to the Rossby radius of deformation, with 18 km gridcells at low and 6 km gridcells at high latitudes.  This version of initial conditions is spun-up from a G compset run:</desc>
       <file ice_mask="oRRS18to6v3">domain.ocn.oRRS18to6v3.170111.nc</file>
       <file ocn_mask="oRRS18to6v3">domain.ocn.oRRS18to6v3.170111.nc</file>
     </domain>
@@ -2529,6 +2543,14 @@
     </gridmap>
 
     <gridmap atm_grid="ne120np4" ocn_grid="oRRS18to6v3">
+      <ATM2OCN_FMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_aave.170111.nc</ATM2OCN_FMAPNAME>
+      <ATM2OCN_VMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_conserve.170111.nc</ATM2OCN_VMAPNAME>
+      <ATM2OCN_SMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_conserve.170111.nc</ATM2OCN_SMAPNAME>
+      <OCN2ATM_FMAPNAME>cpl/gridmaps/oRRS18to6v3/map_oRRS18to6v3_to_ne120np4_aave.170111.nc</OCN2ATM_FMAPNAME>
+      <OCN2ATM_SMAPNAME>cpl/gridmaps/oRRS18to6v3/map_oRRS18to6v3_to_ne120np4_aave.170111.nc</OCN2ATM_SMAPNAME>
+    </gridmap>
+
+    <gridmap atm_grid="ne120np4" ocn_grid="oRRS18to6v3_ICG">
       <ATM2OCN_FMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_aave.170111.nc</ATM2OCN_FMAPNAME>
       <ATM2OCN_VMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_conserve.170111.nc</ATM2OCN_VMAPNAME>
       <ATM2OCN_SMAPNAME>cpl/gridmaps/ne120np4/map_ne120np4_to_oRRS18to6v3_conserve.170111.nc</ATM2OCN_SMAPNAME>
