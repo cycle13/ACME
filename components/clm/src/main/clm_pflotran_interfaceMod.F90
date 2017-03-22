@@ -2211,7 +2211,6 @@ write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellco
       call pflotranModelSetSOMKfromCLM(pflotran_m)
     endif
 
-
     call VecGetArrayF90(clm_pf_idata%hksat_x_clmp, hksat_x_clm_loc, ierr)
     CHKERRQ(ierr)
     call VecGetArrayF90(clm_pf_idata%hksat_y_clmp, hksat_y_clm_loc, ierr)

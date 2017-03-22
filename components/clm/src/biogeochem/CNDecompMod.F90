@@ -702,7 +702,9 @@ contains
          gross_pmin                       =>    phosphorusflux_vars%gross_pmin_col                     , & ! Output: [real(r8) (:)     ]  gross rate of P mineralization (gP/m2/s)
          net_pmin                         =>    phosphorusflux_vars%net_pmin_col                       , & ! Output: [real(r8) (:)     ]  net rate of P mineralization (gP/m2/s)
 
-
+         fpi                              =>    cnstate_vars%fpi_col                                   , & ! Output: [real(r8) (:)   ]  fraction of potential immobilization (no units)
+         potential_immob                  =>    nitrogenflux_vars%potential_immob_col               , & ! Output: [real(r8) (:)   ]
+         actual_immob                     =>    nitrogenflux_vars%actual_immob_col                  , & ! Output: [real(r8) (:)   ]
          fpi_vr                           =>    cnstate_vars%fpi_vr_col                                , & ! Output:  [real(r8) (:,:)   ]  fraction of potential immobilization (no units)
          potential_immob_vr               =>    nitrogenflux_vars%potential_immob_vr_col               , & ! Input:
          actual_immob_vr                  =>    nitrogenflux_vars%actual_immob_vr_col                  , & ! Input:
@@ -776,6 +778,30 @@ contains
                 fpi_vr(c,j) = 0.0_r8
             end if
          end do
+      end do
+
+      ! sum up N fluxes to immobilization
+      do fc=1,num_soilc
+         c = filter_soilc(fc)
+         actual_immob(c) = 0._r8
+         potential_immob(c) = 0._r8
+      end do
+      do j = 1, nlevdecomp
+         do fc=1,num_soilc
+            c = filter_soilc(fc)
+            actual_immob(c) = actual_immob(c) + actual_immob_vr(c,j) * dzsoi_decomp(j)
+            potential_immob(c) = potential_immob(c) + potential_immob_vr(c,j) * dzsoi_decomp(j)
+         end do
+      end do
+
+      do fc=1,num_soilc
+            c = filter_soilc(fc)
+            ! calculate the fraction of immobilization realized (for diagnostic purposes)
+            if (potential_immob(c) > 0.0_r8) then
+               fpi(c) = actual_immob(c) / potential_immob(c)
+            else
+               fpi(c) = 1._r8
+            end if
       end do
 
       if (use_lch4) then
