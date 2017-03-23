@@ -1959,21 +1959,21 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
 !            if(isnan(dz(c,j)).or.isnan(zi(c,j)).or.isnan(z(c,j)).or.isnan(toparea_check)) cycle
 !            if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
             if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
+!write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
                gcount = gcount + 1                                    ! actually is the active soil column count
                cellcount = (gcount-1)*clm_pf_idata%nzclm_mapped + j   ! 1-based
                cellid_clm_loc(cellcount) = cellcount
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
+!write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
                xsoil_clm_loc(cellcount) = lonc(g)
                ysoil_clm_loc(cellcount) = latc(g)
-write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
                dzsoil_clm_loc(cellcount) = dz(c, j)                ! cell vertical thickness (m)
                zisoil_clm_loc(cellcount) = -zi(c, j) + lelev(g)    ! cell-node elevation (m)
                zsoil_clm_loc(cellcount)  = z(c, j)                 ! cell-center vertical depth from surface (m)
-write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
                ! top face area, scaled by active column weight and land fraction
                toparea_clm_loc(cellcount) = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
-write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
                ! after knowing 'toparea', we may get a pseudo 'dx' and 'dy' so that PF will not crash
                ! (note: PF needs these information otherwise throw-out error message, even with 'vertical_only' option)
 
@@ -1992,7 +1992,7 @@ write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
                                             * cwtgcell(c) * ldomain%frac(g)
                   dysoil_clm_loc(cellcount) = larea(g)/(re**2)
                endif
-write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
             endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
 
 !write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
