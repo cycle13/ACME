@@ -1962,6 +1962,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
                gcount = gcount + 1                                    ! actually is the active soil column count
                cellcount = (gcount-1)*clm_pf_idata%nzclm_mapped + j   ! 1-based
+               cellid_clm_loc(cellcount) = cellcount
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
                xsoil_clm_loc(cellcount) = lonc(g)
                ysoil_clm_loc(cellcount) = latc(g)
