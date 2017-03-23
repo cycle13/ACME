@@ -1955,6 +1955,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
             ! note that filters%soilc includes 'istsoil' and 'istcrop'
             ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
             toparea_check = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
+            if(isnan(dz(c,j)).or.isnan(zi(c,j)).or.isnan(z(c,j)).or.isnan(toparea_check)) cycle
 !            if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
             if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
@@ -1989,7 +1990,7 @@ write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
                                             * cwtgcell(c) * ldomain%frac(g)
                   dysoil_clm_loc(cellcount) = larea(g)/(re**2)
                endif
-!write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
+write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
             endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
 
 !write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
