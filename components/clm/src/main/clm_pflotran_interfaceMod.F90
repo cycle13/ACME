@@ -2046,10 +2046,10 @@ write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellco
     CHKERRQ(ierr)
     call VecRestoreArrayF90(clm_pf_idata%zsoil_clmp,  zsoil_clm_loc,  ierr)
     CHKERRQ(ierr)
-
+write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:beg"
     ! Set CLM soil domain onto PFLOTRAN grid
     call pflotranModelSetSoilDimension(pflotran_m)
-
+write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
     end associate
   end subroutine get_clm_soil_dimension
 
