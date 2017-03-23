@@ -1562,10 +1562,10 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
        !! wgs: move from 'interface_init'
        ! force CLM soil domain into PFLOTRAN subsurface grids
        call get_clm_soil_dimension(clm_bgc_data, bounds)
-!write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
+write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
        ! Currently always set soil hydraulic/BGC properties from CLM to PF
        call get_clm_soil_properties(clm_bgc_data, bounds, filters)
-!write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
+write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
        ! Get top surface area of 3-D pflotran subsurface domain
        call pflotranModelGetTopFaceArea(pflotran_m)
 
@@ -1957,22 +1957,19 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
             toparea_check = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
 !            if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
             if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then
+write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
                gcount = gcount + 1                                    ! actually is the active soil column count
                cellcount = (gcount-1)*clm_pf_idata%nzclm_mapped + j   ! 1-based
-
+write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
                xsoil_clm_loc(cellcount) = lonc(g)
                ysoil_clm_loc(cellcount) = latc(g)
-               !
+write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
                dzsoil_clm_loc(cellcount) = dz(c, j)                ! cell vertical thickness (m)
                zisoil_clm_loc(cellcount) = -zi(c, j) + lelev(g)    ! cell-node elevation (m)
                zsoil_clm_loc(cellcount)  = z(c, j)                 ! cell-center vertical depth from surface (m)
-
+write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
                ! top face area, scaled by active column weight and land fraction
                toparea_clm_loc(cellcount) = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
-write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
-write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
                ! after knowing 'toparea', we may get a pseudo 'dx' and 'dy' so that PF will not crash
                ! (note: PF needs these information otherwise throw-out error message, even with 'vertical_only' option)
