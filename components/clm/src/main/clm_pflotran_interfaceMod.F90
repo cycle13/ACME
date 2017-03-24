@@ -1943,24 +1943,24 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
     ysoil_clm_loc(:)    = 0._r8
     zsoil_clm_loc(:)    = 0._r8
 
-    do j = 1, clm_pf_idata%nzclm_mapped
-
-       if (j <= nlevgrnd) then
-
 #ifdef COLUMN_MODE
-        gcount = 0
-        do c = bounds%begc, bounds%endc
-            g = cgridcell(c)
-            l = clandunit(c)
 
-            ! note that filters%soilc includes 'istsoil' and 'istcrop'
-            ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
-            toparea_check = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
+    gcount = 0
+    do c = bounds%begc, bounds%endc
+        g = cgridcell(c)
+        l = clandunit(c)
+
+        ! note that filters%soilc includes 'istsoil' and 'istcrop'
+        ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
+        toparea_check = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
 !            if(isnan(dz(c,j)).or.isnan(zi(c,j)).or.isnan(z(c,j)).or.isnan(toparea_check)) cycle
 !            if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
-            if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then
+        if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then !!toparea_check=0: dz,zi,z=NaN
 !write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
                gcount = gcount + 1                                    ! actually is the active soil column count
+            do j = 1, clm_pf_idata%nzclm_mapped
+
+               if (j <= nlevgrnd) then
                cellcount = (gcount-1)*clm_pf_idata%nzclm_mapped + j   ! 1-based
                cellid_clm_loc(cellcount) = cellcount
 !write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
@@ -1993,12 +1993,19 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
                   dysoil_clm_loc(cellcount) = larea(g)/(re**2)
                endif
 !write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
-            endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
-
 !write(iulog,*)">>>DEBUG | soil_dimension | cellid=",cellid_clm_loc(cellcount)
-        enddo ! do c = bounds%begc, bounds%endc
+              else
+                call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
+                    " 'clm_varpar%nlevgrnd'. Please check")
+              endif !!(j <= nlevgrnd)
+            enddo !!j = 1, clm_pf_idata%nzclm_mapped
+        endif !!(ltype(l)==istsoil .or. ltype(l)==istcrop)
+    enddo ! do c = bounds%begc, bounds%endc
 
 #else
+    do j = 1, clm_pf_idata%nzclm_mapped
+
+       if (j <= nlevgrnd) then
         do g = bounds%begg, bounds%endg
             gcount = g - bounds%begg                           ! 0-based
             cellcount = gcount*clm_pf_idata%nzclm_mapped + j   ! 1-based
@@ -2019,16 +2026,15 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
             toparea_clm_loc(cellcount) = wtgcell_sum(gcount+1) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
 
         enddo ! do g = bounds%begg, bounds%endg
+       else
+        call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
+            " 'clm_varpar%nlevgrnd'. Please check")
+      endif !!(j <= nlevgrnd)
+    enddo !!j = 1, clm_pf_idata%nzclm_mapped
 
 #endif
 
-      else
-        call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
-            " 'clm_varpar%nlevgrnd'. Please check")
 
-
-      endif
-    enddo
 
     call VecRestoreArrayF90(clm_pf_idata%cellid_clmp,  cellid_clm_loc,  ierr)
     CHKERRQ(ierr)
