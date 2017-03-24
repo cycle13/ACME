@@ -774,7 +774,7 @@ contains
          do j = 1, nlevdecomp
             if (potential_immob_vr(c,j) > 0.0_r8) then
                 fpi_vr(c,j) = actual_immob_vr(c,j) / potential_immob_vr(c,j)
-                fpi_vr(c,j) = max(1.0_r8,fpi_vr(c,j))
+                fpi_vr(c,j) = min(1.0_r8,fpi_vr(c,j))
             else
                 fpi_vr(c,j) = 0.0_r8
             end if
@@ -800,7 +800,7 @@ contains
             ! calculate the fraction of immobilization realized (for diagnostic purposes)
             if (potential_immob(c) > 0.0_r8) then
                fpi(c) = actual_immob(c) / potential_immob(c)
-               fpi(c) = max(1.0_r8,fpi(c))
+               fpi(c) = min(1.0_r8,fpi(c))
             else
                fpi(c) = 1._r8
             end if
