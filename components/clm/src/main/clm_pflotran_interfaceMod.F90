@@ -2001,8 +2001,7 @@ if(isnan(xsoil_clm_loc(cellcount)) .or. &
     isnan(toparea_clm_loc(cellcount)) .or. &
     isnan(dxsoil_clm_loc(cellcount)) .or. &
     isnan(dysoil_clm_loc(cellcount)) .or. &
-    isnan(cellid_clm_loc(cellcount))
-
+    isnan(cellid_clm_loc(cellcount)) &
     ) then
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
@@ -2010,7 +2009,7 @@ write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount
 write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
-end if
+endif
 
               else
                 call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
