@@ -1953,7 +1953,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
         ! note that filters%soilc includes 'istsoil' and 'istcrop'
         ! (TODO: checking col%itype and lun%itype - appears not match with each other, and col%itype IS messy)
         toparea_check = cwtgcell(c) * ldomain%frac(g) * larea(g) * 1.e6_r8       ! m^2
-!            if(isnan(dz(c,j)).or.isnan(zi(c,j)).or.isnan(z(c,j)).or.isnan(toparea_check)) cycle
+
 !            if (ltype(l)==istsoil .or. ltype(l)==istcrop) then
         if ((ltype(l)==istsoil .or. ltype(l)==istcrop).and.toparea_check > 0._r8) then !!toparea_check=0: dz,zi,z=NaN
                gcount = gcount + 1                                    ! actually is the active soil column count
@@ -1993,23 +1993,23 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
                endif
 
 
-if(isnan(xsoil_clm_loc(cellcount)) .or. &
-    isnan(ysoil_clm_loc(cellcount)) .or. &
-    isnan(dzsoil_clm_loc(cellcount)) .or. &
-    isnan(zisoil_clm_loc(cellcount)) .or. &
-    isnan(zsoil_clm_loc(cellcount)) .or. &
-    isnan(toparea_clm_loc(cellcount)) .or. &
-    isnan(dxsoil_clm_loc(cellcount)) .or. &
-    isnan(dysoil_clm_loc(cellcount)) .or. &
-    isnan(cellid_clm_loc(cellcount)) &
-    ) then
+!if(isnan(xsoil_clm_loc(cellcount)) .or. &
+!    isnan(ysoil_clm_loc(cellcount)) .or. &
+!    isnan(dzsoil_clm_loc(cellcount)) .or. &
+!    isnan(zisoil_clm_loc(cellcount)) .or. &
+!    isnan(zsoil_clm_loc(cellcount)) .or. &
+!    isnan(toparea_clm_loc(cellcount)) .or. &
+!    isnan(dxsoil_clm_loc(cellcount)) .or. &
+!    isnan(dysoil_clm_loc(cellcount)) .or. &
+!    isnan(cellid_clm_loc(cellcount)) &
+!    ) then
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
 write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount=",gcount, cellcount
 write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
 write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
-endif
+!endif
 
               else
                 call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
