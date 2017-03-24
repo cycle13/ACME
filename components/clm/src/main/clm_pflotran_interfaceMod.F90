@@ -1993,14 +1993,14 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
                endif
 
 
-if(isnan(xsoil_clm_loc(cellcount)) or &
-    isnan(ysoil_clm_loc(cellcount)) or &
-    isnan(dzsoil_clm_loc(cellcount)) or &
-    isnan(zisoil_clm_loc(cellcount)) or &
-    isnan(zsoil_clm_loc(cellcount)) or &
-    isnan(toparea_clm_loc(cellcount)) or &
-    isnan(dxsoil_clm_loc(cellcount)) or &
-    isnan(dysoil_clm_loc(cellcount)) or &
+if(isnan(xsoil_clm_loc(cellcount)) .or. &
+    isnan(ysoil_clm_loc(cellcount)) .or. &
+    isnan(dzsoil_clm_loc(cellcount)) .or. &
+    isnan(zisoil_clm_loc(cellcount)) .or. &
+    isnan(zsoil_clm_loc(cellcount)) .or. &
+    isnan(toparea_clm_loc(cellcount)) .or. &
+    isnan(dxsoil_clm_loc(cellcount)) .or. &
+    isnan(dysoil_clm_loc(cellcount)) .or. &
     isnan(cellid_clm_loc(cellcount))
 
     ) then
