@@ -523,7 +523,8 @@ contains
 
   real (kind=real_kind), dimension(np,np,4) :: lap_s  ! dp3d,theta,w,phi
   real (kind=real_kind), dimension(np,np,2) :: lap_v
-  real (kind=real_kind) :: v1,v2,dt,heating,T0,T1
+  real (kind=real_kind) :: v1(np,np),v2(np,np),heating(np,np)
+  real (kind=real_kind) :: dt,T0,T1
   real (kind=real_kind) :: ps_ref(np,np)
   real (kind=real_kind) :: p_i(np,np,nlevp)
   real (kind=real_kind) :: exner(np,np,nlev)
@@ -546,6 +547,13 @@ contains
      call abortmp( 'ERROR: hypervis_order == 1 not coded')
   endif
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! NOTE1:  Diffusion works best when applied to theta.
+! It creates some TOM noise when applied to theta_dp_cp in DCMIP 2.0 test
+! so we convert from theta_dp_cp->theta, and then convert back at the end of diffusion
+! 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! compute reference states
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -560,7 +568,30 @@ contains
         dp_ref(:,:,k,ie) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
              (hvcoord%hybi(k+1)-hvcoord%hybi(k))*ps_ref(:,:)
      enddo
+
+     call set_hydrostatic_phi(hvcoord,elem(ie)%state%phis,&
+          elem(ie)%state%theta_dp_cp(:,:,:,nt),elem(ie)%state%dp3d(:,:,:,nt),&
+          phi_ref(:,:,:,ie))
+
      p_i(:,:,1) =  hvcoord%hyai(1)*hvcoord%ps0   
+     ! subtract of hydrostatic background state 
+     do k=1,nlev
+        p_i(:,:,k+1) = p_i(:,:,k) + elem(ie)%state%dp3d(:,:,k,nt)
+     enddo
+     do k=1,nlev
+        exner(:,:,k) = ( (p_i(:,:,k) + p_i(:,:,k+1))/(2*p0)) **kappa
+        !theta_ref(:,:,k,ie) = (T0/exner(:,:,k) + T1)*Cp*dp_ref(:,:,k,ie)
+        theta_ref(:,:,k,ie) = (T0/exner(:,:,k) + T1)
+
+        ! convert theta_dp_cp -> theta
+        elem(ie)%state%theta_dp_cp(:,:,k,nt)=&
+             elem(ie)%state%theta_dp_cp(:,:,k,nt)/(Cp*elem(ie)%state%dp3d(:,:,k,nt))
+     enddo
+#if 0
+     theta_ref(:,:,:,ie)=0
+     phi_ref(:,:,:,ie)=0
+     dp_ref(:,:,:,ie)=0
+#endif              
   enddo
 
 
@@ -568,37 +599,14 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  hyper viscosity
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! nu_p=0:
-!   scale T dissipaton by dp  (conserve IE, dissipate T^2)
-! nu_p>0
-!   dont scale:  T equation IE dissipation matches (to truncation error)
-!                IE dissipation from continuity equation
-!                (1 deg: to about 0.1 W/m^2)
-!
-
-
   if (hypervis_order == 2) then
      do ic=1,hypervis_subcycle
         do ie=nets,nete
 
-           ! subtract of hydrostatic background state 
-           do k=1,nlev
-              p_i(:,:,k+1) = p_i(:,:,k) + elem(ie)%state%dp3d(:,:,k,nt)
-           enddo
-           call set_hydrostatic_phi(hvcoord,elem(ie)%state%phis,&
-                elem(ie)%state%theta_dp_cp(:,:,:,nt),elem(ie)%state%dp3d(:,:,:,nt),&
-                phi_ref(:,:,:,ie))
 #if (defined COLUMN_OPENMP)
 !$omp parallel do private(k,exner)
 #endif
            do k=1,nlev
-              exner(:,:,k) = ( (p_i(:,:,k) + p_i(:,:,k+1))/(2*p0)) **kappa
-              theta_ref(:,:,k,ie) = (T0/exner(:,:,k) + T1)*Cp*dp_ref(:,:,k,ie)
-#if 0
-              theta_ref(:,:,k,ie)=0
-              phi_ref(:,:,k,ie)=0
-              dp_ref(:,:,k,ie)=0
-#endif              
               elem(ie)%state%theta_dp_cp(:,:,k,nt)=elem(ie)%state%theta_dp_cp(:,:,k,nt)-&
                    theta_ref(:,:,k,ie)
               elem(ie)%state%phi(:,:,k,nt)=elem(ie)%state%phi(:,:,k,nt)-&
@@ -694,54 +702,58 @@ contains
                    phi_ref(:,:,k,ie)
               elem(ie)%state%dp3d(:,:,k,nt)=elem(ie)%state%dp3d(:,:,k,nt)+&
                    dp_ref(:,:,k,ie)
+
            enddo
 
 
 
 #if (defined COLUMN_OPENMP)
-!$omp parallel do private(k,i,j,v1,v2,heating)
+!$omp parallel do private(k,v1,v2,heating)
 #endif
            do k=1,nlev
-              do j=1,np
-                 do i=1,np
-                    ! update v first (gives better results than updating v after heating)
-                    elem(ie)%state%v(i,j,:,k,nt)=elem(ie)%state%v(i,j,:,k,nt) + &
-                         vtens(i,j,:,k,ie)
-                    elem(ie)%state%w(i,j,k,nt)=elem(ie)%state%w(i,j,k,nt) &
-                         +stens(i,j,k,3,ie)
-                    v1=elem(ie)%state%v(i,j,1,k,nt)
-                    v2=elem(ie)%state%v(i,j,2,k,nt)
-!                   For the 3D non-hydrostatic with hypervisosity in the horizontal components, 
-!                   the heating term to be added to theta is (dpi/ds)*HVterm/ p^kappa as opposed to 
-!                   HVterm/c_p^*
-!                    
-! commenting out for now, have to figure out how to get exner in this routine
-!                   Form u*nu div^H(u)
-!                    heating = ( (vtens(i,j,1,k,ie)*v1  + vtens(i,j,2,k,ie)*v2 )
-!                    heating = dpnh(i,j,k)*heating/exner(i,j,k)
-                    heating = 0
-
-                    elem(ie)%state%dp3d(i,j,k,nt)=elem(ie)%state%dp3d(i,j,k,nt) &
-                         +stens(i,j,k,1,ie)
-
-                    elem(ie)%state%theta_dp_cp(i,j,k,nt)=elem(ie)%state%theta_dp_cp(i,j,k,nt) &
-                         +stens(i,j,k,2,ie)-heating
-
-                    elem(ie)%state%w(i,j,k,nt)=elem(ie)%state%w(i,j,k,nt) &
-                         +stens(i,j,k,3,ie)
-
-                    elem(ie)%state%phi(i,j,k,nt)=elem(ie)%state%phi(i,j,k,nt) &
-                         +stens(i,j,k,4,ie)
-
-                 enddo
-              enddo
+              ! update v first (gives better results than updating v after heating)
+              elem(ie)%state%v(:,:,:,k,nt)=elem(ie)%state%v(:,:,:,k,nt) + &
+                   vtens(:,:,:,k,ie)
+              elem(ie)%state%w(:,:,k,nt)=elem(ie)%state%w(:,:,k,nt) &
+                   +stens(:,:,k,3,ie)
+              !v1=elem(ie)%state%v(:,:,1,k,nt)
+              !v2=elem(ie)%state%v(:,:,2,k,nt)
+              !                   For the 3D non-hydrostatic with hypervisosity in the horizontal components, 
+              !                   the heating term to be added to theta is (dpi/ds)*HVterm/ p^kappa as opposed to 
+              !                   HVterm/c_p^*
+              !                    
+              ! commenting out for now, have to figure out how to get exner in this routine
+              !                   Form u*nu div^H(u)
+              !                    heating = ( (vtens(:,:,1,k,ie)*v1  + vtens(:,:,2,k,ie)*v2 )
+              !                    heating = dpnh(:,:,k)*heating/exner(:,:,k)
+              heating(:,:) = 0
+              
+              elem(ie)%state%dp3d(:,:,k,nt)=elem(ie)%state%dp3d(:,:,k,nt) &
+                   +stens(:,:,k,1,ie)
+              
+              elem(ie)%state%theta_dp_cp(:,:,k,nt)=elem(ie)%state%theta_dp_cp(:,:,k,nt) &
+                   +stens(:,:,k,2,ie)-heating(:,:)
+              
+              elem(ie)%state%w(:,:,k,nt)=elem(ie)%state%w(:,:,k,nt) &
+                   +stens(:,:,k,3,ie)
+              
+              elem(ie)%state%phi(:,:,k,nt)=elem(ie)%state%phi(:,:,k,nt) &
+                   +stens(:,:,k,4,ie)
            enddo
         enddo
-
      enddo
   endif
 
-
+  ! convert theta_dp_cp -> theta
+  do ie=nets,nete            
+#if (defined COLUMN_OPENMP)
+!$omp parallel do private(k,i,j,v1,v2,heating)
+#endif
+     do k=1,nlev
+        elem(ie)%state%theta_dp_cp(:,:,k,nt)=&
+             elem(ie)%state%theta_dp_cp(:,:,k,nt)*Cp*elem(ie)%state%dp3d(:,:,k,nt)
+     enddo
+  enddo
 
 
   call t_stopf('advance_hypervis')

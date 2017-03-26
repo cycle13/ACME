@@ -483,7 +483,7 @@ contains
   elem%state%ps_v(i,j,n0:n1)     = ps
   elem%state%phi(i,j,k,n0:n1)      = g*zm
   elem%state%phis(i,j)           = phis
-  elem%state%theta_dp_cp(i,j,k,n0:n1)=T*Cp*dp/((p/p0)**(-kappa))
+  elem%state%theta_dp_cp(i,j,k,n0:n1)=T*Cp*dp*((p/p0)**(-kappa))
 
   end subroutine set_state
 

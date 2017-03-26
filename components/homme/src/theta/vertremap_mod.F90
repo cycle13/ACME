@@ -111,7 +111,7 @@ contains
         !  REMAP u,v,T from levels in dp3d() to REF levels
         ttmp(:,:,:,1)=elem(ie)%state%v(:,:,1,:,np1)*dp_star
         ttmp(:,:,:,2)=elem(ie)%state%v(:,:,2,:,np1)*dp_star
-        ttmp(:,:,:,3)=elem(ie)%state%theta_dp_cp(:,:,:,np1)*dp_star
+        ttmp(:,:,:,3)=elem(ie)%state%theta_dp_cp(:,:,:,np1)
         ttmp(:,:,:,4)=elem(ie)%state%phi(:,:,:,np1)*dp_star
         ttmp(:,:,:,5)=elem(ie)%state%w(:,:,:,np1)*dp_star
 
@@ -121,7 +121,7 @@ contains
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
         elem(ie)%state%v(:,:,2,:,np1)=ttmp(:,:,:,2)/dp
-        elem(ie)%state%theta_dp_cp(:,:,:,np1)=ttmp(:,:,:,3)/dp
+        elem(ie)%state%theta_dp_cp(:,:,:,np1)=ttmp(:,:,:,3)
         elem(ie)%state%phi(:,:,:,np1)=ttmp(:,:,:,4)/dp
         elem(ie)%state%w(:,:,:,np1)=ttmp(:,:,:,5)/dp
 
