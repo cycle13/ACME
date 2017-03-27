@@ -387,7 +387,9 @@ contains
        print *,'                Results are not predictable!!            '
     endif
 
-
+!+++ ASD
+    if (size(Schedule).gt.0) then
+!--- ASD
     ! Setup the pointer to proper Schedule
     pSchedule => Schedule(1)
     nlyr = buffer%nlyr
@@ -449,7 +451,9 @@ contains
           buffer%buf(1:nlyr,iptr+i) = buffer%receive(1:nlyr,iptr+i)
        enddo
     end do   ! icycle
-
+!+++ ASD
+    end if   ! size(schedule)
+!--- ASD
 #endif
 
   end subroutine long_bndry_exchangeV_nonth

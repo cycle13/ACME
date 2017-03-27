@@ -131,6 +131,7 @@
        <directive>-N {{ job_id }}</directive>
        <directive>-l nodes={{ num_nodes }}:ppn={{ tasks_per_node }}</directive>
        <directive>-l walltime={{ job_wallclock_time }}</directive>
+       <directive>-l partition=cab|syrah</directive>
        <directive>-o {{ output_error_path }}.out</directive>
        <directive>-e {{ output_error_path }}.err</directive>
        <directive>-m be</directive>
