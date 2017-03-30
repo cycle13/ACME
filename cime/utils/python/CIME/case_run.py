@@ -202,10 +202,10 @@ def case_run(case):
 
     # If we need to produce core files, we need to try to ensure that the
     # system will support them
-    try:
-        resource.setrlimit(resource.RLIMIT_CORE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
-    except resource.error:
-        pass
+#    try:
+#        resource.setrlimit(resource.RLIMIT_CORE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+#    except resource.error:
+#        pass
 
     data_assimilation = case.get_value("DATA_ASSIMILATION")
     data_assimilation_cycles = case.get_value("DATA_ASSIMILATION_CYCLES")
