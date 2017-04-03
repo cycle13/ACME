@@ -345,6 +345,15 @@
      </queues>
    </batch_system>
 
+   <batch_system MACH="summitdev" type="lsf" >
+     <directives>
+       <directive>-P {{ project }}</directive>
+     </directives>
+     <queues>
+       <queue walltimemax="01:00" default="true">batch</queue>
+     </queues>
+   </batch_system>
+
    <batch_system MACH="lawrencium-lr2" type="slurm" >
      <directives>
        <directive>--ntasks-per-node={{ tasks_per_node }}</directive>
