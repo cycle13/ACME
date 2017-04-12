@@ -1103,6 +1103,21 @@ Turn on estimate of rounding error related to energy conservation
 Default: FALSE
 </entry>
 
+<entry id="rounding_est_evap_frac" type="real"  category="diagnostics"
+       group="phys_ctl_nl" valid_values="" >
+Fraction of cloud liquid to evaporate in the subroutine for
+rounding error estimate for the total energy fixer
+Default: 0.02
+</entry>
+
+<entry id="rounding_est_stend_relerr" type="real"  category="diagnostics"
+       group="phys_ctl_nl" valid_values="" >
+Deliberately introduced relative error in static energy tendency 
+in the subroutine for
+rounding error estimate for the total energy fixer
+Default: 0.1
+</entry>
+
 <!-- Fixers -->
 
 <entry id="use_mass_borrower" type="logical" category="fixers"

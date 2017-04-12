@@ -1,7 +1,7 @@
 module rounding_tests
 
 CONTAINS
-subroutine energy_rounding_est( state, ptend_all, hdtime )
+subroutine energy_rounding_est( state, ptend_all, hdtime, evap_frac, stend_relerr )
 
   use shr_kind_mod,  only: r8=>shr_kind_r8
   use constituents,  only: pcnst, cnst_get_ind
@@ -15,6 +15,8 @@ subroutine energy_rounding_est( state, ptend_all, hdtime )
 
    type(physics_state), intent(in)    :: state                    ! Physics state variables                 [vary]
    real(r8),            intent(in)    :: hdtime                   ! Host model timestep                     [s]
+   real(r8),            intent(in)    :: evap_frac
+   real(r8),            intent(in)    :: stend_relerr
 
    ! ---------------------- !
    ! Output Auguments !
@@ -29,7 +31,6 @@ subroutine energy_rounding_est( state, ptend_all, hdtime )
    integer :: ixcldliq
    logical :: lq(pcnst)
 
-   real(r8) :: zfrac_evap
    real(r8) :: zfac
    real(r8) :: zdqvdt(pcols,pver)
 
@@ -50,16 +51,14 @@ subroutine energy_rounding_est( state, ptend_all, hdtime )
 
    ! We will evaporate a certain amount of the cloud liquid
 
-   zfrac_evap = 0.02_r8   ! 5%
-
-   zdqvdt(:ncol,:pver) = zfrac_evap * state%q(:ncol,:pver,ixcldliq) /hdtime
+   zdqvdt(:ncol,:pver) = evap_frac * state%q(:ncol,:pver,ixcldliq) /hdtime
 
    ptend_all%q(:ncol,:pver,1)        =  zdqvdt 
    ptend_all%q(:ncol,:pver,ixcldliq) = -zdqvdt 
 
    ! But for evaporative cooling, we will deliberately introduce an error by using a zfac that is not unity. 
 
-   zfac = 1.1_r8
+   zfac = 1._r8 + stend_relerr
 
    ptend_all%s(:ncol,:pver) = zfac * latvap*(-zdqvdt(:ncol,:pver))
 

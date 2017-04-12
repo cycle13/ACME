@@ -1972,7 +1972,8 @@ subroutine tphysbc (ztodt,               &
     use cam_abortutils,      only: endrun
     use subcol,          only: subcol_gen, subcol_ptend_avg
     use subcol_utils,    only: subcol_ptend_copy, is_subcol_on
-    use phys_control,    only: use_qqflx_fixer, use_mass_borrower, do_energy_rounding_est
+    use phys_control,    only: use_qqflx_fixer, use_mass_borrower
+    use phys_control,    only: do_energy_rounding_est, rounding_est_evap_frac, rounding_est_stend_relerr
     use parrrtm, only: nsubcollw => ngptlw !BSINGH
     use parrrsw, only: nsubcolsw => ngptsw !BSINGH
     use rounding_tests,  only: energy_rounding_est
@@ -2578,7 +2579,8 @@ end if
 
      if (do_energy_rounding_est) then
 
-        call energy_rounding_est( state, ptend, cld_macmic_ztodt )
+        call energy_rounding_est( state, ptend, cld_macmic_ztodt, &
+                                rounding_est_evap_frac, rounding_est_stend_relerr )
 
         call physics_ptend_scale(ptend, 1._r8/cld_macmic_num_steps, ncol)
         call physics_update(state, ptend, ztodt, tend)
