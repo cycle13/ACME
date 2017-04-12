@@ -59,7 +59,7 @@ subroutine energy_rounding_est( state, ptend_all, hdtime )
 
    ! But for evaporative cooling, we will deliberately introduce an error by using a zfac that is not unity. 
 
-   zfac = 1.0_r8
+   zfac = 1.1_r8
 
    ptend_all%s(:ncol,:pver) = zfac * latvap*(-zdqvdt(:ncol,:pver))
 

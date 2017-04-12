@@ -563,6 +563,7 @@ conservation checks.
 Default: FALSE
 </entry>
 
+
 <!-- Dry Convective Adjustment -->
 
 <entry id="nlvdry" type="integer"  category="dry_conv_adj"
@@ -1094,6 +1095,12 @@ Time filter coefficient.  Default: 0.06
 Number of levels over which to apply Courant limiter, starting at top of
 model.
 Default: 5
+</entry>
+
+<entry id="do_energy_rounding_est" type="logical"  category="diagnostics"
+       group="phys_ctl_nl" valid_values="" >
+Turn on estimate of rounding error related to energy conservation 
+Default: FALSE
 </entry>
 
 <!-- Fixers -->
