@@ -1,3 +1,4 @@
+#ifdef HAVE_MOAB
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -281,4 +282,5 @@ end subroutine MBQSort
 
 end module moabmesh_mod
 
+#endif
 
