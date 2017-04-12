@@ -106,6 +106,7 @@ logical           :: state_debug_checks   = .false.    ! Extra checks for validi
 logical, public, protected :: use_mass_borrower    = .false.     ! switch on tracer borrower, instead of using the QNEG3 clipping
 logical, public, protected :: use_qqflx_fixer      = .false.     ! switch on water vapor fixer to compensate changes in qflx
 logical, public, protected :: print_fixer_message  = .false.     ! switch on error message printout in log file
+logical, public, protected :: do_energy_rounding_est = .false.     ! 
 
 ! Macro/micro-physics co-substeps
 integer           :: cld_macmic_num_steps = 1
@@ -174,6 +175,7 @@ subroutine phys_ctl_readnl(nlfile)
       conv_water_in_rad, history_clubb, do_clubb_sgs, do_tms, state_debug_checks, &
       use_mass_borrower, & 
       use_qqflx_fixer, & 
+      do_energy_rounding_est, &
       print_fixer_message, & 
       use_hetfrz_classnuc, use_gw_oro, use_gw_front, use_gw_convect, &
       cld_macmic_num_steps, micro_do_icesupersat, &
@@ -227,6 +229,7 @@ subroutine phys_ctl_readnl(nlfile)
    call mpibcast(do_tms,                          1 , mpilog,  0, mpicom)
    call mpibcast(use_mass_borrower,               1 , mpilog,  0, mpicom)
    call mpibcast(use_qqflx_fixer,                 1 , mpilog,  0, mpicom)
+   call mpibcast(do_energy_rounding_est,          1 , mpilog,  0, mpicom)
    call mpibcast(print_fixer_message,             1 , mpilog,  0, mpicom)
    call mpibcast(micro_do_icesupersat,            1 , mpilog,  0, mpicom)
    call mpibcast(state_debug_checks,              1 , mpilog,  0, mpicom)
@@ -398,6 +401,7 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
                         do_clubb_sgs_out, do_tms_out, state_debug_checks_out, &
                         use_mass_borrower_out, & 
                         use_qqflx_fixer_out, & 
+                        do_energy_rounding_est_out, &
                         print_fixer_message_out, & 
                         cld_macmic_num_steps_out, micro_do_icesupersat_out, &
                         fix_g1_err_ndrop_out, ssalt_tuning_out,resus_fix_out,convproc_do_aer_out,  &
@@ -441,6 +445,7 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
    logical,           intent(out), optional :: do_tms_out
    logical,           intent(out), optional :: use_mass_borrower_out
    logical,           intent(out), optional :: use_qqflx_fixer_out
+   logical,           intent(out), optional :: do_energy_rounding_est_out
    logical,           intent(out), optional :: print_fixer_message_out
    logical,           intent(out), optional :: state_debug_checks_out
    logical,           intent(out), optional :: fix_g1_err_ndrop_out!BSINGH - bugfix for ndrop.F90
@@ -503,6 +508,7 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
    if ( present(do_tms_out              ) ) do_tms_out               = do_tms
    if ( present(use_mass_borrower_out   ) ) use_mass_borrower_out    = use_mass_borrower
    if ( present(use_qqflx_fixer_out     ) ) use_qqflx_fixer_out      = use_qqflx_fixer
+   if ( present(do_energy_rounding_est_out) ) do_energy_rounding_est_out = do_energy_rounding_est
    if ( present(print_fixer_message_out ) ) print_fixer_message_out  = print_fixer_message
    if ( present(state_debug_checks_out  ) ) state_debug_checks_out   = state_debug_checks
    if ( present(fix_g1_err_ndrop_out    ) ) fix_g1_err_ndrop_out     = fix_g1_err_ndrop

@@ -1972,11 +1972,13 @@ subroutine tphysbc (ztodt,               &
     use cam_abortutils,      only: endrun
     use subcol,          only: subcol_gen, subcol_ptend_avg
     use subcol_utils,    only: subcol_ptend_copy, is_subcol_on
-    use phys_control,    only: use_qqflx_fixer, use_mass_borrower
+    use phys_control,    only: use_qqflx_fixer, use_mass_borrower, do_energy_rounding_est
     use parrrtm, only: nsubcollw => ngptlw !BSINGH
     use parrrsw, only: nsubcolsw => ngptsw !BSINGH
+    use rounding_tests,  only: energy_rounding_est
 
     implicit none
+
 
     !
     ! Arguments
@@ -2573,6 +2575,16 @@ end if
              ! =====================================================
              !    CLUBB call (PBL, shallow convection, macrophysics)
              ! =====================================================  
+
+     if (do_energy_rounding_est) then
+
+        call energy_rounding_est( state, ptend, cld_macmic_ztodt )
+
+        call physics_ptend_scale(ptend, 1._r8/cld_macmic_num_steps, ncol)
+        call physics_update(state, ptend, ztodt, tend)
+        call check_energy_chng(state, tend, "energy_rounding_est", nstep, ztodt, &
+                               zero,zero,zero,zero) 
+     end if 
    
              call clubb_tend_cam(state,ptend,pbuf,cld_macmic_ztodt,&
                 cmfmc, cam_in, sgh30, macmic_it, cld_macmic_num_steps, & 
