@@ -720,13 +720,6 @@ contains
 
       ! calc ref rate
       catanf_30 = catanf(30._r8)
-      ! The following code implements the acceleration part of the AD spinup algorithm
-
-      if ( spinup_state .eq. 1 ) then
-         k_s1 = k_s1 * CNDecompBgcParamsInst%spinup_vector(1)
-         k_s2 = k_s2 * CNDecompBgcParamsInst%spinup_vector(2)
-         k_s3 = k_s3 * CNDecompBgcParamsInst%spinup_vector(3)
-      endif
 
       i_litr1 = 1
       i_litr2 = 2
@@ -745,6 +738,13 @@ contains
        decomp_k_pools(i_soil3) = k_s3 
        !! pflotran:end
 
+      ! The following code implements the acceleration part of the AD spinup algorithm
+
+      if ( spinup_state .eq. 1 ) then
+         k_s1 = k_s1 * CNDecompBgcParamsInst%spinup_vector(1)
+         k_s2 = k_s2 * CNDecompBgcParamsInst%spinup_vector(2)
+         k_s3 = k_s3 * CNDecompBgcParamsInst%spinup_vector(3)
+      endif
 
       !--- time dependent coefficients-----!
       if ( nlevdecomp .eq. 1 ) then

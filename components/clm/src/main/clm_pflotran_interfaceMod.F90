@@ -1278,6 +1278,9 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     if (.not. associated(clm_pf_idata%ck_decomp_c)) &
     allocate(clm_pf_idata%ck_decomp_c(1:clm_pf_idata%ndecomp_pools))
 
+    if (.not. associated(clm_pf_idata%adfactor_ck_c)) &
+    allocate(clm_pf_idata%adfactor_ck_c(1:clm_pf_idata%ndecomp_pools))
+
     if (.not. associated(clm_pf_idata%fr_decomp_c)) &
     allocate(clm_pf_idata%fr_decomp_c(1:clm_pf_idata%ndecomp_pools,1:clm_pf_idata%ndecomp_pools))
 
@@ -2094,6 +2097,7 @@ write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
     use LandunitType            , only : lun
     use ColumnType              , only : col
     use landunit_varcon         , only : istsoil, istcrop
+    use clm_varctl              , only : iulog
 
     use clm_varpar              , only : nlevgrnd, ndecomp_pools, ndecomp_cascade_transitions
     use clm_varctl              , only : use_century_decomp
@@ -2170,7 +2174,8 @@ write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
          rf_decomp_cascade        => clm_bgc_data%rf_decomp_cascade_col       , &
          pathfrac_decomp_cascade  => clm_bgc_data%pathfrac_decomp_cascade_col , &
          initial_cn_ratio         => clm_bgc_data%initial_cn_ratio            , &
-         kd_decomp_pools          => clm_bgc_data%decomp_k_pools_col            &
+         kd_decomp_pools          => clm_bgc_data%decomp_k_pools_col          , &
+         kd_adfactor_pools        => clm_bgc_data%adfactor_kd_pools             &
          )
 
 !-------------------------------------------------------------------------------------
@@ -2191,8 +2196,9 @@ write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
       clm_pf_idata%decomp_element_ratios(:,2) = 1.0_r8/initial_cn_ratio(1:ndecomp_pools) &
                                               /CN_ratio_mass_to_mol                       ! ratio in moles
 
-      ! note: the following 'kd' already corrected by ad-factors for each pool
-      clm_pf_idata%ck_decomp_c = kd_decomp_pools(1:ndecomp_pools)
+      ! note: the following 'kd' are NOT corrected by ad-factors for each pool
+      clm_pf_idata%ck_decomp_c   = kd_decomp_pools(1:ndecomp_pools)
+      clm_pf_idata%adfactor_ck_c = kd_adfactor_pools(1:ndecomp_pools)
 
       ! find the first active SOIL Column to pick up the decomposition constants
       ! NOTE: this only is good for CLM-CN reaction-network;
@@ -2920,6 +2926,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
     PetscScalar, pointer :: rate_decomp_n_clm_loc(:)       !
 !     PetscScalar, pointer :: rate_decomp_p_clm_loc(:)     !
 
+    PetscScalar, pointer :: kscalar_decomp_c_clm_loc(:)  !
 
     PetscScalar, pointer :: rate_plantndemand_clm_loc(:)   !
     PetscScalar, pointer :: rate_smin_no3_clm_loc(:)       !
@@ -2933,6 +2940,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
     associate ( &
       decomp_cpools_vr                  => clm_bgc_data%decomp_cpools_vr_col            , &      ! (gC/m3) vertically-resolved decomposing (litter, cwd, soil) c pools
       decomp_npools_vr                  => clm_bgc_data%decomp_npools_vr_col            , &      ! (gN/m3)  vertically-resolved decomposing (litter, cwd, soil) N pools
+      decomp_k_scalar_vr                => clm_bgc_data%sitefactor_kd_vr_col            , &      ! (-) vertically-resolved decomposing rate adjusting factor relevant to location (site)
+
       smin_no3_vr                       => clm_bgc_data%smin_no3_vr_col                 , &      ! (gN/m3) vertically-resolved soil mineral NO3
       smin_nh4_vr                       => clm_bgc_data%smin_nh4_vr_col                 , &      ! (gN/m3) vertically-resolved soil mineral NH4
 !       smin_nh4sorb_vr => clm_bgc_data%smin_nh4sorb_vr_col      , &       ! (gN/m3) vertically-resolved soil mineral NH4 absorbed
@@ -2974,6 +2983,8 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
     call VecGetArrayF90(clm_pf_idata%rate_decomp_n_clmp, rate_decomp_n_clm_loc, ierr)
     CHKERRQ(ierr)
 
+    call VecGetArrayF90(clm_pf_idata%kscalar_decomp_c_clmp, kscalar_decomp_c_clm_loc, ierr)
+    CHKERRQ(ierr)
 
     call VecGetArrayF90(clm_pf_idata%rate_plantndemand_clmp, rate_plantndemand_clm_loc, ierr)
     CHKERRQ(ierr)
@@ -3061,6 +3072,11 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
               enddo ! do k=1, ndecomp_pools
 
+              ! site-scalar to adjust decomposition rate constants
+              ! note: (1) this only works for CTC, together with adspinup_factor(k)>1
+              !       (2) coding here is because of its time (year)-dependent, which implies checking each time-step
+              kscalar_decomp_c_clm_loc(cellcount) = decomp_k_scalar_vr(c,j)
+
 !! wgs:beg:-----------------------------------------------------------------
 !! Inputs (externaln) to NO3/NH4 is calculated in clm_bgc_interfaceMod.F90: subroutine get_clm_bgc_flux
               rate_smin_nh4_clm_loc(cellcount) = externaln_to_nh4_vr(c,j)/ clm_pf_idata%N_molecular_weight
@@ -3121,12 +3137,15 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 !write(iulog,'(A,50(1h-))')">>>DEBUG | get_clm_bgc_rate,plant_ndemand_vr(c,j):"
 !write(iulog,'(A20,12E14.6)')"clm_bgc_data=",col_plant_ndemand_vr(1,1:10)*dtime
 !write(iulog,'(A20,12E14.6)')"plfotran_ndemand = ",(rate_plantndemand_clm_loc(1:10))*clm_pf_idata%N_molecular_weight*dtime
+!write(*,'(A20,12E14.6)')"kscalar_decomp_c = ",kscalar_decomp_c_clm_loc(1:10)
 !-----------------------------------------------------------------------------
     call VecRestoreArrayF90(clm_pf_idata%rate_decomp_c_clmp, rate_decomp_c_clm_loc, ierr)
     CHKERRQ(ierr)
     call VecRestoreArrayF90(clm_pf_idata%rate_decomp_n_clmp, rate_decomp_n_clm_loc, ierr)
     CHKERRQ(ierr)
 
+    call VecRestoreArrayF90(clm_pf_idata%kscalar_decomp_c_clmp, kscalar_decomp_c_clm_loc, ierr)
+    CHKERRQ(ierr)
 
     call VecRestoreArrayF90(clm_pf_idata%rate_plantndemand_clmp, rate_plantndemand_clm_loc, ierr)
     CHKERRQ(ierr)

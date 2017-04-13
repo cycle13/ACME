@@ -727,17 +727,6 @@ contains
        ! The following code implements the acceleration part of the AD spinup
        ! algorithm, by multiplying all of the SOM decomposition base rates by 10.0.
 
-       if ( spinup_state .eq. 1 ) then
-          k_l1 = k_l1 * CNDecompCnParamsInst%spinup_vector(1)
-          k_l2 = k_l2 * CNDecompCnParamsInst%spinup_vector(2)
-          k_l3 = k_l3 * CNDecompCnParamsInst%spinup_vector(3)
-          k_s1 = k_s1 * CNDecompCnParamsInst%spinup_vector(4)
-          k_s2 = k_s2 * CNDecompCnParamsInst%spinup_vector(5)
-          k_s3 = k_s3 * CNDecompCnParamsInst%spinup_vector(6)
-          k_s4 = k_s4 * CNDecompCnParamsInst%spinup_vector(7)
-          k_frag = k_frag * CNDecompCnParamsInst%spinup_vector(8)
-       endif
-
        i_litr1 = 1
        i_litr2 = 2
        i_litr3 = 3
@@ -757,6 +746,16 @@ contains
        decomp_k_pools(i_soil4) = k_s4 / dt
        !! pflotran:end
 
+       if ( spinup_state .eq. 1 ) then
+          k_l1 = k_l1 * CNDecompCnParamsInst%spinup_vector(1)
+          k_l2 = k_l2 * CNDecompCnParamsInst%spinup_vector(2)
+          k_l3 = k_l3 * CNDecompCnParamsInst%spinup_vector(3)
+          k_s1 = k_s1 * CNDecompCnParamsInst%spinup_vector(4)
+          k_s2 = k_s2 * CNDecompCnParamsInst%spinup_vector(5)
+          k_s3 = k_s3 * CNDecompCnParamsInst%spinup_vector(6)
+          k_s4 = k_s4 * CNDecompCnParamsInst%spinup_vector(7)
+          k_frag = k_frag * CNDecompCnParamsInst%spinup_vector(8)
+       endif
 
        !--- time dependent coefficients-----!
        if ( nlevdecomp .eq. 1 ) then

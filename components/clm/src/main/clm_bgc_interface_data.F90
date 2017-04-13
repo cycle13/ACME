@@ -200,7 +200,10 @@ module clm_bgc_interface_data
      real(r8), pointer :: externalc_to_decomp_cpools_col            (:,:,:) ! col (gC/m3/s) net C fluxes associated with litter/som-adding/removal to decomp pools
      real(r8), pointer :: externaln_to_decomp_npools_col            (:,:,:) ! col (gN/m3/s) net N fluxes associated with litter/som-adding/removal to decomp pools
      real(r8), pointer :: externalp_to_decomp_ppools_col            (:,:,:) ! col (gP/m3/s) net P fluxes associated with litter/som-adding/removal to decomp pools
+
      real(r8), pointer :: decomp_k_pools_col                        (:)     ! rate constant for each decomposition pool (1./sec)
+     real(r8), pointer :: sitefactor_kd_vr_col                      (:,:)   ! a site factor for adjusting rate constant of all decomposition pools (-) (c,j)
+     real(r8), pointer :: adfactor_kd_pools                         (:)     ! a speed-up factor for adjusting rate constant of individual decomposition pool (-) (k)
      
      ! bgc rates/fluxes (previous time-step) to nh4 / no3
      real(r8), pointer :: externaln_to_nh4_col                      (:,:)   ! col (gN/m3/s) net N fluxes to nh4 pool: deposition + fertilization + supplement + nfix + soyfixn
@@ -476,7 +479,11 @@ contains
     allocate(this%externalc_to_decomp_cpools_col(begc:endc,1:nlevdecomp_full,1:ndecomp_pools)); this%externalc_to_decomp_cpools_col(:,:,:) = spval
     allocate(this%externaln_to_decomp_npools_col(begc:endc,1:nlevdecomp_full,1:ndecomp_pools)); this%externaln_to_decomp_npools_col(:,:,:) = spval
     allocate(this%externalp_to_decomp_ppools_col(begc:endc,1:nlevdecomp_full,1:ndecomp_pools)); this%externalp_to_decomp_ppools_col(:,:,:) = spval
+
     allocate(this%decomp_k_pools_col            (1:ndecomp_pools))                            ; this%decomp_k_pools_col            (:)     = spval
+    allocate(this%adfactor_kd_pools             (1:ndecomp_pools))                            ; this%adfactor_kd_pools             (:)     = spval
+    allocate(this%sitefactor_kd_vr_col          (begc:endc,1:nlevdecomp_full))                ; this%sitefactor_kd_vr_col         (:,:)    = spval
+
     ! bgc rates/fluxes to nh4 / no3
     allocate(this%externaln_to_nh4_col      (begc:endc,1:nlevdecomp_full))  ; this%externaln_to_nh4_col         (:,:) = spval
     allocate(this%externaln_to_no3_col      (begc:endc,1:nlevdecomp_full))  ; this%externaln_to_no3_col         (:,:) = spval

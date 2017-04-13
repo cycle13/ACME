@@ -247,6 +247,8 @@ contains
          initial_cn_ratio   => decomp_cascade_con%initial_cn_ratio                  , &
          initial_cp_ratio   => decomp_cascade_con%initial_cp_ratio                  , &
 
+         adfactor_kd_pools  => decomp_cascade_con%spinup_factor                     , &
+
          decomp_pool_name   => decomp_cascade_con%decomp_pool_name_history          , &
          floating_cn_ratio  => decomp_cascade_con%floating_cn_ratio_decomp_pools    , &
          floating_cp_ratio  => decomp_cascade_con%floating_cp_ratio_decomp_pools      &
@@ -263,7 +265,7 @@ contains
     clm_bgc_data%initial_cn_ratio(:)    = initial_cn_ratio(:)
     clm_bgc_data%initial_cp_ratio(:)    = initial_cp_ratio(:)
 
-
+    clm_bgc_data%adfactor_kd_pools(:)   = adfactor_kd_pools(1:ndecomp_pools)
 
     do fc = 1, num_soilc
         c = filter_soilc(fc)
@@ -549,6 +551,8 @@ contains
 !    use clm_time_manager, only : get_step_size, get_nstep
 
 !    use clm_varpar,       only : i_met_lit, i_cel_lit, i_lig_lit, i_cwd
+    use clm_time_manager      , only : get_curr_date
+    use clm_varctl            , only : spinup_state
 
 
   ! !ARGUMENTS:
@@ -573,6 +577,7 @@ contains
 !    real(r8) :: wtgcell, realc_gcell, realn_gcell
 
     real(r8) :: dtime                               ! land model time step (sec)
+    integer  :: year, mon, day, sec
 
     ! ratios of NH4:NO3 in N deposition and fertilization (temporarily set here, will be as inputs)
     real(r8) :: r_nh4_no3_dep(bounds%begc:bounds%endc)
@@ -607,6 +612,8 @@ contains
       rf_decomp_cascade                => cnstate_vars%rf_decomp_cascade_col                    , &
       pathfrac_decomp_cascade          => cnstate_vars%pathfrac_decomp_cascade_col              , &
 
+      decomp_k_scalar                  => cnstate_vars%scalaravg_col                            , &
+
       no3_net_transport_vr             => nitrogenflux_vars%no3_net_transport_vr_col            , &
       col_plant_ndemand_vr             => nitrogenflux_vars%plant_ndemand_vr_col                , &
 
@@ -622,7 +629,7 @@ contains
     )
 
 !    dtime = get_step_size()
-
+    call get_curr_date(year, mon, day, sec)
 
 !
     r_nh4_no3_dep(:)  = 1.0_r8      ! temporarily assuming half of N dep is in NH4 and another half in NO3
@@ -640,6 +647,15 @@ contains
 
         fnh4_dep  = max(0._r8, min(1.0_r8, 1._r8/(r_nh4_no3_dep(c)+1._r8)))
         fnh4_fert = max(0._r8, min(1.0_r8, 1._r8/(r_nh4_no3_fert(c)+1._r8)))
+
+        ! the following is for CTC ad-spinup.
+       ! There is a 'time' control here, so MUST be called each time-step,
+       ! and then better put the code here rather than in 'get_clm_bgc_state'
+        if (spinup_state == 1 .and. year >= 40) then
+            clm_bgc_data%sitefactor_kd_vr_col(c,:) = decomp_k_scalar(c)
+        else
+            clm_bgc_data%sitefactor_kd_vr_col(c,:) = 1.0_r8
+        end if
 
 !        do j = 1, nlevdecomp
             do k = 1, ndecomp_pools
