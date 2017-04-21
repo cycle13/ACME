@@ -30,7 +30,7 @@ module CNAllocationMod
   use ColumnType          , only : col                
   use PatchType           , only : pft
   ! bgc interface & pflotran module switches
-  use clm_varctl          , only: use_bgc_interface,use_clm_bgc, use_pflotran, pf_cmode
+  use clm_varctl          , only : use_bgc_interface,use_clm_bgc, use_pflotran, pf_cmode
   use clm_varctl          , only : nu_com
   use SoilStatetype       , only : soilstate_type
   use WaterStateType      , only : waterstate_type
@@ -4094,6 +4094,16 @@ contains
 !                sum_ndemand_vr(c,j) = col_plant_ndemand(c) * nuptake_prof(c,j) + potential_immob_vr(c,j)
             end do
          end do
+
+        !!4/21/2017
+         if(use_pflotran) then
+            do j = 1, nlevdecomp
+                do fc=1,num_soilc
+                    c = filter_soilc(fc)
+                    nuptake_prof(c,j) = nfixation_prof(c,j)
+                end do
+            end do
+         end if
 
     end associate
 
