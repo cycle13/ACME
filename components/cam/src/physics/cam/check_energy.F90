@@ -34,6 +34,7 @@ module check_energy
   use time_manager,    only: is_first_step
   use cam_logfile,     only: iulog
   use cam_abortutils,  only: endrun 
+  use phys_control,    only: ieflx_opt !!l_ieflx_fix
 
   implicit none
   private
@@ -151,7 +152,7 @@ end subroutine check_energy_setopts
        if(is_subcol_on()) then
          call pbuf_register_subcol('IEFLX', 'phys_register', ieflx_idx)
        end if
-+    end if 
+    end if 
 
   end subroutine check_energy_register
 
@@ -186,7 +187,6 @@ end subroutine check_energy_get_integrals
 !-----------------------------------------------------------------------
     use cam_history,       only: addfld, horiz_only, add_default
     use phys_control,      only: phys_getopts
-    use phys_control,    only: ieflx_opt !!l_ieflx_fix
 
     implicit none
 
@@ -747,7 +747,7 @@ subroutine ieflx_gmean(state, tend, pbuf2d, cam_in, cam_out, nstep)
 
     if(nstep>1) then 
        do i = 1, ncol
-          shflx(i) = shflx(i)  ieflx_glob 
+          shflx(i) = shflx(i) + ieflx_glob 
        end do
     end if 
 
