@@ -400,9 +400,10 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
                         radiation_scheme_out, use_subcol_microp_out, atm_dep_flux_out, &
                         history_amwg_out, history_vdiag_out, history_aerosol_out, history_aero_optics_out, history_eddy_out, &
                         history_budget_out, history_budget_histfile_num_out, history_waccm_out, &
-                        history_clubb_out, conv_water_in_rad_out, cam_chempkg_out, prog_modal_aero_out, macrop_scheme_out, &
+                        history_clubb_out, ieflx_opt_out, conv_water_in_rad_out, cam_chempkg_out, prog_modal_aero_out, macrop_scheme_out, &
                         do_clubb_sgs_out, do_tms_out, state_debug_checks_out, &
                         use_mass_borrower_out, & 
+                        l_ieflx_fix_out, & 
                         use_qqflx_fixer_out, & 
                         print_fixer_message_out, & 
                         cld_macmic_num_steps_out, micro_do_icesupersat_out, &
@@ -441,11 +442,13 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
    logical,           intent(out), optional :: history_clubb_out
    logical,           intent(out), optional :: do_clubb_sgs_out
    logical,           intent(out), optional :: micro_do_icesupersat_out
+   integer,           intent(out), optional :: ieflx_opt_out
    integer,           intent(out), optional :: conv_water_in_rad_out
    character(len=32), intent(out), optional :: cam_chempkg_out
    logical,           intent(out), optional :: prog_modal_aero_out
    logical,           intent(out), optional :: do_tms_out
    logical,           intent(out), optional :: use_mass_borrower_out
+   logical,           intent(out), optional :: l_ieflx_fix_out
    logical,           intent(out), optional :: use_qqflx_fixer_out
    logical,           intent(out), optional :: print_fixer_message_out
    logical,           intent(out), optional :: state_debug_checks_out
@@ -504,10 +507,12 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, mi
    if ( present(do_clubb_sgs_out        ) ) do_clubb_sgs_out         = do_clubb_sgs
    if ( present(micro_do_icesupersat_out )) micro_do_icesupersat_out = micro_do_icesupersat
    if ( present(conv_water_in_rad_out   ) ) conv_water_in_rad_out    = conv_water_in_rad
+   if ( present(ieflx_opt_out   ) ) ieflx_opt_out    = ieflx_opt 
    if ( present(cam_chempkg_out         ) ) cam_chempkg_out          = cam_chempkg
    if ( present(prog_modal_aero_out     ) ) prog_modal_aero_out      = prog_modal_aero
    if ( present(do_tms_out              ) ) do_tms_out               = do_tms
    if ( present(use_mass_borrower_out   ) ) use_mass_borrower_out    = use_mass_borrower
+   if ( present(l_ieflx_fix_out   ) ) l_ieflx_fix_out    = l_ieflx_fix
    if ( present(use_qqflx_fixer_out     ) ) use_qqflx_fixer_out      = use_qqflx_fixer
    if ( present(print_fixer_message_out ) ) print_fixer_message_out  = print_fixer_message
    if ( present(state_debug_checks_out  ) ) state_debug_checks_out   = state_debug_checks
