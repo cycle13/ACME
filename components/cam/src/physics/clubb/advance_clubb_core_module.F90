@@ -88,7 +88,11 @@ module advance_clubb_core_module
 #ifdef CLUBB_CAM
                qclvar, thlprcp_out, &                                            ! intent(out)
 #endif
-               pdf_params )                                         ! intent(out)
+               pdf_params, &                                        ! intent(out)
+               rtm_integral_before, &                               ! intent(out), optional
+               rtm_spur_src, &                                      ! intent(out), optional
+               thlm_integral_before, &                              ! intent(out), optional
+               thlm_spur_src )                                      ! intent(out), optional
 
     ! Description:
     !   Subroutine to advance the model one timestep
@@ -581,6 +585,12 @@ module advance_clubb_core_module
 ! <--- h1g, 2012-06-14
 #endif
 
+    real( kind = core_rknd ), intent(out), optional :: &
+      rtm_integral_before, &
+      rtm_spur_src, &
+      thlm_integral_before, &
+      thlm_spur_src
+
     !!! Local Variables
     integer :: i, k, ixind, &
       err_code_pdf_closure, err_code_surface
@@ -664,19 +674,16 @@ module advance_clubb_core_module
       wp2sclrp_zm,    & ! w'^2 sclr' on momentum grid
       sclrm_zm          ! Passive scalar mean on momentum grid
 
+
     real( kind = core_rknd ) :: &
-      rtm_integral_before, &
       rtm_integral_after, &
       rtm_integral_forcing, &
       rtm_flux_top, &
       rtm_flux_sfc, &
-      rtm_spur_src, &
-      thlm_integral_before, &
       thlm_integral_after, &
       thlm_integral_forcing, &
       thlm_flux_top, &
       thlm_flux_sfc, &
-      thlm_spur_src, &
       mu_pert_1, mu_pert_2, & ! For l_avg_Lscale
       mu_pert_pos_rt, mu_pert_neg_rt ! For l_Lscale_plume_centered
 
@@ -807,7 +814,11 @@ module advance_clubb_core_module
     call set_Lscale_max( l_implemented, host_dx, host_dy, & ! intent(in)
                          Lscale_max )                       ! intent(out)
 
-    if ( l_stats .and. l_stats_samp ) then
+   !HuiWan 2017-04 +++
+   ! Comment out the next if-statement so that the integrals are always calculated, 
+   ! and are passed to the calling routine as optional output.
+   !HuiWan 2017-04 === 
+   !if ( l_stats .and. l_stats_samp ) then
       ! Spurious source will only be calculated if rtm_ma and thlm_ma are zero.
       ! Therefore, wm must be zero or l_implemented must be true.
       if ( l_implemented .or. ( all( wm_zt == 0._core_rknd ) .and. &
@@ -822,7 +833,7 @@ module advance_clubb_core_module
         = vertical_integral( (gr%nz - 2 + 1), rho_ds_zt(2:gr%nz), &
                              thlm(2:gr%nz), gr%invrs_dzt(2:gr%nz) )
       end if
-    end if
+   !end if
 
     !----------------------------------------------------------------
     ! Test input variables
@@ -2128,7 +2139,6 @@ module advance_clubb_core_module
                err_code ) ! intent(inout)
       end if
 
-      if ( l_stats .and. l_stats_samp ) then
         ! Spurious source will only be calculated if rtm_ma and thlm_ma are zero.
         ! Therefore, wm must be zero or l_implemented must be true.
         if ( l_implemented .or. ( all( wm_zt == 0._core_rknd ) .and. &
@@ -2185,6 +2195,10 @@ module advance_clubb_core_module
           thlm_spur_src = -9999.0_core_rknd
         end if
 
+   !HuiWan 2017-04 +++
+   ! Move the if-statement here so that the spurious sources are always calculated.
+   !HuiWan 2017-04 +++
+      if ( l_stats .and. l_stats_samp ) then
         ! Write the var to stats
         call stat_update_var_pt( irtm_spur_src, 1, rtm_spur_src,   & ! intent(in)
                                  stats_sfc )                               ! intent(inout)
