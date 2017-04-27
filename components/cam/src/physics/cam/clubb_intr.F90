@@ -110,6 +110,8 @@ module clubb_intr
   real(r8) :: clubb_tk1      = unset_r8
   real(r8) :: clubb_tk2      = unset_r8
 
+  real(r8) :: conservation_tol = 1.e-14_r8 
+
 !  Constant parameters
   logical, parameter, private :: &
     l_uv_nudge       = .false.,       &  ! Use u/v nudging (not used)
@@ -375,7 +377,7 @@ end subroutine clubb_init_cnst
     namelist /clubbpbl_diff_nl/ clubb_cloudtop_cooling, clubb_rainevap_turb, clubb_expldiff, &
                                 clubb_do_adv, clubb_do_deep, clubb_timestep, clubb_stabcorrect, &
                                 clubb_rnevap_effic, clubb_liq_deep, clubb_liq_sh, clubb_ice_deep, &
-                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix
+                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix, conservation_tol
 
     !----- Begin Code -----
 
@@ -433,6 +435,7 @@ end subroutine clubb_init_cnst
       call mpibcast(clubb_ice_sh,             1,   mpir8,   0, mpicom)
       call mpibcast(clubb_tk1,                1,   mpir8,   0, mpicom)
       call mpibcast(clubb_tk2,                1,   mpir8,   0, mpicom)
+      call mpibcast(conservation_tol,         1,   mpir8,   0, mpicom)
       call mpibcast(relvar_fix,               1,   mpilog,  0, mpicom)
 #endif
 
@@ -759,6 +762,9 @@ end subroutine clubb_init_cnst
     call addfld ('CONCLD', (/ 'lev' /),  'A',        'fraction', 'Convective cloud cover')
     call addfld ('CMELIQ', (/ 'lev' /),  'A',        'kg/kg/s', 'Rate of cond-evap of liq within the cloud')
 
+    call addfld ( 'RTM_SPURSRC_REL', horiz_only, 'A','1/s', 'Spurious source of vertically integrated rtm, normalized')
+    call addfld ('THLM_SPURSRC_REL', horiz_only, 'A','1/s', 'Spurious source of vertically integrated thlm, normalized')
+
     !  Initialize statistics, below are dummy variables
     dum1 = 300._r8
     dum2 = 1200._r8
@@ -884,7 +890,7 @@ end subroutine clubb_init_cnst
   ! =============================================================================== !
 
    subroutine clubb_tend_cam( &
-                              state,   ptend_all,   pbuf,     hdtime, &
+                              state,   ptend_all,   pbuf,     hdtime, nstep, &
                               cmfmc,   cam_in,   sgh30, & 
                               macmic_it, cld_macmic_num_steps,dlf, det_s, det_ice, alst_o)
 
@@ -949,6 +955,7 @@ end subroutine clubb_init_cnst
    type(physics_state), intent(in)    :: state                    ! Physics state variables                 [vary]
    type(cam_in_t),      intent(in)    :: cam_in
    real(r8),            intent(in)    :: hdtime                   ! Host model timestep                     [s]
+   integer,             intent(in)    :: nstep                    ! Host model timestep count
    real(r8),            intent(in)    :: dlf(pcols,pver)          ! Detraining cld H20 from deep convection [kg/ks/s]
    real(r8),            intent(in)    :: cmfmc(pcols,pverp)       ! convective mass flux--m sub c           [kg/m2/s]
    real(r8),            intent(in)    :: sgh30(pcols)             ! std deviation of orography              [m]
@@ -1156,6 +1163,25 @@ end subroutine clubb_init_cnst
    type(pdf_parameter), dimension(pverp) :: pdf_params                  ! PDF parameters                    [units vary]
    character(len=200)                    :: temp1, sub                  ! Strings needed for CLUBB output
    logical                               :: l_Lscale_plume_centered, l_use_ice_latent
+
+
+   real(r8) :: z_rtm_integral_before_substep
+   real(r8) :: z_rtm_spur_src_substep
+   real(r8) :: z_thlm_integral_before_substep
+   real(r8) :: z_thlm_spur_src_substep
+
+   real(r8) ::  z_rtm_integral_before_1st_substep (pcols)
+   real(r8) :: z_thlm_integral_before_1st_substep (pcols)
+
+   real(r8) ::  z_rtm_spur_src_sum (pcols)
+   real(r8) :: z_thlm_spur_src_sum (pcols)
+
+   real(r8) :: zrnadv
+
+   real(r8) :: z_spur_src_relative (pcols,2)
+   character(len=10) :: fldname(2) = (/"rtm_CLUBB ","thlm_CLUBB"/)
+
+   character(len=128) :: string
 
 
    ! --------------- !
@@ -1405,6 +1431,8 @@ end subroutine clubb_init_cnst
    !  determine number of timesteps CLUBB core should be advanced, 
    !  host time step divided by CLUBB time step  
    nadv = max(hdtime/dtime,1._r8)
+
+   zrnadv = 1._r8/nadv
   
    !  Initialize forcings for transported scalars to zero
    
@@ -1837,6 +1865,12 @@ end subroutine clubb_init_cnst
       ! End cloud-top radiative cooling contribution to CLUBB     !
       ! --------------------------------------------------------- !  
 
+      ! Initialize variables for accumulating spurious sources
+
+      z_rtm_spur_src_sum(i) = 0._r8
+      z_thlm_spur_src_sum(i) = 0._r8
+
+      !-----------------------------------------------------------
       call t_startf('adv_clubb_core_ts_loop')
       do t=1,nadv    ! do needed number of "sub" timesteps for each CAM step
     
@@ -1875,8 +1909,24 @@ end subroutine clubb_init_cnst
             rcm_out, wprcp_out, cloud_frac_out, ice_supersat_frac, &
             rcm_in_layer_out, cloud_cover_out, &
             khzm_out, khzt_out, qclvar_out, thlprcp_out, &
-            pdf_params)
+            pdf_params, &
+            rtm_integral_before = z_rtm_integral_before_substep, &
+            rtm_spur_src = z_rtm_spur_src_substep, &
+            thlm_integral_before = z_thlm_integral_before_substep, &
+            thlm_spur_src = z_thlm_spur_src_substep )
          call t_stopf('advance_clubb_core')
+
+         ! Save vertical integrals before the first substep
+
+         if (t==1) then
+            z_rtm_integral_before_1st_substep(i) =  z_rtm_integral_before_substep
+           z_thlm_integral_before_1st_substep(i) = z_thlm_integral_before_substep
+         end if
+
+         ! Accumulate spurious source over substeps
+
+          z_rtm_spur_src_sum(i) =  z_rtm_spur_src_sum(i) +  z_rtm_spur_src_substep
+         z_thlm_spur_src_sum(i) = z_thlm_spur_src_sum(i) + z_thlm_spur_src_substep
 
          if (do_rainturb) then
             rvm_in = rtm_in - rcm_out 
@@ -2089,6 +2139,24 @@ end subroutine clubb_init_cnst
 
    enddo  ! end column loop
    call t_stopf('adv_clubb_core_col_loop')
+
+   !-------------------------------------------------------------------------
+   ! Diagnose time-step-mean conservation error and send message to log file
+   !-------------------------------------------------------------------------
+   where( z_rtm_integral_before_1st_substep(:ncol) > qsmall ) 
+     z_spur_src_relative(:ncol,1) = z_rtm_spur_src_sum(:ncol) * zrnadv &
+                                  / z_rtm_integral_before_1st_substep(:ncol)
+   endwhere 
+
+     z_spur_src_relative(:ncol,2) = z_thlm_spur_src_sum(:ncol) * zrnadv &
+                                  / z_thlm_integral_before_1st_substep(:ncol)
+
+   write(string,"(2(a,i8))") "nstep ",nstep,", macmic_it ",macmic_it
+   call report_large_values( ncol, 2, fldname, z_spur_src_relative(:ncol,:), conservation_tol, trim(string) )
+
+   call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
+   call outfld( 'THLM_SPURSRC_REL', z_spur_src_relative(:,2), pcols, lchnk)
+   !-------------------------------------------------------------------------
    
    ! Add constant to ghost point so that output is not corrupted 
    if (clubb_do_adv) then
