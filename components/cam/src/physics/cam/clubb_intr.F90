@@ -111,6 +111,7 @@ module clubb_intr
   real(r8) :: clubb_tk2      = unset_r8
 
   real(r8) :: conservation_tol = 1.e-14_r8 
+  logical  :: l_always_print_conservation_error = .false.
 
 !  Constant parameters
   logical, parameter, private :: &
@@ -377,7 +378,8 @@ end subroutine clubb_init_cnst
     namelist /clubbpbl_diff_nl/ clubb_cloudtop_cooling, clubb_rainevap_turb, clubb_expldiff, &
                                 clubb_do_adv, clubb_do_deep, clubb_timestep, clubb_stabcorrect, &
                                 clubb_rnevap_effic, clubb_liq_deep, clubb_liq_sh, clubb_ice_deep, &
-                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix, conservation_tol
+                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix, &
+                                conservation_tol, l_always_print_conservation_error
 
     !----- Begin Code -----
 
@@ -435,8 +437,9 @@ end subroutine clubb_init_cnst
       call mpibcast(clubb_ice_sh,             1,   mpir8,   0, mpicom)
       call mpibcast(clubb_tk1,                1,   mpir8,   0, mpicom)
       call mpibcast(clubb_tk2,                1,   mpir8,   0, mpicom)
-      call mpibcast(conservation_tol,         1,   mpir8,   0, mpicom)
       call mpibcast(relvar_fix,               1,   mpilog,  0, mpicom)
+      call mpibcast(conservation_tol,         1,   mpir8,   0, mpicom)
+      call mpibcast(l_always_print_conservation_error, 1, mpilog, 0, mpicom)
 #endif
 
     !  Overwrite defaults if they are true
@@ -2153,7 +2156,9 @@ end subroutine clubb_init_cnst
                                   / z_thlm_integral_before_1st_substep(:ncol)
 
    write(string,"(2(a,i8))") "nstep ",nstep,", macmic_it ",macmic_it
-   call report_large_values( ncol, 2, fldname, z_spur_src_relative(:ncol,:), conservation_tol, trim(string) )
+   call report_large_values( ncol, 2, fldname, z_spur_src_relative(:ncol,:), &
+                             conservation_tol, l_always_print_conservation_error, &
+                             trim(string) )
 
    call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
    call outfld( 'THLM_SPURSRC_REL', z_spur_src_relative(:,2), pcols, lchnk)
