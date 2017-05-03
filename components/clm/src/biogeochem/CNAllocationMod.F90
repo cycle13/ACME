@@ -4096,14 +4096,14 @@ contains
          end do
 
         !!4/21/2017
-         if(use_pflotran) then
-            do j = 1, nlevdecomp
-                do fc=1,num_soilc
-                    c = filter_soilc(fc)
-                    nuptake_prof(c,j) = nfixation_prof(c,j)
-                end do
-            end do
-         end if
+!         if(use_pflotran) then
+!            do j = 1, nlevdecomp
+!                do fc=1,num_soilc
+!                    c = filter_soilc(fc)
+!                    nuptake_prof(c,j) = nfixation_prof(c,j)
+!                end do
+!            end do
+!         end if
 
     end associate
 

@@ -2691,7 +2691,7 @@ contains
   subroutine Summary(this, bounds, num_soilc, filter_soilc, num_soilp, filter_soilp)
     !
     ! !USES:
-    use clm_varpar    , only: nlevdecomp,ndecomp_cascade_transitions,ndecomp_pools
+    use clm_varpar    , only: nlevdecomp,nlevdecomp_full,ndecomp_cascade_transitions,ndecomp_pools
     use clm_varctl    , only: use_nitrif_denitrif
     use subgridAveMod , only: p2c
     use pftvarcon     , only : npcropmin 
@@ -2709,6 +2709,7 @@ contains
     integer  :: c,p,j,k,l   ! indices
     integer  :: fp,fc       ! lake filter indices
     real(r8) :: maxdepth    ! depth to integrate soil variables
+    integer  :: nlev        ! = nlevdecomp_full for pflotran
     !-----------------------------------------------------------------------
 
     do fp = 1,num_soilp
@@ -2768,6 +2769,10 @@ contains
        this%som_n_leached_col(c)       = 0._r8
     end do
     
+    nlev = nlevdecomp
+    if (use_pflotran) then
+        nlev = nlevdecomp_full
+    end if
 
     if ( (.not. (is_active_betr_bgc         )) .and. &
          (.not. (use_pflotran .and. pf_cmode)) ) then
@@ -3050,7 +3055,7 @@ contains
     if (use_nitrif_denitrif) then
        do fc = 1,num_soilc
           c = filter_soilc(fc)
-          do j = 1, nlevdecomp
+          do j = 1, nlev  !! nlevdecomp
              this%smin_no3_to_plant_col(c)= this%smin_no3_to_plant_col(c) + & 
                   this%smin_no3_to_plant_vr_col(c,j) * dzsoi_decomp(j)
              this%smin_nh4_to_plant_col(c)= this%smin_nh4_to_plant_col(c) + & 
@@ -3077,7 +3082,7 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
 ! summary calculations, which mainly from PFLOTRAN bgc coupling
 !
 ! !USES:
-   use clm_varpar  , only: nlevdecomp, ndecomp_pools
+   use clm_varpar  , only: nlevdecomp, nlevdecomp_full,ndecomp_pools
    use clm_varpar  , only: i_met_lit, i_cel_lit, i_lig_lit, i_cwd
    use clm_time_manager    , only : get_step_size
 
@@ -3100,9 +3105,15 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
    integer :: c,j, l      ! indices
    integer :: fc          ! column filter indices
    real(r8):: dtime             ! radiation time step (seconds)
+   integer :: nlev
 
    ! set time steps
     dtime = real( get_step_size(), r8 )
+
+    nlev = nlevdecomp
+    if (use_pflotran) then
+        nlev = nlevdecomp_full
+    end if
 
     if (use_pflotran .and. pf_cmode) then
 ! nitrification-denitrification rates (not yet passing out from PF, but will)
@@ -3138,7 +3149,7 @@ subroutine NSummary_interface(this,bounds,num_soilc, filter_soilc)
           this%smin_no3_leached_col(c) = 0._r8
           this%smin_no3_runoff_col(c)  = 0._r8
 
-          do j = 1, nlevdecomp
+          do j = 1, nlev
 
             ! all N2/N2O gas exchange between atm. and soil (i.e., dissolving - degassing)
             this%f_n2_soil_col(c)  = this%f_n2_soil_col(c) + &

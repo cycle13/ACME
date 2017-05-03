@@ -1538,7 +1538,7 @@ contains
   subroutine Summary(this, bounds, num_soilc, filter_soilc, num_soilp, filter_soilp)
     !
     ! !USES:
-    use clm_varpar    , only: nlevdecomp,ndecomp_cascade_transitions,ndecomp_pools
+    use clm_varpar    , only: nlevdecomp,nlevdecomp_full,ndecomp_cascade_transitions,ndecomp_pools
     use clm_varctl    , only: use_nitrif_denitrif
     use subgridAveMod , only: p2c
     !
@@ -1554,6 +1554,7 @@ contains
     integer  :: c,p,j,k,l   ! indices
     integer  :: fp,fc       ! lake filter indices
     real(r8) :: maxdepth    ! depth to integrate soil variables
+    integer  :: nlev
     !-----------------------------------------------------------------------
 
     do fp = 1,num_soilp
@@ -1616,6 +1617,11 @@ contains
         this%totpftn_patch(bounds%begp:bounds%endp), &
         this%totpftn_col(bounds%begc:bounds%endc))
 
+   nlev = nlevdecomp
+   if (use_pflotran) then
+       nlev = nlevdecomp_full
+   end if
+
    ! vertically integrate NO3 NH4 N2O pools
    if (use_nitrif_denitrif) then
       do fc = 1,num_soilc
@@ -1626,7 +1632,7 @@ contains
             this%smin_nh4sorb_col(c) = 0._r8
          end if
       end do
-      do j = 1, nlevdecomp
+      do j = 1, nlev !!nlevdecomp
          do fc = 1,num_soilc
             c = filter_soilc(fc)
             this%smin_no3_col(c) = &
@@ -1652,7 +1658,7 @@ contains
          c = filter_soilc(fc)
          this%decomp_npools_col(c,l) = 0._r8
       end do
-      do j = 1, nlevdecomp
+      do j = 1, nlev !!nlevdecomp
          do fc = 1,num_soilc
             c = filter_soilc(fc)
             this%decomp_npools_col(c,l) = &
@@ -1781,7 +1787,7 @@ contains
       c = filter_soilc(fc)
       this%sminn_col(c)      = 0._r8
    end do
-   do j = 1, nlevdecomp
+   do j = 1, nlev !!nlevdecomp
       do fc = 1,num_soilc
          c = filter_soilc(fc)
          this%sminn_col(c) = &

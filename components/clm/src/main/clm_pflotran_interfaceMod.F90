@@ -543,13 +543,14 @@ contains
     real(r8) :: pf_nend_no3, pf_nend_nh4, pf_nend_nh4sorb                           !! 3 mineral N pools at the end of time-step
     real(r8) :: plant_ndemand, potential_immob, actual_immob, gross_nmin            !! _immob: N immobilization; _nmin: N mineralization
     real(r8) :: pf_ngas_org, pf_ngas_min, pf_errnb_org, pf_errnb_min                !! _ngas_org: N gas from decomposition; _ngas_min: N gas from nitrification & denitrification
-    real(r8) :: pf_nbeg_bottom_org
-    real(r8) :: pf_nend_bottom, pf_nend_bottom_org, pf_nend_bottom_min
-    real(r8) :: pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
 
     real(r8) :: pf_errnb_org_vr(1:nlevdecomp_full)
     real(r8) :: pf_ndelta_org_vr(1:nlevdecomp_full)
     real(r8) :: pf_ninputs_org_vr(1:nlevdecomp_full)
+
+    real(r8) :: pf_nbeg_bottom_org
+    real(r8) :: pf_nend_bottom, pf_nend_bottom_org, pf_nend_bottom_min
+    real(r8) :: pf_ndelta_bottom, pf_ndelta_bottom_org, pf_ndelta_bottom_min
     !-----------------------------------------------------------------------
 
     associate(                                                                        &
@@ -647,6 +648,22 @@ contains
         end do !!j = 1, nlevdecomp
 
 !!wgs:beg:
+        !! check SON balance at each layer
+        pf_errnb_org_vr(:) = 0._r8
+        pf_ndelta_org_vr(:) = 0._r8
+        pf_ninputs_org_vr(:) = 0._r8
+        do j = 1, nlevdecomp_full
+
+            do l = 1, ndecomp_pools
+                pf_ndelta_org_vr(j)  = pf_ndelta_org_vr(j)  + decomp_npools_delta_vr(c,j,l)
+                pf_ninputs_org_vr(j) = pf_ninputs_org_vr(j) + externaln_to_decomp_npools(c,j,l)
+            end do
+            pf_errnb_org_vr(j)    = (pf_ninputs_org_vr(j)                   &  !!- f_ngas_decomp_vr(c,j)
+                        - gross_nmin_vr(c,j) + actual_immob_vr(c,j))*dtime  &
+                        - pf_ndelta_org_vr(j)
+            pf_errnb_org_vr(j)    = pf_errnb_org_vr(j)*dzsoi_decomp(j)
+        end do
+
         pf_nend_bottom     = 0._r8
         pf_nend_bottom_org = 0._r8
         pf_nend_bottom_min = 0._r8
@@ -667,23 +684,6 @@ contains
         end do !!j=nlevdecomp+1, nlevdecomp_full
         pf_nend_bottom_org = pf_nbeg_bottom_org + pf_ndelta_bottom_org
         pf_nend_bottom = pf_nend_bottom_org + pf_nend_bottom_min
-
-        !! check SON balance at each layer
-        pf_errnb_org_vr(:) = 0._r8
-        pf_ndelta_org_vr(:) = 0._r8
-        pf_ninputs_org_vr(:) = 0._r8
-        do j = 1, nlevdecomp_full
-
-            do l = 1, ndecomp_pools
-                pf_ndelta_org_vr(j)  = pf_ndelta_org_vr(j)  + decomp_npools_delta_vr(c,j,l)
-                pf_ninputs_org_vr(j) = pf_ninputs_org_vr(j) + externaln_to_decomp_npools(c,j,l)
-            end do
-            pf_errnb_org_vr(j)    = (pf_ninputs_org_vr(j) - f_ngas_decomp_vr(c,j)     &
-                        - gross_nmin_vr(c,j) + actual_immob_vr(c,j))*dtime  &
-                        - pf_ndelta_org_vr(j)
-            pf_errnb_org_vr(j)    = pf_errnb_org_vr(j)*dzsoi_decomp(j)
-        end do
-
 !!wgs:end
 
         pf_nend_org     = pf_nbeg_org       + pf_ndelta_org   !!pf_ndelta_org has been calculated
@@ -696,13 +696,11 @@ contains
         pf_noutputs     = pf_noutputs_gas   + pf_noutputs_veg
         pf_errnb        = (pf_ninputs - pf_noutputs)*dtime - pf_ndelta
 write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
-!!        pf_errnb        = pf_errnb - pf_ndelta_bottom
-!!write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
 
-        pf_errnb_org    = (pf_ninputs_org - pf_ngas_org     &
+        pf_errnb_org    = (pf_ninputs_org                   &
                         - gross_nmin + actual_immob)*dtime  &
                         - pf_ndelta_org
-        pf_errnb_min    = (pf_ninputs_min - pf_ngas_min     &
+        pf_errnb_min    = (pf_ninputs_min - pf_ngas_min - pf_ngas_org        &
                         + gross_nmin - actual_immob - pf_noutputs_veg)*dtime &
                         - pf_ndelta_min
         ! check for significant errors
@@ -742,17 +740,17 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
                                     "Nend_bottom","Nend_bot_min","Nbeg_bot_org","Nend_bot_org", "Ndelta_bot_org"
             write(iulog,'(10E15.6)')pf_ngas_org*dtime,pf_ngas_min*dtime,                    &
                                     pf_nend_bottom, pf_nend_bottom_min, pf_nbeg_bottom_org,pf_nend_bottom_org, pf_ndelta_bottom_org
-            write(iulog,*)
-            write(iulog,'(A10,20A15)')  "Layer","errbn_org","ndelta_org","ninputs","ngas","gross_nmin","actual_immob"
-            do j = 1, nlevdecomp_full
-                write(iulog,'(I10,15E15.6)')j,pf_errnb_org_vr(j),                           &
-                                            pf_ndelta_org_vr(j)*dzsoi_decomp(j),            &
-                                            pf_ninputs_org_vr(j)*dtime*dzsoi_decomp(j),     &
-                                            f_ngas_decomp_vr(c,j)*dtime*dzsoi_decomp(j),    &
-                                            gross_nmin_vr(c,j)*dtime*dzsoi_decomp(j),       &
-                                            actual_immob_vr(c,j)*dtime*dzsoi_decomp(j)
+!            write(iulog,*)
+!            write(iulog,'(A10,20A15)')  "Layer","errbn_org","ndelta_org","ninputs","gross_nmin","actual_immob" !!"ngas",
+!            do j = 1, nlevdecomp_full
+!                write(iulog,'(I10,15E15.6)')j,pf_errnb_org_vr(j),                           &
+!                                            pf_ndelta_org_vr(j)*dzsoi_decomp(j),            &
+!                                            pf_ninputs_org_vr(j)*dtime*dzsoi_decomp(j),     &
+!!                                            f_ngas_decomp_vr(c,j)*dtime*dzsoi_decomp(j),    &
+!                                            gross_nmin_vr(c,j)*dtime*dzsoi_decomp(j),       &
+!                                            actual_immob_vr(c,j)*dtime*dzsoi_decomp(j)
 
-            end do
+!            end do
             write(iulog,'(A,70(1h-))')">>>--------  PFLOTRAN Mass Balance Check:end  "
 !           'endrun' is called in CNBalanceCheckMod.F90, as PFLOTRAN error will propagate into ALM
 !            if((.not.is_first_step()) .and. (.not.is_first_restart_step())) then
