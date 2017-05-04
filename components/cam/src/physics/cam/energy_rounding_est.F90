@@ -61,18 +61,23 @@ subroutine energy_rounding_est( state, ptend_all, hdtime, evap_frac, stend_reler
    ! Among all the tracers, only vapor and liquid mass concentrations will be changes.
    ! Dry static energy (temperature) will also be changed. Winds will not be touched
 
+   !! This whole routine is about fake parameterization for testing
+   !! The first part is with an introduction of an error in energy conservation
    lq(:) = .FALSE.
    lq(1) = .TRUE.
 
    call cnst_get_ind('CLDLIQ',ixcldliq)
    lq(ixcldliq) = .TRUE.
-
+!!$
    call physics_ptend_init(ptend_all, state%psetcols, 'energy_conserv_rounding_estimate', ls=.true., lq=lq )
 
    ! We will evaporate a certain amount of the cloud liquid
 
    zdqvdt(:ncol,:pver) = evap_frac * state%q(:ncol,:pver,ixcldliq) /hdtime
 
+   !! assigned values to the tendencies which are strictly the part of interface, not really calculated by clubb
+   !! if there is real clubb then these tendencies are translated from clubb
+   !! all ptends are the tendencies
    ptend_all%q(:ncol,:pver,1)        =  zdqvdt 
    ptend_all%q(:ncol,:pver,ixcldliq) = -zdqvdt 
 
@@ -80,7 +85,13 @@ subroutine energy_rounding_est( state, ptend_all, hdtime, evap_frac, stend_reler
 
    zfac = 1._r8 + stend_relerr
 
+   !! assigned values to the tendencies which are strictly the part of interface, not really calculated by clubb
+   !! if there is real clubb then these tendencies are translated from clubb
    ptend_all%s(:ncol,:pver) = zfac * latvap*(-zdqvdt(:ncol,:pver))
+
+   !! ***** this marks the end of the first part that introduced error in energy conservation
+
+   !! The part below, the remaining part fixes the energy error 
 
    !---------------------------------
    ! ENERGY FIXER
@@ -88,6 +99,7 @@ subroutine energy_rounding_est( state, ptend_all, hdtime, evap_frac, stend_reler
    ! Calculate total energy before state update
 
    call column_total_energy( state, energy_tot_before )
+
 
    ! Calculate total energy after state update
 
@@ -125,6 +137,7 @@ subroutine energy_rounding_est( state, ptend_all, hdtime, evap_frac, stend_reler
      !print*, 'column ',i, 'ktop, kbot = ',ktop, kbot
       if ( ktop > 0 .and. kbot > 0 .and. kbot >= ktop ) then
 
+         !!This is the energy correction part
          zcorrection =  ( energy_tot_before(i) - energy_tot_after(i) ) &
                        *gravit/sum(state%pdel(i,ktop:kbot))/hdtime
          ptend_all%s(i,ktop:kbot) = ptend_all%s(i,ktop:kbot) + zcorrection
