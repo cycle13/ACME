@@ -286,6 +286,8 @@ CONTAINS
 
    if (write_inithist() ) then
       do lchnk=begchunk,endchunk
+         call outfld('PDEL&IC',phys_state(lchnk)%pdel,pcols,lchnk)
+         call outfld('S&IC',phys_state(lchnk)%s,pcols,lchnk)
          call outfld('T&IC',phys_state(lchnk)%t,pcols,lchnk)
          call outfld('U&IC',phys_state(lchnk)%u,pcols,lchnk)
          call outfld('V&IC',phys_state(lchnk)%v,pcols,lchnk)

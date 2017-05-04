@@ -133,9 +133,14 @@ subroutine stepon_init(dyn_in, dyn_out )
 
   call addfld ('PS&IC', horiz_only,  'I', 'Pa', 'Surface pressure',gridname='physgrid')
   call addfld ('T&IC',  (/ 'lev' /), 'I', 'K',  'Temperature',     gridname='physgrid')
+  call addfld ('S&IC',  (/ 'lev' /), 'I', 'J',  'Dry static energy',gridname='physgrid')
+  call addfld ('PDEL&IC',  (/ 'lev' /), 'I', 'Pa',  'Pressure layer thickness',gridname='physgrid')
 
   call add_default ('PS&IC      ',0, 'I')
   call add_default ('T&IC       ',0, 'I')
+  call add_default ('S&IC       ',0, 'I')
+  call add_default ('PDEL&IC    ',0, 'I')
+
   do m = 1,pcnst
      call addfld (trim(cnst_name(m))//'&IC', (/ 'lev' /), 'I', 'kg/kg', cnst_longname(m), gridname='physgrid')
   end do
