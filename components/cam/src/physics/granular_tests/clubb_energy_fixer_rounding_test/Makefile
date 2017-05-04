@@ -91,7 +91,8 @@ $(OBJ3):  $(OBJ2)
 
 
 clean:
-	/bin/rm  etest  *.o  *.f  *.f90  *.mod
+	/bin/rm  etest  *.o  *.mod
+#/bin/rm  etest  *.o  *.f  *.f90  *.mod
 
 
 cleanmod:
