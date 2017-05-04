@@ -36,7 +36,7 @@ subroutine read_state_ascii( nstep, state )
    ! open a file
 
    funit = 1234
-   write(filename,'(2(a,i5.5),a)') 'nstep_',nstep,'_chunk_',lchnk,'_state.asc'
+   write(filename,'(2(a,i5.5),a)') '../test_input/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
 
    open(unit=funit,file=trim(filename),access='sequential',action='read',form='formatted',iostat=ierr)
    if (ierr/=0) then
