@@ -1977,6 +1977,7 @@ subroutine tphysbc (ztodt,               &
     use parrrtm, only: nsubcollw => ngptlw !BSINGH
     use parrrsw, only: nsubcolsw => ngptsw !BSINGH
     use rounding_tests,  only: energy_rounding_est
+    use ascii_io,        only: write_state_ascii
 
     implicit none
 
@@ -2578,6 +2579,10 @@ end if
              ! =====================================================  
 
      if (do_energy_rounding_est) then
+
+        if ( masterproc .and. (macmic_it.eq.1) ) then
+           call write_state_ascii( nstep, state )
+        end if
 
         call energy_rounding_est( state, ptend, cld_macmic_ztodt, &
                                 rounding_est_evap_frac, rounding_est_stend_relerr )
