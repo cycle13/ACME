@@ -368,7 +368,7 @@ contains
                 name, nstep, lchnk
           write(iulog,"(a5,2a10,6a15)") ' i', 'lat', 'lon', 'en', 'en_from_flux', 'diff', 'exptd diff', 'rerr', 'cum_diff'
 	  do i = 1,ncol
-             if (abs(te_rer(i)) > 1.E-14_r8 ) then 
+             if (abs(te_rer(i)) > TOL ) then 
                 state%count = state%count + 1
                 write(iulog,"(i5,2f10.2,6e15.7)") i, state%lat(i), state%lon(i), te(i),te_xpd(i),te_dif(i),  &
                       te_tnd(i)*ztodt,te_rer(i), tend%te_tnd(i)*ztodt
