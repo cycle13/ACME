@@ -64,9 +64,9 @@ OBJ2 = \
 	physconst.o  \
 	constituents.o  \
 	physics_types.o  \
+        global_statistics.o \
 	ascii_io.o \
-	physpkg.o  \
-        global_statistics.o
+	physpkg.o  
 
 OBJ3 = \
 	driver.o  
