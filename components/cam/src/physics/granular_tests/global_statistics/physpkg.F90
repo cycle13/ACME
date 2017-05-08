@@ -20,6 +20,7 @@ module physpkg
        physics_state_alloc, physics_state_dealloc, physics_tend_alloc, physics_tend_dealloc
   use ppgrid,           only: begchunk, endchunk, pcols, pver, pverp, psubcols
   use constituents,     only: pcnst, cnst_name, cnst_get_ind
+  use global_statistics,only: tp_statistics, global_stat_init
 
   use cam_logfile,     only: iulog
   
@@ -92,7 +93,7 @@ contains
 !!$end subroutine phys_inidat
 
 
-subroutine phys_init( phys_state, phys_tend, nstep)
+subroutine phys_init( phys_state, phys_tend, chunk_stat, domain_stat, nstep)
 
     !----------------------------------------------------------------------- 
     ! 
@@ -114,8 +115,10 @@ subroutine phys_init( phys_state, phys_tend, nstep)
 !!$
 !!$
     ! Input/output arguments
-    type(physics_state), pointer       :: phys_state(:)
-    type(physics_tend ), pointer       :: phys_tend(:)
+    type(physics_state), pointer :: phys_state(:)     ! (beginchunk:endchunk)
+    type(physics_tend ), pointer :: phys_tend (:)     ! (beginchunk:endchunk)
+    type(tp_statistics), pointer :: chunk_stat (:,:)  ! (nstatfld,beginchunk:endchunk)
+    type(tp_statistics), pointer :: domain_stat(:)    ! (nstatfld)
     integer, intent(IN) :: nstep
 
     ! local variables
@@ -124,7 +127,8 @@ subroutine phys_init( phys_state, phys_tend, nstep)
 
     !-----------------------------------------------------------------------
 
-    call physics_type_alloc(phys_state, phys_tend, begchunk, endchunk, pcols)
+    call physics_type_alloc( phys_state, phys_tend, begchunk, endchunk, pcols )
+    call global_stat_init( chunk_stat, domain_stat, begchunk, endchunk )
     call physconst_init()
     do ichnk=begchunk,endchunk
        call read_state_ascii(nstep, phys_state(ichnk))
