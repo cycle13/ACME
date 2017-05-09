@@ -1392,30 +1392,36 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
     clm_pf_idata%ngpf_srf  = 0
 
     ! Initialize maps for transferring data between CLM and PFLOTRAN.
-    if(pflotran_m%map_clm_sub_to_pf_sub%id == CLM_3DSUB_TO_PF_3DSUB) then
-       call pflotranModelInitMapping(pflotran_m, clm_all_cell_ids_nindex, &
+    if(associated(pflotran_m%map_clm_sub_to_pf_sub) .and. &
+        pflotran_m%map_clm_sub_to_pf_sub%id == CLM_3DSUB_TO_PF_3DSUB) then
+        call pflotranModelInitMapping(pflotran_m, clm_all_cell_ids_nindex, &
                                   clm_all_npts, CLM_3DSUB_TO_PF_3DSUB)
     endif
-    if(pflotran_m%map_pf_sub_to_clm_sub%id == PF_3DSUB_TO_CLM_3DSUB) then
-       call pflotranModelInitMapping(pflotran_m, clm_all_cell_ids_nindex, &
+    if(associated(pflotran_m%map_pf_sub_to_clm_sub) .and. &
+        pflotran_m%map_pf_sub_to_clm_sub%id == PF_3DSUB_TO_CLM_3DSUB) then
+        call pflotranModelInitMapping(pflotran_m, clm_all_cell_ids_nindex, &
                                   clm_all_npts, PF_3DSUB_TO_CLM_3DSUB)
     endif
     !
-    if(pflotran_m%map_clm_2dtop_to_pf_2dtop%id == CLM_2DTOP_TO_PF_2DTOP) then
-       call pflotranModelInitMapping(pflotran_m, clm_top_cell_ids_nindex,   &
+    if(associated(pflotran_m%map_clm_2dtop_to_pf_2dtop) .and. &
+        pflotran_m%map_clm_2dtop_to_pf_2dtop%id == CLM_2DTOP_TO_PF_2DTOP) then
+        call pflotranModelInitMapping(pflotran_m, clm_top_cell_ids_nindex,   &
                                       clm_top_npts, CLM_2DTOP_TO_PF_2DTOP)
     endif
-    if(pflotran_m%map_pf_2dtop_to_clm_2dtop%id == PF_2DTOP_TO_CLM_2DTOP) then
-       call pflotranModelInitMapping(pflotran_m, clm_top_cell_ids_nindex,   &
+    if(associated(pflotran_m%map_pf_2dtop_to_clm_2dtop) .and. &
+        pflotran_m%map_pf_2dtop_to_clm_2dtop%id == PF_2DTOP_TO_CLM_2DTOP) then
+        call pflotranModelInitMapping(pflotran_m, clm_top_cell_ids_nindex,   &
                                       clm_top_npts, PF_2DTOP_TO_CLM_2DTOP)
     endif
     !
-    if(pflotran_m%map_clm_2dbot_to_pf_2dbot%id == CLM_2DBOT_TO_PF_2DBOT) then
-       call pflotranModelInitMapping(pflotran_m, clm_bot_cell_ids_nindex, &
+    if(associated(pflotran_m%map_clm_2dbot_to_pf_2dbot) .and. &
+        pflotran_m%map_clm_2dbot_to_pf_2dbot%id == CLM_2DBOT_TO_PF_2DBOT) then
+        call pflotranModelInitMapping(pflotran_m, clm_bot_cell_ids_nindex, &
                                      clm_bot_npts, CLM_2DBOT_TO_PF_2DBOT)
     endif
-    if(pflotran_m%map_pf_2dbot_to_clm_2dbot%id == PF_2DBOT_TO_CLM_2DBOT) then
-       call pflotranModelInitMapping(pflotran_m, clm_bot_cell_ids_nindex, &
+    if(associated(pflotran_m%map_pf_2dbot_to_clm_2dbot) .and. &
+        pflotran_m%map_pf_2dbot_to_clm_2dbot%id == PF_2DBOT_TO_CLM_2DBOT) then
+        call pflotranModelInitMapping(pflotran_m, clm_bot_cell_ids_nindex, &
                                      clm_bot_npts, PF_2DBOT_TO_CLM_2DBOT)
     endif
 
