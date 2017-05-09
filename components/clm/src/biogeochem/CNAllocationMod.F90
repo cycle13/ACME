@@ -4078,7 +4078,12 @@ contains
                         sminn_vr_loc(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j)
                     end if
                end if
-               sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) !!original: if (use_nitrif_denitrif): sminn_tot(c) = sminn_tot(c) + (smin_no3_vr(c,j) + smin_nh4_vr(c,j)) * dzsoi_decomp(j)
+               if(use_pflotran .and. pf_cmode) then
+                    sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) &
+                                    *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
+               else
+                    sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) !!original: if (use_nitrif_denitrif): sminn_tot(c) = sminn_tot(c) + (smin_no3_vr(c,j) + smin_nh4_vr(c,j)) * dzsoi_decomp(j)
+               end if
             end do
          end do
 
@@ -4086,7 +4091,12 @@ contains
             do fc=1,num_soilc
                c = filter_soilc(fc)
                if (sminn_tot(c)  >  0._r8) then
-                  nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c)   !!original: if (use_nitrif_denitrif): nuptake_prof(c,j) = sminn_vr(c,j) / sminn_tot(c)
+                    if(use_pflotran .and. pf_cmode) then
+                        nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c) &
+                                            *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
+                    else
+                        nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c)   !!original: if (use_nitrif_denitrif): nuptake_prof(c,j) = sminn_vr(c,j) / sminn_tot(c)
+                    end if
                else
                   nuptake_prof(c,j) = nfixation_prof(c,j)
                endif
@@ -4094,16 +4104,6 @@ contains
 !                sum_ndemand_vr(c,j) = col_plant_ndemand(c) * nuptake_prof(c,j) + potential_immob_vr(c,j)
             end do
          end do
-
-        !!4/21/2017
-!         if(use_pflotran) then
-!            do j = 1, nlevdecomp
-!                do fc=1,num_soilc
-!                    c = filter_soilc(fc)
-!                    nuptake_prof(c,j) = nfixation_prof(c,j)
-!                end do
-!            end do
-!         end if
 
     end associate
 
