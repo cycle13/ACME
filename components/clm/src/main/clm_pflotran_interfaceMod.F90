@@ -2010,14 +2010,14 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
 !    isnan(dysoil_clm_loc(cellcount)) .or. &
 !    isnan(cellid_clm_loc(cellcount)) &
 !    ) then
-if(gcount==15) then
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
-write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount,ldomain%nv=",gcount, cellcount,ldomain%nv
-write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
-write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
-write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
-write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
-endif
+!if(gcount==15) then
+!write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | ltype,l,g,c,begc,endc=",ltype(l),l,g,c,bounds%begc, bounds%endc
+!write(iulog,'(A,10I10)')">>>DEBUG | soil_dimension | gcount,cellcount,ldomain%nv=",gcount, cellcount,ldomain%nv
+!write(iulog,*)">>>DEBUG | soil_dimension | xsoil,ysoil=",xsoil_clm_loc(cellcount),ysoil_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | dz,zi,z=",dzsoil_clm_loc(cellcount),zisoil_clm_loc(cellcount),zsoil_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | toparea=",toparea_clm_loc(cellcount)
+!write(iulog,*)">>>DEBUG | soil_dimension | dxsoil,dysoil=",dxsoil_clm_loc(cellcount),dysoil_clm_loc(cellcount)
+!endif
 
               else
                 call endrun(trim(subname) // ": ERROR: CLM-PF mapped soil layer numbers is greater than " // &
@@ -2079,10 +2079,10 @@ endif
     CHKERRQ(ierr)
     call VecRestoreArrayF90(clm_pf_idata%zsoil_clmp,  zsoil_clm_loc,  ierr)
     CHKERRQ(ierr)
-write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:beg"
+!write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:beg"
     ! Set CLM soil domain onto PFLOTRAN grid
     call pflotranModelSetSoilDimension(pflotran_m)
-write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
+!write(iulog,*)">>>DEBUG | soil_dimension | pflotranModelSetSoilDimension:end"
     end associate
   end subroutine get_clm_soil_dimension
 
