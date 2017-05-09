@@ -55,7 +55,6 @@ OBJ1 = \
 	shr_kind_mod.o \
 	shr_const_mod.o	\
         cam_logfile.o  \
-        abortutils.o  \
         cam_abortutils.o  \
         spmd_utils.o  \
 
