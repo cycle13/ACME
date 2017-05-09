@@ -375,8 +375,8 @@ my $NCPL_BASE_PERIOD       = "$xmlvars{'NCPL_BASE_PERIOD'}";
 my $OCN_NCPL               = "$xmlvars{'OCN_NCPL'}";
 my $OCN_COUPLING           = "$xmlvars{'OCN_COUPLING'}";
 my $OCN_ICE_FORCING        = "$xmlvars{'OCN_ICE_FORCING'}";
-my $NTASKS_OCN             = "$xmlvars{'NTASKS_OCN'}";
-my $NINST_OCN              = "$xmlvars{'NINST_OCN'}";
+my $NTASKS_OCN             = `$CASEROOT/xmlquery NTASKS_OCN -value -caseroot $CASEROOT`;
+my $NINST_OCN              = `$CASEROOT/xmlquery NINST_OCN -value -caseroot $CASEROOT`;
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
@@ -638,6 +638,7 @@ add_default($nl, 'config_cvmix_convective_viscosity');
 add_default($nl, 'config_cvmix_convective_basedOnBVF');
 add_default($nl, 'config_cvmix_convective_triggerBVF');
 add_default($nl, 'config_use_cvmix_shear');
+add_default($nl, 'config_cvmix_num_ri_smooth_loops');
 add_default($nl, 'config_cvmix_shear_mixing_scheme');
 add_default($nl, 'config_cvmix_shear_PP_nu_zero');
 add_default($nl, 'config_cvmix_shear_PP_alpha');
@@ -669,6 +670,12 @@ add_default($nl, 'config_use_bulk_wind_stress');
 add_default($nl, 'config_use_bulk_thickness_flux');
 add_default($nl, 'config_flux_attenuation_coefficient');
 add_default($nl, 'config_flux_attenuation_coefficient_runoff');
+
+############################
+# Namelist group: coupling #
+############################
+
+add_default($nl, 'config_ssh_grad_relax_timescale');
 
 ######################################
 # Namelist group: shortwaveRadiation #
@@ -1793,6 +1800,7 @@ my @groups = qw(run_modes
                 vmix_tanh
                 cvmix
                 forcing
+                coupling
                 shortwaveradiation
                 frazil_ice
                 land_ice_fluxes

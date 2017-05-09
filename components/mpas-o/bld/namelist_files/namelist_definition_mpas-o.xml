@@ -937,6 +937,14 @@ Valid values: True or False
 Default: Defined in namelist_defaults.xml
 </entry>
 
+<entry id="config_cvmix_num_ri_smooth_loops" type="integer"
+	category="cvmix" group="cvmix">
+Number of smoothing passes over RiTopOfCell for LMD94 shear instability mixing
+
+Valid values: any integer
+Default: Defined in namelist_defaults.xml
+</entry>
+
 <entry id="config_cvmix_shear_mixing_scheme" type="char*1024"
 	category="cvmix" group="cvmix">
 Choose between Pacanowski/Philander or Large et al. shear mixing
@@ -1143,6 +1151,17 @@ Default: Defined in namelist_defaults.xml
 <entry id="config_flux_attenuation_coefficient_runoff" type="real"
 	category="forcing" group="forcing">
 The length scale of exponential decay of river runoff. Fluxes are multiplied by $e^{z/\gamma}$, where this coefficient is $\gamma$.
+
+Valid values: Any positive real number.
+Default: Defined in namelist_defaults.xml
+</entry>
+
+
+<!-- coupling -->
+
+<entry id="config_ssh_grad_relax_timescale" type="real"
+	category="coupling" group="coupling">
+Timescale for relaxation of the ssh gradient for coupling. A value of 0.0 removes any relaxation and gives instantaneous response.
 
 Valid values: Any positive real number.
 Default: Defined in namelist_defaults.xml
