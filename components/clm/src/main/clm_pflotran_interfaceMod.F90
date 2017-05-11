@@ -1577,10 +1577,10 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
        call pflotranModelGetTopFaceArea(pflotran_m)
 
        !! wgs:end------------------------------------------------
-!write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
+write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
        ! always initializing soil 'TH' states from CLM to pflotran
        call get_clm_soil_th(clm_bgc_data, .not.initth_pf2clm, .not.initth_pf2clm, bounds, filters, ifilter)
-!write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
+write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     endif
@@ -1589,7 +1589,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
     ! (1)
     ! if PF T/H mode not available, have to pass those from CLM to global variable in PF to drive BGC/H
     if (.not. isinitpf .and. (.not.pf_tmode .or. .not.pf_hmode)) then    ! always initialize from CLM to pF, if comment out this 'if'block
-!write(iulog,*)">>>DEBUG: get_clm_soil_th"
+write(iulog,*)">>>DEBUG: get_clm_soil_th"
        call get_clm_soil_th(clm_bgc_data, .TRUE., .TRUE., bounds, filters, ifilter)
 !write(iulog,*)">>>DEBUG: pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
@@ -1598,7 +1598,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
 
     ! ice-len adjusted porostiy
     if (.not.pf_frzmode) then
-!write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
+write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
         call get_clm_iceadj_porosity(clm_bgc_data, bounds, filters, ifilter)
 !write(iulog,*)">>>DEBUG: pfResetPorosity"
         call pflotranModelResetSoilPorosityFromCLM(pflotran_m)
@@ -1615,7 +1615,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
     ! (4a) always (re-)initialize PFLOTRAN soil bgc state variables from CLM-CN
 
        !if (isinitpf) then    ! if only initialize ONCE, uncomment this 'if ... endif' block.
-!write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
+write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
           call get_clm_bgc_conc(clm_bgc_data, bounds, filters, ifilter)
           call pflotranModelSetBgcConcFromCLM(pflotran_m)
           if ((.not.pf_hmode .or. .not.pf_frzmode)) then
@@ -1631,7 +1631,7 @@ write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
         if (.not.pf_hmode .or. .not.pf_frzmode) then
           call pflotranModelUpdateAqConcFromCLM(pflotran_m)
         endif
-!write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
+write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     ! (4b) bgc rate (fluxes) from CLM to PFLOTRAN
         call get_clm_bgc_rate(clm_bgc_data, bounds, filters, ifilter)
         call pflotranModelSetBgcRatesFromCLM(pflotran_m)
