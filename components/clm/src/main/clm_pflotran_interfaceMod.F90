@@ -2801,6 +2801,13 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
 
     CN_ratio_mass_to_mol = clm_pf_idata%N_molecular_weight/clm_pf_idata%C_molecular_weight
 
+      decomp_cpools_vr_clm_loc(:) = 0._r8
+      decomp_npools_vr_clm_loc(:) = 0._r8
+
+      smin_no3_vr_clm_loc(:)      = 0._r8
+      smin_nh4_vr_clm_loc(:)      = 0._r8
+      smin_nh4sorb_vr_clm_loc(:)  = 0._r8
+
      do fc = 1, filters(ifilter)%num_soilc
       c = filters(ifilter)%soilc(fc)
       g = col%gridcell(c)
@@ -2816,12 +2823,7 @@ write(101,*) c, j, soilpress_clmp_loc(cellcount), soilt_clmp_loc(cellcount), soi
       if (mapped_gcount_skip(gcount+1)) cycle  ! skip inactive grid
 #endif
 
-      decomp_cpools_vr_clm_loc(:) = 0._r8
-      decomp_npools_vr_clm_loc(:) = 0._r8
 
-      smin_no3_vr_clm_loc(:)      = 0._r8
-      smin_nh4_vr_clm_loc(:)      = 0._r8
-      smin_nh4sorb_vr_clm_loc(:)  = 0._r8
 
       do j = 1, clm_pf_idata%nzclm_mapped !! clm_pf_idata%nzclm_mapped=15
           cellcount = gcount*clm_pf_idata%nzclm_mapped + j    ! 1-based
