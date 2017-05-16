@@ -1979,7 +1979,7 @@
 		<env name="PNETCDF_HINTS">romio_ds_write=disable;romio_ds_read=disable;romio_cb_write=enable;romio_cb_read=enable</env>
 	</environment_variables>
 
-	<BATCH_SYSTEM>moab</BATCH_SYSTEM>
+	<BATCH_SYSTEM>slurm</BATCH_SYSTEM>
 	<mpirun mpilib="default">
 		<executable>mpirun</executable>
 		<arguments>
