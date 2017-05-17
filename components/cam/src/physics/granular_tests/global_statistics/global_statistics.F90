@@ -6,7 +6,6 @@ module global_statistics
   implicit none
   private
 
-  public SMALLER_THAN, GREATER_THAN, ABS_SMALLER_THAN, ABS_GREATER_THAN
   public tp_statistics
   public global_stat_init
   public add_stat_field
@@ -14,14 +13,19 @@ module global_statistics
   public get_chunk_stat
   public get_domain_stat
 
-  character(len=128), parameter :: THIS_MODULE = 'global_statistics'
+  !------------------
+  ! Constants
 
-  integer, parameter :: SMALLER_THAN     = -1
-  integer, parameter :: GREATER_THAN     =  1
-  integer, parameter :: ABS_SMALLER_THAN = -2
-  integer, parameter :: ABS_GREATER_THAN =  2
+  integer,public,parameter :: SMALLER_THAN     = -1
+  integer,public,parameter :: GREATER_THAN     =  1
+  integer,public,parameter :: ABS_SMALLER_THAN = -2
+  integer,public,parameter :: ABS_GREATER_THAN =  2
 
-!-------------------------------
+  character(len=128),private,parameter :: THIS_MODULE = 'global_statistics'
+
+  !-------------------------------
+  ! Derived type
+
   type tp_statistics
 
     character(len=128) :: procedure_name
@@ -29,17 +33,22 @@ module global_statistics
 
     integer  :: stat_type
     real(r8) :: threshold
-    real(r8) :: stat_value
-
     integer  :: count = 0
 
+    real(r8) :: extreme_val
     real(r8) :: extreme_lat  = -999._r8
     real(r8) :: extreme_lon  = -999._r8
     integer  :: extreme_chnk = -999
     integer  :: extreme_col  = -999
+    integer  :: extreme_lev  = -999
 
   end type tp_statistics
-!-------------------------------
+  !-------------------------------
+
+  interface get_chunk_stat
+    module procedure get_chunk_stat_1d_real
+    module procedure get_chunk_stat_2d_real
+  end interface get_chunk_stat
 
   integer,parameter  :: max_number_of_stat_fields = 1000
   type(tp_statistics) :: global_stat(max_number_of_stat_fields)
@@ -102,7 +111,7 @@ contains
 
     allocate(domain_stat(current_number_of_stat_fields), stat=ierr)
     if( ierr /= 0 ) then
-       write(msg,*) 'global_statistics: global_stat_init allocation error = ',ierr
+       write(msg,*) 'global_statistics: domain_stat allocation error = ',ierr
        call endrun(trim(msg))
     end if
 
@@ -125,7 +134,7 @@ contains
 
     allocate(chunk_stat(begchunk:endchunk,current_number_of_stat_fields), stat=ierr)
     if( ierr /= 0 ) then
-       write(msg,*) 'global_statistics: global_stat_init allocation error = ',ierr
+       write(msg,*) 'global_statistics: chunk_stat allocation error = ',ierr
        call endrun(trim(msg))
     end if
 
@@ -144,7 +153,8 @@ contains
 
        chunk_stat(ichnk,1:current_number_of_stat_fields)%threshold = &
       global_stat(      1:current_number_of_stat_fields)%threshold
-    
+
+       chunk_stat(ichnk,1:current_number_of_stat_fields)%extreme_chnk = ichnk
     end do
 
   end subroutine global_stat_init
@@ -178,8 +188,102 @@ contains
   end subroutine get_stat_field_idx
 
   !---------------------------------------------------------------------
-  subroutine get_chunk_stat( ichnk, ncol, array, lat, lon, l_print_always,   &!intent(in)
-                             chunk_stat ) ! intent(inout)
+  !---------------------------------------------------------------------------------------
+  ! Description:
+  !   Subroutine for finding values in array that exceed threshold.
+  !   The total number of such values and the location of the extreme values are saved 
+  !   for later use.
+  !
+  ! Written by:
+  !   Hui Wan (PNNL, 2017-05)
+  !---------------------------------------------------------------------------------------
+  subroutine get_chunk_stat_2d_real( ncol, pver, array, lat, lon, l_print_always,   &!intent(in)
+                                     chunk_stat ) ! intent(inout)
+
+
+    use shr_kind_mod,  only: r8=>shr_kind_r8
+    use cam_logfile,   only: iulog
+  
+    implicit none
+  
+    integer,          intent(in) :: ncol              ! number of columns packed in array
+    integer,          intent(in) :: pver              ! number of vertical levels
+    real(r8),         intent(in) :: array(ncol,pver)  ! array of values to be checked
+                                                      ! occurrence will be reported
+    real(r8),         intent(in) :: lat(ncol)
+    real(r8),         intent(in) :: lon(ncol)
+    logical,          intent(in) :: l_print_always    ! always print message in log file
+                                                      ! (even when there are no
+                                                      ! values exeeding threshold)
+    type(tp_statistics), intent(inout) :: chunk_stat
+
+    ! Local variables
+
+    integer  :: iflag(ncol,pver) 
+    integer  :: idx(2)
+    logical  :: l_print               ! print message in log file
+    character(len=16) :: stat_type_char
+  
+    !--------------------------------------------------------------------------------------
+    ! Calculate the total number of columns with value exceeding threshold
+    ! then get the index of the extremem value.
+  
+    iflag(:,:) = 0
+
+    SELECT CASE (chunk_stat%stat_type)
+    CASE (GREATER_THAN)
+      stat_type_char = '>='
+      where( array .ge. chunk_stat%threshold ) iflag = 1
+      idx = maxloc( array )
+
+    CASE (SMALLER_THAN)
+      stat_type_char = '<'
+      where( array .lt. chunk_stat%threshold ) iflag = 1
+      idx = minloc( array )
+
+    CASE (ABS_GREATER_THAN)
+      stat_type_char = 'ABS >='
+      WHERE( abs(array) .ge. chunk_stat%threshold ) iflag = 1
+      idx = maxloc( abs(array) )
+
+    CASE (ABS_SMALLER_THAN)
+      stat_type_char = 'ABS < '
+      WHERE( abs(array) .lt. chunk_stat%threshold ) iflag = 1
+      idx = minloc( abs(array) )
+
+    END SELECT
+
+    ! Total number of values exceeding threshold
+
+    chunk_stat%count = sum( iflag )
+
+    ! The extreme value
+
+    chunk_stat%extreme_val  = array(idx(1),idx(2))
+    chunk_stat%extreme_col  =       idx(1)
+    chunk_stat%extreme_lev  =       idx(2)
+    chunk_stat%extreme_lat  =   lat(idx(1))
+    chunk_stat%extreme_lon  =   lon(idx(1))
+  
+    ! Send message to log file
+  
+      l_print = l_print_always                                     &! always print
+           .or. ( .not.l_print_always .and. (chunk_stat%count>0) ) ! found large values
+  
+      if (l_print) then
+         write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
+               "*** Procedure "//trim(chunk_stat%procedure_name)// &
+               ', field '//trim(chunk_stat%field_name)//": ", &
+               chunk_stat%count, ' values '//trim(stat_type_char), &
+               chunk_stat%threshold, &
+               ', extreme value is ', chunk_stat%extreme_val
+      end if
+  
+  end subroutine get_chunk_stat_2d_real
+  !-------------
+
+  subroutine get_chunk_stat_1d_real( ncol, array, lat, lon, l_print_always,   &!intent(in)
+                                    chunk_stat ) ! intent(inout)
 
   !---------------------------------------------------------------------------------------
   ! Description:
@@ -192,7 +296,6 @@ contains
   
     implicit none
   
-    integer,          intent(in) :: ichnk 
     integer,          intent(in) :: ncol              ! number of columns packed in array
     real(r8),         intent(in) :: array(ncol)       ! array of values to be checked
                                                       ! occurrence will be reported
@@ -200,7 +303,7 @@ contains
     real(r8),         intent(in) :: lon(ncol)
     logical,          intent(in) :: l_print_always    ! always print message in log file
                                                       ! (even when there are no
-                                                      ! values exeeding tolerance)
+                                                      ! values exeeding threshold)
     type(tp_statistics), intent(inout) :: chunk_stat
 
     ! Local variables
@@ -208,6 +311,7 @@ contains
     integer  :: iflag(ncol) 
     integer  :: icol(1)
     logical  :: l_print               ! print message in log file
+    character(len=16) :: stat_type_char
   
     !--------------------------------------------------------------------------------------
     ! Calculate the total number of columns with value exceeding threshold
@@ -217,34 +321,37 @@ contains
 
     SELECT CASE (chunk_stat%stat_type)
     CASE (GREATER_THAN)
-      where( array(:) .ge. chunk_stat%threshold ) iflag = 1
+      stat_type_char = '>='
+      where( array .ge. chunk_stat%threshold ) iflag = 1
       icol = maxloc( array )
 
     CASE (SMALLER_THAN)
-      where( array(:) .lt. chunk_stat%threshold ) iflag = 1
+      stat_type_char = '<'
+      where( array .lt. chunk_stat%threshold ) iflag = 1
       icol = minloc( array )
 
     CASE (ABS_GREATER_THAN)
-      WHERE( abs(array(:)) .ge. chunk_stat%threshold ) iflag = 1
+      stat_type_char = 'ABS >='
+      WHERE( abs(array) .ge. chunk_stat%threshold ) iflag = 1
       icol = maxloc( abs(array) )
 
     CASE (ABS_SMALLER_THAN)
-      WHERE( abs(array(:)) .lt. chunk_stat%threshold ) iflag = 1
+      stat_type_char = 'ABS <'
+      WHERE( abs(array) .lt. chunk_stat%threshold ) iflag = 1
       icol = minloc( abs(array) )
 
     END SELECT
 
-    ! Total number of values exceeding tolerance
+    ! Total number of values exceeding threshold
 
     chunk_stat%count = sum( iflag )
 
     ! The extreme value
 
-    chunk_stat%stat_value   = array(icol(1))
+    chunk_stat%extreme_val  = array(icol(1))
     chunk_stat%extreme_col  =       icol(1)
     chunk_stat%extreme_lat  =   lat(icol(1))
     chunk_stat%extreme_lon  =   lon(icol(1))
-    chunk_stat%extreme_chnk =  ichnk
   
     ! Send message to log file
   
@@ -253,13 +360,14 @@ contains
   
       if (l_print) then
          write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-               "*** Procedure "//trim(chunk_stat%procedure_name)//', field '//trim(chunk_stat%field_name)//": ", &
-               chunk_stat%count, ' values exceeding ', &
+               "*** Procedure "//trim(chunk_stat%procedure_name)// &
+               ', field '//trim(chunk_stat%field_name)//": ", &
+               chunk_stat%count, ' values '//trim(stat_type_char), &
                chunk_stat%threshold, &
-               ', extreme value is ', chunk_stat%stat_value
+               ', extreme value is ', chunk_stat%extreme_val
       end if
   
-  end subroutine get_chunk_stat
+  end subroutine get_chunk_stat_1d_real
 
 
   subroutine get_domain_stat( l_print_always, nchnk, chunk_stat, domain_stat ) ! in, inout, in
@@ -277,7 +385,7 @@ contains
   
     logical, intent(in) :: l_print_always    ! always print message in log file
                                              ! (even when there are no
-                                             ! values exeeding tolerance)
+                                             ! values exeeding threshold)
     integer, intent(in) :: nchnk
 
     type(tp_statistics), intent(inout) ::  chunk_stat(nchnk)
@@ -286,8 +394,10 @@ contains
     ! Local variables
 
     integer  :: iflag(nchnk) 
-    integer  :: icol(1)
-    logical  :: l_print               ! print message in log file
+    integer  :: idx(1)
+    integer  :: ichnk
+    logical  :: l_print                   ! print message in log file
+    character(len=16) :: stat_type_char
   
     !--------------------------------------------------------------------------------------
     ! Calculate the total number of columns with value exceeding threshold
@@ -296,34 +406,55 @@ contains
     iflag(:) = 0
 
     SELECT CASE (domain_stat%stat_type)
-    CASE (GREATER_THAN, ABS_GREATER_THAN)
-      icol = maxloc( chunk_stat(:)%stat_value )
-    CASE (SMALLER_THAN, ABS_SMALLER_THAN)
-      icol = minloc( chunk_stat(:)%stat_value )
+    CASE (GREATER_THAN)
+      idx = maxloc( chunk_stat(:)%extreme_val )
+      stat_type_char = '>='
+
+    CASE (ABS_GREATER_THAN)
+      idx = maxloc( chunk_stat(:)%extreme_val )
+      stat_type_char = 'ABS >='
+
+    CASE (SMALLER_THAN)
+      idx = minloc( chunk_stat(:)%extreme_val )
+      stat_type_char = '<'
+
+    CASE (ABS_SMALLER_THAN)
+      idx = minloc( chunk_stat(:)%extreme_val )
+      stat_type_char = 'ABS <'
     END SELECT
 
-    ! Total number of values exceeding tolerance
+    ! Total number of values exceeding threshold
 
     domain_stat%count = sum( chunk_stat(:)%count )
 
     ! The extreme value
 
-    domain_stat%stat_value  = chunk_stat(icol(1))%stat_value
-    domain_stat%extreme_col = chunk_stat(icol(1))%extreme_col 
-    domain_stat%extreme_lat = chunk_stat(icol(1))%extreme_lat
-    domain_stat%extreme_lon = chunk_stat(icol(1))%extreme_lon 
-  
+    ichnk = idx(1)
+    domain_stat%extreme_val  = chunk_stat(ichnk)%extreme_val
+    domain_stat%extreme_col  = chunk_stat(ichnk)%extreme_col 
+    domain_stat%extreme_lat  = chunk_stat(ichnk)%extreme_lat
+    domain_stat%extreme_lon  = chunk_stat(ichnk)%extreme_lon 
+    domain_stat%extreme_lev  = chunk_stat(ichnk)%extreme_lev 
+    domain_stat%extreme_chnk = chunk_stat(ichnk)%extreme_chnk 
+
     ! Send message to log file
   
       l_print = l_print_always                                     &! always print
            .or. ( .not.l_print_always .and. (domain_stat%count>0) ) ! found large values
   
       if (l_print) then
-         write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-               "*** Procedure "//trim(domain_stat%procedure_name)//', field '//trim(domain_stat%field_name)//": ", &
-               domain_stat%count, ' values exceeding ', &
+         write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
+               "*** Procedure "//trim(domain_stat%procedure_name)// &
+               ', field '//trim(domain_stat%field_name)//": ", &
+               domain_stat%count, ' values '//trim(stat_type_char), &
                domain_stat%threshold, &
-               ', extreme value is ', domain_stat%stat_value
+               ', extreme value is ', domain_stat%extreme_val, &
+               ' at ',&
+               '  chnk ',domain_stat%extreme_chnk, &
+               ', col. ',domain_stat%extreme_col, &
+               ', lev. ',domain_stat%extreme_lev, &
+               ', lat = ',domain_stat%extreme_lat, &
+               ', lon = ',domain_stat%extreme_lon 
       end if
   
   end subroutine get_domain_stat
