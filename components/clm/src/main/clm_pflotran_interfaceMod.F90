@@ -1635,7 +1635,7 @@ write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     ! (4b) bgc rate (fluxes) from CLM to PFLOTRAN
         call get_clm_bgc_rate(clm_bgc_data, bounds, filters, ifilter)
         call pflotranModelSetBgcRatesFromCLM(pflotran_m)
-!write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
+write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     endif
 
     ! (5) the main callings of PFLOTRAN
@@ -1646,7 +1646,7 @@ write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     else
        ispfprint = .FALSE.
     endif
-!write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
+write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
     call pflotranModelStepperRunTillPauseTime( pflotran_m, (nstep+1.0d0)*dtime, dtime, ispfprint )
     call mpi_barrier(mpicom, ierr)
 
