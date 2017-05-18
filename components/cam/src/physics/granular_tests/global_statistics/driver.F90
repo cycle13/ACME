@@ -109,8 +109,8 @@
     ! After all chunks have been processed, get the domain statistics
 
     nchnk = endchunk-begchunk+1
-    write(*,*) '-------------'
-    write(*,*) 'entire domain '
+    write(*,*) '-----------------------------'
+    write(*,*) 'entire domain on this process'
 
     do icnst = 1,PCNST
 
@@ -147,7 +147,7 @@
     end if
 
     print*, '============================'
-    print*, 'Test finished without error.'
+    print*, ' Test finished correctly.'
     print*, '============================'
 
    !Below are intended errors. The code should stop in ENDRUN.
