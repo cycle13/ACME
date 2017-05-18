@@ -431,10 +431,10 @@ contains
 
     ichnk = idx(1)
     domain_stat%extreme_val  = chunk_stat(ichnk)%extreme_val
-    domain_stat%extreme_col  = chunk_stat(ichnk)%extreme_col 
     domain_stat%extreme_lat  = chunk_stat(ichnk)%extreme_lat
     domain_stat%extreme_lon  = chunk_stat(ichnk)%extreme_lon 
     domain_stat%extreme_lev  = chunk_stat(ichnk)%extreme_lev 
+    domain_stat%extreme_col  = chunk_stat(ichnk)%extreme_col
     domain_stat%extreme_chnk = chunk_stat(ichnk)%extreme_chnk 
 
     ! Send message to log file
@@ -458,5 +458,75 @@ contains
       end if
   
   end subroutine get_domain_stat
+
+  subroutine get_global_stat( chunk_stat_2d, domain_stat, begchunk, endchunk )
+
+#ifdef SPMD
+    use mpishortland
+#endif
+
+    type(tp_statistics), pointer ::  chunk_stat_2d(:,:)
+    type(tp_statistics), pointer :: domain_stat(:)
+    integer,intent(in) :: begchunk, endchunk
+
+    integer :: ii, nchnk
+    logical :: l_print_always = .true.
+
+#ifdef SPMD
+    integer  :: scount
+    real(r8) :: real_array         (3,current_number_of_stat_fields)
+    real(r8) :: real_array_gathered(3,current_number_of_stat_fields,0:npes-1)
+    integer  ::  int_array         (4,current_number_of_stat_fields)
+    integer  ::  int_array_gathered(4,current_number_of_stat_fields,0:npes-1)
+#endif
+
+    nchnk = endchunk - begchunk + 1
+
+    do ii = 1,current_number_of_stat_fields
+       call get_domain_stat( l_print_always, nchnk, chunk_stat_2d(:,ii), domain_stat(ii) ) !intent: 3xin, inout
+    end do
+
+#ifdef SPMD
+    real_array(1,:) = domain_stat(:)%extreme_val
+    real_array(2,:) = domain_stat(:)%extreme_lat
+    real_array(3,:) = domain_stat(:)%extreme_lon
+
+     int_array(1,:) = domain_stat(:)%extreme_lev
+     int_array(2,:) = domain_stat(:)%extreme_col
+     int_array(3,:) = domain_stat(:)%extreme_chnk
+     int_array(4,:) = domain_stat(:)%count
+
+    scount = 3*current_number_of_stat_fields
+    call MPI_GATHER(real_array, scount, mpir8,  real_array_gathered, scount, mpir8,  root, comm, ierr)
+
+    scount = 4*current_number_of_stat_fields
+    call MPI_GATHER( int_array, scount, mpiint,  int_array_gathered, scount, mpiint, root, comm, ierr)
+
+    if (masterproc) then
+    do ii = 1,current_number_of_stat_fields
+
+       SELECT CASE (global_stat(ii)%stat_type)
+       CASE( GREATER_THAN, ABS_GREATHER_THAN)
+         idx = maxloc( real_array_gathered(1,ii,:) )
+       CASE( SMALLER_THAN, ABS_SMALLER_THAN)
+         idx = minloc( real_array_gathered(1,ii,:) )
+       END SELECT
+
+       global_stat(ii)%extreme_val = real_array_gathered(1,ii,idx(1))
+       global_stat(ii)%extreme_lat = real_array_gathered(2,ii,idx(1))
+       global_stat(ii)%extreme_lon = real_array_gathered(3,ii,idx(1))
+
+       global_stat(ii)%extreme_lev  = int_array_gathered(1,ii,idx(1))
+       global_stat(ii)%extreme_col  = int_array_gathered(2,ii,idx(1))
+       global_stat(ii)%extreme_chnk = int_array_gathered(3,ii,idx(1))
+
+       global_stat(ii)%count = sum(int_array_gathered(4,ii,:))
+
+       write(iulog,*) 
+    end do
+    end if
+#endif
+
+  end subroutine get_global_stat
 
 end module global_statistics
