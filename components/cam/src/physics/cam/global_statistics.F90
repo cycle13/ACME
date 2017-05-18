@@ -52,7 +52,7 @@ module global_statistics
 
   integer,parameter  :: max_number_of_stat_fields = 1000
   type(tp_statistics) :: global_stat(max_number_of_stat_fields)
-  integer :: current_number_of_stat_fields = 0
+  integer,public :: current_number_of_stat_fields = 0
 
   character(len=256) :: msg 
 
@@ -274,8 +274,7 @@ contains
          write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
                "*** Procedure "//trim(chunk_stat%procedure_name)// &
                ', field '//trim(chunk_stat%field_name)//": ", &
-               chunk_stat%count, ' values exceeding', &
-              !chunk_stat%count, ' values '//trim(stat_type_char), &
+               chunk_stat%count, ' values '//trim(stat_type_char), &
                chunk_stat%threshold, &
                ', extreme value is ', chunk_stat%extreme_val
       end if
@@ -363,8 +362,7 @@ contains
          write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
                "*** Procedure "//trim(chunk_stat%procedure_name)// &
                ', field '//trim(chunk_stat%field_name)//": ", &
-               chunk_stat%count, ' values exceeding', &
-              !chunk_stat%count, ' values '//trim(stat_type_char), &
+               chunk_stat%count, ' values '//trim(stat_type_char), &
                chunk_stat%threshold, &
                ', extreme value is ', chunk_stat%extreme_val
       end if
