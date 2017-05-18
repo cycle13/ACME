@@ -1026,7 +1026,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d, chunk_stat_2d, cam_in
     use cam_diagnostics,only: diag_allocate, diag_physvar_ic
     use check_energy,   only: check_energy_gmean
 
-    use global_statistics,      only: tp_statistics
+    use global_statistics,      only: tp_statistics, nfld=>current_number_of_stat_fields
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_allocate
     use cam_control_mod,        only: nsrest  ! restart flag !BSINGH
 #if (defined BFB_CAM_SCAM_IOP )
@@ -1049,7 +1049,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d, chunk_stat_2d, cam_in
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
 
     type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
-    type(tp_statistics), intent(inout), dimension(:,:) :: chunk_stat_2d !(begchunk:endchunk, nfld)
+    type(tp_statistics), intent(inout), dimension(begchunk:endchunk,1:nfld) :: chunk_stat_2d
     type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
     type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
     !-----------------------------------------------------------------------
