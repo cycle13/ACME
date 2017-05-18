@@ -1015,7 +1015,7 @@ end subroutine phys_init
   !-----------------------------------------------------------------------
   !
 
-subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d, chunk_stat_2d, cam_in, cam_out)
+subroutine phys_run1(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_in, cam_out)
     !----------------------------------------------------------------------- 
     ! 
     ! Purpose: 
@@ -1047,9 +1047,9 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d, chunk_stat_2d, cam_in
     !
     type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    type(tp_statistics), intent(inout), dimension(begchunk:endchunk,1:nfld) :: chunk_stat_2d
 
     type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
-    type(tp_statistics), intent(inout), dimension(begchunk:endchunk,1:nfld) :: chunk_stat_2d
     type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
     type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
     !-----------------------------------------------------------------------
@@ -1305,7 +1305,7 @@ end subroutine phys_run1_adiabatic_or_ideal
   !-----------------------------------------------------------------------
   !
 
-subroutine phys_run2(phys_state, ztodt, phys_tend, pbuf2d,  cam_out, &
+subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_out, &
        cam_in )
     !----------------------------------------------------------------------- 
     ! 
@@ -1314,6 +1314,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, pbuf2d,  cam_out, &
     ! 
     ! Modified by Kai Zhang 2017-03: add IEFLX fixer treatment 
     !-----------------------------------------------------------------------
+    use global_statistics,      only: tp_statistics, nfld=>current_number_of_stat_fields
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_deallocate, pbuf_update_tim_idx
     use mo_lightning,   only: lightning_no_prod
 
@@ -1338,6 +1339,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, pbuf2d,  cam_out, &
     !
     type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    type(tp_statistics), intent(inout), dimension(begchunk:endchunk,1:nfld) :: chunk_stat_2d
     type(physics_buffer_desc),pointer, dimension(:,:)     :: pbuf2d
 
     type(cam_out_t),     intent(inout), dimension(begchunk:endchunk) :: cam_out
@@ -1412,7 +1414,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, pbuf2d,  cam_out, &
 
        call tphysac(ztodt, cam_in(c),  &
             sgh(1,c), sgh30(1,c), cam_out(c),                              &
-            phys_state(c), phys_tend(c), phys_buffer_chunk,&
+            phys_state(c), phys_tend(c), phys_buffer_chunk, chunk_stat_2d(c,:), &
             fsds(1,c))
     end do                    ! Chunk loop
 
@@ -1471,7 +1473,7 @@ end subroutine phys_final
 
 subroutine tphysac (ztodt,   cam_in,  &
        sgh,     sgh30,                                     &
-       cam_out,  state,   tend,    pbuf,            &
+       cam_out,  state,   tend,    pbuf, chunk_stat,       &
        fsds    )
     !----------------------------------------------------------------------- 
     ! 
@@ -1544,6 +1546,7 @@ subroutine tphysac (ztodt,   cam_in,  &
     type(physics_tend ), intent(inout) :: tend
     type(physics_buffer_desc), pointer :: pbuf(:)
 
+    type(tp_statistics), intent(inout) :: chunk_stat(:) ! shape: (nfld)
 
     type(check_tracers_data):: tracerint             ! tracer mass integrals and cummulative boundary fluxes
 
