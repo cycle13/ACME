@@ -1491,6 +1491,7 @@ subroutine tphysac (ztodt,   cam_in,  &
     ! Author: CCM1, CMS Contact: J. Truesdale
     ! 
     !-----------------------------------------------------------------------
+    use global_statistics, only: tp_statistics
     use physics_buffer, only: physics_buffer_desc, pbuf_set_field, pbuf_get_index, pbuf_get_field, pbuf_old_tim_idx
     use shr_kind_mod,       only: r8 => shr_kind_r8
     use chemistry,          only: chem_is_active, chem_timestep_tend, chem_emissions
