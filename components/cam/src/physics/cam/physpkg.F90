@@ -636,7 +636,7 @@ subroutine phys_inidat( cam_out, pbuf2d )
 end subroutine phys_inidat
 
 
-subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
+subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat, cam_out )
 
     !----------------------------------------------------------------------- 
     ! 
@@ -645,6 +645,7 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
     !-----------------------------------------------------------------------
 
     use physics_buffer,     only: physics_buffer_desc, pbuf_initialize, pbuf_get_index
+    use global_statistics,  only: tp_statistics, global_stat_init
     use physconst,          only: rair, cpair, gravit, stebol, tmelt, &
                                   latvap, latice, rh2o, rhoh2o, pstd, zvir, &
                                   karman, rhodair, physconst_init 
@@ -708,6 +709,8 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
     type(physics_state), pointer       :: phys_state(:)
     type(physics_tend ), pointer       :: phys_tend(:)
     type(physics_buffer_desc), pointer :: pbuf2d(:,:)
+    type(tp_statistics), pointer :: chunk_stat_2d(:,:)
+    type(tp_statistics), pointer :: domain_stat(:)
 
     type(cam_out_t),intent(inout)      :: cam_out(begchunk:endchunk)
 
@@ -879,6 +882,10 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
 
     end if
 
+    ! Initialize global statistics
+    !--------------------------------
+    call global_stat_init( chunk_stat_2d, domain_stat, begchunk, endchunk )
+
     ! Initialize Nudging Parameters
     !--------------------------------
     if(Nudge_Model) call nudging_init
@@ -889,7 +896,7 @@ end subroutine phys_init
   !-----------------------------------------------------------------------
   !
 
-subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
+subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d, chunk_stat_2d, cam_in, cam_out)
     !----------------------------------------------------------------------- 
     ! 
     ! Purpose: 
@@ -900,6 +907,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
     use cam_diagnostics,only: diag_allocate, diag_physvar_ic
     use check_energy,   only: check_energy_gmean
 
+    use global_statistics,      only: tp_statistics
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_allocate
 #if (defined BFB_CAM_SCAM_IOP )
     use cam_history,    only: outfld
@@ -921,6 +929,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
 
     type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
+    type(tp_statistics), intent(inout), dimension(:,:) :: chunk_stat_2d !(begchunk:endchunk, nfld)
     type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
     type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
     !-----------------------------------------------------------------------
@@ -1007,9 +1016,8 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
           call t_stopf ('diag_physvar_ic')
 
           call tphysbc (ztodt, fsns(1,c), fsnt(1,c), flns(1,c), flnt(1,c), phys_state(c),        &
-                       phys_tend(c), phys_buffer_chunk,  fsds(1,c), landm(1,c),          &
+                       phys_tend(c), phys_buffer_chunk, chunk_stat_2d(c,:), fsds(1,c), landm(1,c), &
                        sgh(1,c), sgh30(1,c), cam_out(c), cam_in(c) )
-
        end do
 
        !call t_adj_detailf(-1)
@@ -1736,7 +1744,7 @@ end subroutine tphysac
 
 subroutine tphysbc (ztodt,               &
        fsns,    fsnt,    flns,    flnt,    state,   &
-       tend,    pbuf,     fsds,    landm,            &
+       tend,    pbuf,  chunk_stat, fsds,   landm,   &
        sgh, sgh30, cam_out, cam_in )
     !----------------------------------------------------------------------- 
     ! 
@@ -1768,6 +1776,8 @@ subroutine tphysbc (ztodt,               &
     use physics_buffer,          only : pbuf_get_index, pbuf_old_tim_idx
     use physics_buffer,          only : col_type_subcol, dyn_time_lvls
     use shr_kind_mod,    only: r8 => shr_kind_r8
+
+    use global_statistics, only: tp_statistics
 
     use stratiform,      only: stratiform_tend
     use microp_driver,   only: microp_driver_tend
@@ -1823,6 +1833,8 @@ subroutine tphysbc (ztodt,               &
     type(physics_state), intent(inout) :: state
     type(physics_tend ), intent(inout) :: tend
     type(physics_buffer_desc), pointer :: pbuf(:)
+
+    type(tp_statistics) :: chunk_stat(:) ! shape: (nfld)
 
     type(cam_out_t),     intent(inout) :: cam_out
     type(cam_in_t),      intent(in)    :: cam_in
@@ -2384,7 +2396,7 @@ end if
              !    CLUBB call (PBL, shallow convection, macrophysics)
              ! =====================================================  
    
-             call clubb_tend_cam(state,ptend,pbuf,cld_macmic_ztodt,nstep,&
+             call clubb_tend_cam(state,ptend,pbuf,chunk_stat,cld_macmic_ztodt,nstep,&
                 cmfmc, cam_in, sgh30, macmic_it, cld_macmic_num_steps, & 
                 dlf, det_s, det_ice, lcldo)
 
