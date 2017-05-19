@@ -17,9 +17,9 @@ module global_statistics
   ! Constants
 
   integer,public,parameter :: SMALLER_THAN     = -1
-  integer,public,parameter :: GREATER_THAN     =  1
+  integer,public,parameter :: GREATER_EQ       =  1
   integer,public,parameter :: ABS_SMALLER_THAN = -2
-  integer,public,parameter :: ABS_GREATER_THAN =  2
+  integer,public,parameter :: ABS_GREATER_EQ   =  2
 
   character(len=128),private,parameter :: THIS_MODULE = 'global_statistics'
 
@@ -56,6 +56,14 @@ module global_statistics
   type(tp_statistics) :: global_stat(max_number_of_stat_fields)
 
   character(len=256) :: msg 
+
+#ifdef UNIT_TEST
+  logical :: l_print_always = .true.    ! always print message in log file 
+                                        ! (even when there are no
+                                        ! values exeeding threshold)
+#else
+  logical :: l_print_always = .false. 
+#endif
 
 contains
 
@@ -197,7 +205,7 @@ contains
   ! Written by:
   !   Hui Wan (PNNL, 2017-05)
   !---------------------------------------------------------------------------------------
-  subroutine get_chunk_stat_2d_real( ncol, pver, array, lat, lon, l_print_always,   &!intent(in)
+  subroutine get_chunk_stat_2d_real( ncol, pver, array, lat, lon, &!intent(in)
                                      chunk_stat ) ! intent(inout)
 
 
@@ -212,16 +220,12 @@ contains
                                                       ! occurrence will be reported
     real(r8),         intent(in) :: lat(ncol)
     real(r8),         intent(in) :: lon(ncol)
-    logical,          intent(in) :: l_print_always    ! always print message in log file
-                                                      ! (even when there are no
-                                                      ! values exeeding threshold)
     type(tp_statistics), intent(inout) :: chunk_stat
 
     ! Local variables
 
     integer  :: iflag(ncol,pver) 
     integer  :: idx(2)
-    logical  :: l_print               ! print message in log file
     character(len=16) :: stat_type_char
   
     !-----------------------------------------------------------------------
@@ -231,7 +235,7 @@ contains
     iflag(:,:) = 0
 
     SELECT CASE (chunk_stat%stat_type)
-    CASE (GREATER_THAN)
+    CASE (GREATER_EQ)
       stat_type_char = '>='
       where( array .ge. chunk_stat%threshold ) iflag = 1
       idx = maxloc( array )
@@ -241,7 +245,7 @@ contains
       where( array .lt. chunk_stat%threshold ) iflag = 1
       idx = minloc( array )
 
-    CASE (ABS_GREATER_THAN)
+    CASE (ABS_GREATER_EQ)
       stat_type_char = 'ABS >='
       WHERE( abs(array) .ge. chunk_stat%threshold ) iflag = 1
       idx = maxloc( abs(array) )
@@ -267,22 +271,19 @@ contains
   
     ! Send message to log file
   
-      l_print = l_print_always                                     &! always print
-           .or. ( .not.l_print_always .and. (chunk_stat%count>0) ) ! found large values
-  
-      if (l_print) then
-         write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-               "*** Procedure "//trim(chunk_stat%procedure_name)// &
-               ', field '//trim(chunk_stat%field_name)//": ", &
-               chunk_stat%count, ' values '//trim(stat_type_char), &
-               chunk_stat%threshold, &
-               ', extreme value is ', chunk_stat%extreme_val
-      end if
+    if (l_print_always) then
+       write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
+             "*** Procedure "//trim(chunk_stat%procedure_name)// &
+             ', field '//trim(chunk_stat%field_name)//": ", &
+             chunk_stat%count, ' values '//trim(stat_type_char), &
+             chunk_stat%threshold, &
+             ', extreme is ', chunk_stat%extreme_val
+    end if
   
   end subroutine get_chunk_stat_2d_real
   !-------------
 
-  subroutine get_chunk_stat_1d_real( ncol, array, lat, lon, l_print_always,   &!intent(in)
+  subroutine get_chunk_stat_1d_real( ncol, array, lat, lon, &!intent(in)
                                     chunk_stat ) ! intent(inout)
 
   !---------------------------------------------------------------------------------------
@@ -301,16 +302,12 @@ contains
                                                       ! occurrence will be reported
     real(r8),         intent(in) :: lat(ncol)
     real(r8),         intent(in) :: lon(ncol)
-    logical,          intent(in) :: l_print_always    ! always print message in log file
-                                                      ! (even when there are no
-                                                      ! values exeeding threshold)
     type(tp_statistics), intent(inout) :: chunk_stat
 
     ! Local variables
 
     integer  :: iflag(ncol) 
     integer  :: icol(1)
-    logical  :: l_print               ! print message in log file
     character(len=16) :: stat_type_char
   
     !--------------------------------------------------------------------------------------
@@ -320,7 +317,7 @@ contains
     iflag(:) = 0
 
     SELECT CASE (chunk_stat%stat_type)
-    CASE (GREATER_THAN)
+    CASE (GREATER_EQ)
       stat_type_char = '>='
       where( array .ge. chunk_stat%threshold ) iflag = 1
       icol = maxloc( array )
@@ -330,7 +327,7 @@ contains
       where( array .lt. chunk_stat%threshold ) iflag = 1
       icol = minloc( array )
 
-    CASE (ABS_GREATER_THAN)
+    CASE (ABS_GREATER_EQ)
       stat_type_char = 'ABS >='
       WHERE( abs(array) .ge. chunk_stat%threshold ) iflag = 1
       icol = maxloc( abs(array) )
@@ -355,22 +352,19 @@ contains
   
     ! Send message to log file
   
-      l_print = l_print_always                                     &! always print
-           .or. ( .not.l_print_always .and. (chunk_stat%count>0) ) ! found large values
-  
-      if (l_print) then
-         write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-               "*** Procedure "//trim(chunk_stat%procedure_name)// &
-               ', field '//trim(chunk_stat%field_name)//": ", &
-               chunk_stat%count, ' values '//trim(stat_type_char), &
-               chunk_stat%threshold, &
-               ', extreme value is ', chunk_stat%extreme_val
-      end if
+    if (l_print_always) then
+       write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
+             "*** Procedure "//trim(chunk_stat%procedure_name)// &
+             ', field '//trim(chunk_stat%field_name)//": ", &
+             chunk_stat%count, ' values '//trim(stat_type_char), &
+             chunk_stat%threshold, &
+             ', extreme is ', chunk_stat%extreme_val
+    end if
   
   end subroutine get_chunk_stat_1d_real
 
 
-  subroutine get_domain_stat( l_print_always, chunk_stat, domain_stat ) ! in, inout, in
+  subroutine get_domain_stat( chunk_stat, domain_stat )
 
   !---------------------------------------------------------------------------------------
   ! Description:
@@ -383,18 +377,13 @@ contains
   
     implicit none
   
-    logical, intent(in) :: l_print_always    ! always print message in log file
-                                             ! (even when there are no
-                                             ! values exeeding threshold)
-
-    type(tp_statistics), intent(inout) ::  chunk_stat(:) ! shape: (nchnk)
+    type(tp_statistics), intent(inout) :: chunk_stat(:)  ! shape: (nchnk)
     type(tp_statistics), intent(inout) :: domain_stat
 
     ! Local variables
 
     integer  :: idx(1)
     integer  :: ichnk
-    logical  :: l_print                   ! print message in log file
     character(len=16) :: stat_type_char
   
     !------------------------------------------------------------------------
@@ -402,11 +391,11 @@ contains
     ! then get the index of the extremem value.
   
     SELECT CASE (domain_stat%stat_type)
-    CASE (GREATER_THAN)
+    CASE (GREATER_EQ)
       idx = maxloc( chunk_stat(:)%extreme_val )
       stat_type_char = '>='
 
-    CASE (ABS_GREATER_THAN)
+    CASE (ABS_GREATER_EQ)
       idx = maxloc( chunk_stat(:)%extreme_val )
       stat_type_char = 'ABS >='
 
@@ -435,23 +424,20 @@ contains
 
     ! Send message to log file
   
-      l_print = l_print_always                                     &! always print
-           .or. ( .not.l_print_always .and. (domain_stat%count>0) ) ! found large values
-  
-      if (l_print) then
-         write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
-               "*** Procedure "//trim(domain_stat%procedure_name)// &
-               ', field '//trim(domain_stat%field_name)//": ", &
-               domain_stat%count, ' values '//trim(stat_type_char), &
-               domain_stat%threshold, &
-               ', extreme value is ', domain_stat%extreme_val, &
-               ' at ',&
-               '  chnk ',domain_stat%extreme_chnk, &
-               ', col. ',domain_stat%extreme_col, &
-               ', lev. ',domain_stat%extreme_lev, &
-               ', lat = ',domain_stat%extreme_lat, &
-               ', lon = ',domain_stat%extreme_lon 
-      end if
+    if (l_print_always) then
+       write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
+             "*** Procedure "//trim(domain_stat%procedure_name)// &
+             ', field '//trim(domain_stat%field_name)//": ", &
+             domain_stat%count, ' values '//trim(stat_type_char), &
+             domain_stat%threshold, &
+             ', extreme is ', domain_stat%extreme_val, &
+             ' at ',&
+             '  chnk ',domain_stat%extreme_chnk, &
+             ', col. ',domain_stat%extreme_col, &
+             ', lev. ',domain_stat%extreme_lev, &
+             ', lat = ',domain_stat%extreme_lat, &
+             ', lon = ',domain_stat%extreme_lon 
+    end if
   
   end subroutine get_domain_stat
 
@@ -470,8 +456,6 @@ contains
     integer,intent(in)   :: nstep
 
     integer :: ii
-    logical :: l_print_always = .true.
-
 
 #ifdef SPMD
     integer           :: sndrcvcnt   ! number of element for single send/receive
@@ -481,29 +465,28 @@ contains
     real(r8) :: real_array          (nreal,current_number_of_stat_fields)
     real(r8) :: real_array_gathered (nreal,current_number_of_stat_fields,0:npes-1)
 
-    integer  ::  int_array          (nintg,current_number_of_stat_fields)
-    integer  ::  int_array_gathered (nintg,current_number_of_stat_fields,0:npes-1)
+    integer  :: intg_array          (nintg,current_number_of_stat_fields)
+    integer  :: intg_array_gathered (nintg,current_number_of_stat_fields,0:npes-1)
 
     character(len=16) :: stat_type_char
-    integer  :: idx(1)
+    integer  :: idx(1), ipe
 #endif
 
     do ii = 1,current_number_of_stat_fields
-       call get_domain_stat( l_print_always, chunk_stat_2d(:,ii), domain_stat_1d(ii) ) !intent: 3xin, inout
+       call get_domain_stat( chunk_stat_2d(:,ii), domain_stat_1d(ii) ) !intent: 3xin, inout
     end do
 
 #ifdef SPMD
-
     ! Pack arrays for MPI communication
 
     real_array(1,:) = domain_stat_1d(:)%extreme_val
     real_array(2,:) = domain_stat_1d(:)%extreme_lat
     real_array(3,:) = domain_stat_1d(:)%extreme_lon
 
-     int_array(1,:) = domain_stat_1d(:)%extreme_lev
-     int_array(2,:) = domain_stat_1d(:)%extreme_col
-     int_array(3,:) = domain_stat_1d(:)%extreme_chnk
-     int_array(4,:) = domain_stat_1d(:)%count
+    intg_array(1,:) = domain_stat_1d(:)%extreme_lev
+    intg_array(2,:) = domain_stat_1d(:)%extreme_col
+    intg_array(3,:) = domain_stat_1d(:)%extreme_chnk
+    intg_array(4,:) = domain_stat_1d(:)%count
 
     ! Master process gathers info from all processes
 
@@ -511,19 +494,21 @@ contains
     call mpigather( real_array, sndrcvcnt, mpir8,  real_array_gathered, sndrcvcnt, mpir8,  0, mpicom )
 
     sndrcvcnt = nintg*current_number_of_stat_fields
-    call mpigather( int_array, sndrcvcnt, mpiint,  int_array_gathered, sndrcvcnt, mpiint, 0, mpicom )
+    call mpigather( intg_array, sndrcvcnt, mpiint, intg_array_gathered, sndrcvcnt, mpiint, 0, mpicom )
 
     ! Add the counts and find the extreme values from different processes
 
     if (masterproc) then
-    do ii = 1,current_number_of_stat_fields
+
+      write(iulog,*) '**** global summary at step ',nstep,' ****'
+      do ii = 1,current_number_of_stat_fields
 
        SELECT CASE (global_stat(ii)%stat_type)
-       CASE( GREATER_THAN )
+       CASE( GREATER_EQ )
          stat_type_char = '>='
          idx = maxloc( real_array_gathered(1,ii,:) )
 
-       CASE( ABS_GREATER_THAN)
+       CASE( ABS_GREATER_EQ)
          stat_type_char = 'ABS >='
          idx = maxloc( real_array_gathered(1,ii,:) )
 
@@ -536,32 +521,33 @@ contains
          idx = minloc( real_array_gathered(1,ii,:) )
        END SELECT
 
-       global_stat(ii)%extreme_val = real_array_gathered(1,ii,idx(1))
-       global_stat(ii)%extreme_lat = real_array_gathered(2,ii,idx(1))
-       global_stat(ii)%extreme_lon = real_array_gathered(3,ii,idx(1))
+       ipe = idx(1)
 
-       global_stat(ii)%extreme_lev  = int_array_gathered(1,ii,idx(1))
-       global_stat(ii)%extreme_col  = int_array_gathered(2,ii,idx(1))
-       global_stat(ii)%extreme_chnk = int_array_gathered(3,ii,idx(1))
+       global_stat(ii)%extreme_val = real_array_gathered(1,ii,ipe)
+       global_stat(ii)%extreme_lat = real_array_gathered(2,ii,ipe)
+       global_stat(ii)%extreme_lon = real_array_gathered(3,ii,ipe)
 
-       global_stat(ii)%count = sum(int_array_gathered(4,ii,:))
+       global_stat(ii)%extreme_lev  = intg_array_gathered(1,ii,ipe)
+       global_stat(ii)%extreme_col  = intg_array_gathered(2,ii,ipe)
+       global_stat(ii)%extreme_chnk = intg_array_gathered(3,ii,ipe)
+       global_stat(ii)%count        = sum(intg_array_gathered(4,ii,:))
 
-         write(iulog,*) '*** nstep ',nstep, " *** global summary for "// &
-                        "procedure "//trim(global_stat(ii)%procedure_name)// & &
-                        ', field '//trim(global_stat(ii)%field_name)//": "
 
-         write(iulog,"(i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
-               global_stat(ii)%count, ' values '//trim(stat_type_char), &
-               global_stat(ii)%threshold, &
-               ', extreme value is ', global_stat(ii)%extreme_val, &
-               ' at ',&
-               '  chnk ',global_stat(ii)%extreme_chnk, &
-               ', col. ',global_stat(ii)%extreme_col, &
-               ', lev. ',global_stat(ii)%extreme_lev, &
-               ', lat = ',global_stat(ii)%extreme_lat, &
-               ', lon = ',global_stat(ii)%extreme_lon
+       write(iulog,'(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))')    &
+             'Procedure '//trim(global_stat(ii)%procedure_name)// &
+             'field '//trim(global_stat(ii)%field_name)//": "     &
+             global_stat(ii)%count, ' values '//trim(stat_type_char), &
+             global_stat(ii)%threshold, &
+             ', extreme is ', global_stat(ii)%extreme_val, ' at ',&
+             '  chnk ',global_stat(ii)%extreme_chnk, &
+             ', col. ',global_stat(ii)%extreme_col, &
+             ', lev. ',global_stat(ii)%extreme_lev, &
+             ', lat = ',global_stat(ii)%extreme_lat, &
+             ', lon = ',global_stat(ii)%extreme_lon
 
-    end do
+      end do
+      write(iulog,*) '**** end of global summary ****'
+
     end if
 #endif
 

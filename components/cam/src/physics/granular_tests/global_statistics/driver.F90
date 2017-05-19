@@ -8,14 +8,14 @@
     use physconst,    only: mwdry, cpair, mwh2o, cpwv
     use cam_abortutils,only: endrun
 
-    use global_statistics, only: tp_statistics, SMALLER_THAN, GREATER_THAN, &
+    use global_statistics, only: tp_statistics, SMALLER_THAN, GREATER_EQ, &
                                  add_stat_field, get_stat_field_idx, &
-                                 get_chunk_stat, get_domain_stat
+                                 get_chunk_stat, get_global_stat
 
     implicit none
 
     integer :: idummy, mm, icol
-    integer :: itr, istat, icnst
+    integer :: itr, istat, istat1, istat2, icnst
 
     type(physics_state), pointer :: phys_state(:) => null()     ! shape: (begchunk:endchunk)
     type(physics_tend ), pointer :: phys_tend(:)  => null()     ! shape: (begchunk:endchunk)
@@ -40,6 +40,9 @@
     write(*,*)
     write(*,*) 'Active domain size: ',pver,' levels, ',ncol,' columns, ',(endchunk-begchunk+1),' chunks.'
     write(*,*)
+    write(*,*) '# of cells per chunk: ',pver*ncol
+    write(*,*) '# of cells in domain: ',pver*ncol*(endchunk-begchunk+1)
+    write(*,*)
 
     ! Initialize tracer indices
 
@@ -51,14 +54,14 @@
     ! This has to be done before 'call phys_init' which allocates memory for 
     ! chunk_stat and domain_stat.
 
-    call add_stat_field('Q','test_part_1',GREATER_THAN,1.E-4_r8)
+    call add_stat_field('Q','test_part_1',GREATER_EQ,  1.E-4_r8)
     call add_stat_field('Q','test_part_2',SMALLER_THAN,1.E-4_r8)
 
-    call add_stat_field('CLDLIQ','test_part_1',GREATER_THAN,1.E-9_r8)
+    call add_stat_field('CLDLIQ','test_part_1',GREATER_EQ,  1.E-9_r8)
     call add_stat_field('CLDLIQ','test_part_2',SMALLER_THAN,1.E-9_r8)
 
     call add_stat_field('CLDICE','test_part_1',SMALLER_THAN,5._r8)
-    call add_stat_field('CLDICE','test_part_2',GREATER_THAN,5._r8)
+    call add_stat_field('CLDICE','test_part_2',GREATER_EQ,  5._r8)
 
     ! Allocate memory for state, tend, and stat vectors; read in initial conditions.
 
@@ -76,7 +79,7 @@
     ! The following chunk loop mimics the corresponding loop in phys_run1 (in which tphysbc is called)
     do ichnk=begchunk,endchunk
 
-       write(*,*) '-------------'
+       write(*,*) '-----------------------------'
        write(*,*) 'chunk ',ichnk
 
        do icnst = 1,PCNST
@@ -85,16 +88,16 @@
 
          itr = icnst
          call get_stat_field_idx(cnst_name(icnst),'test_part_1',istat)
-         call get_chunk_stat( ncol, pver, phys_state(ichnk)%q(:ncol,:,itr),                 &! intent(in)
-                              phys_state(ichnk)%lat, phys_state(ichnk)%lon, l_print_always, &! intent(in)
-                              chunk_stat(ichnk,istat) )                                      ! intent(inout)
+         call get_chunk_stat( ncol, pver, phys_state(ichnk)%q(:ncol,:,itr), &! intent(in)
+                              phys_state(ichnk)%lat, phys_state(ichnk)%lon, &! intent(in)
+                              chunk_stat(ichnk,istat) )                      ! intent(inout)
 
          n_tot_cnt_in_chunk(ichnk,icnst) = n_tot_cnt_in_chunk(ichnk,icnst) + chunk_stat(ichnk,istat)%count
 
          call get_stat_field_idx(cnst_name(icnst),'test_part_2',istat)
-         call get_chunk_stat( ncol, pver, phys_state(ichnk)%q(:ncol,:,itr),                 &! intent(in)
-                              phys_state(ichnk)%lat, phys_state(ichnk)%lon, l_print_always, &! intent(in)
-                              chunk_stat(ichnk,istat) )                                      ! intent(inout)
+         call get_chunk_stat( ncol, pver, phys_state(ichnk)%q(:ncol,:,itr), &! intent(in)
+                              phys_state(ichnk)%lat, phys_state(ichnk)%lon, &! intent(in)
+                              chunk_stat(ichnk,istat) )                      ! intent(inout)
 
          n_tot_cnt_in_chunk(ichnk,icnst) = n_tot_cnt_in_chunk(ichnk,icnst) + chunk_stat(ichnk,istat)%count
 
@@ -112,26 +115,22 @@
     write(*,*) '-----------------------------'
     write(*,*) 'entire domain on this process'
 
-    do icnst = 1,PCNST
-
-       n_tot_cnt_in_domain(icnst) = 0
-
-       itr = icnst
-       call get_stat_field_idx(cnst_name(icnst),'test_part_1',istat)
-       call get_domain_stat( l_print_always, nchnk, chunk_stat(:,istat), domain_stat(istat) ) !intent: 3xin, inout
-
-       n_tot_cnt_in_domain(icnst) = n_tot_cnt_in_domain(icnst) + domain_stat(istat)%count
-
-       call get_stat_field_idx(cnst_name(icnst),'test_part_2',istat)
-       call get_domain_stat( l_print_always, nchnk, chunk_stat(:,istat), domain_stat(istat) ) !intent: 3xin, inout
-
-       n_tot_cnt_in_domain(icnst) = n_tot_cnt_in_domain(icnst) + domain_stat(istat)%count
-    end do
+    call get_global_stat( chunk_stat, domain_stat, nstep )
 
     !----------------------------------
     ! Check if the results are correct
     !----------------------------------
     ! For each constituent, n_tot_cnt_in_domain should match the total number of cells in the domain
+
+    do icnst = 1,PCNST
+
+       itr = icnst
+       call get_stat_field_idx(cnst_name(icnst),'test_part_1',istat1)
+       call get_stat_field_idx(cnst_name(icnst),'test_part_2',istat2)
+
+       n_tot_cnt_in_domain(icnst) = domain_stat(istat1)%count &
+                                  + domain_stat(istat2)%count
+    end do
 
     if (any(n_tot_cnt_in_domain/=ncol*nchnk*pver)) then
        call endrun('Test error in domain_stat.')
@@ -147,7 +146,7 @@
     end if
 
     print*, '============================'
-    print*, ' Test finished correctly.'
+    print*, ' Test finished successfully.'
     print*, '============================'
 
    !Below are intended errors. The code should stop in ENDRUN.

@@ -491,7 +491,7 @@ end subroutine clubb_init_cnst
     use hb_diff,                only: init_hb_diff
     use trb_mtn_stress,         only: init_tms
     use rad_constituents,       only: rad_cnst_get_info, rad_cnst_get_mode_num_idx, rad_cnst_get_mam_mmr_idx
-    use global_statistics,      only: add_stat_field, ABS_GREATER_THAN
+    use global_statistics,      only: add_stat_field, ABS_GREATER_EQ
 
     !  From the CLUBB libraries
     use advance_clubb_core_module, only: setup_clubb_core
@@ -603,8 +603,8 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_stat_field( 'RTM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_THAN,1.E-14_r8)
-    call add_stat_field('THLM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_THAN,1.E-14_r8)
+    call add_stat_field( 'RTM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
+    call add_stat_field('THLM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
@@ -2176,13 +2176,11 @@ end subroutine clubb_init_cnst
    call get_stat_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
    call get_chunk_stat( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        l_always_print_conservation_error,  &! intent(in)
                         chunk_stat(istat) )    
 
    call get_stat_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
    call get_chunk_stat( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        l_always_print_conservation_error,  &! intent(in)
                         chunk_stat(istat) )    
 
    call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
