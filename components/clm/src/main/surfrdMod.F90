@@ -597,6 +597,8 @@ contains
 
     call ncd_inqfdims(ncid, isgrid2d, ni, nj, ns)
     call domain_init(surfdata_domain, isgrid2d, ni, nj, begg, endg, clmlevel=grlnd)
+    !!5/19/2017: initilized to 0:
+    surfdata_domain@nv = 0
 
     call ncd_io(ncid=ncid, varname=lon_var, flag='read', data=surfdata_domain%lonc, &
          dim1name=grlnd, readvar=readvar)
