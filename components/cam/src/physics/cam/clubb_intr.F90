@@ -491,7 +491,7 @@ end subroutine clubb_init_cnst
     use hb_diff,                only: init_hb_diff
     use trb_mtn_stress,         only: init_tms
     use rad_constituents,       only: rad_cnst_get_info, rad_cnst_get_mode_num_idx, rad_cnst_get_mam_mmr_idx
-    use global_statistics,      only: add_stat_field, ABS_GREATER_EQ
+    use global_summary,         only: add_smry_field, ABS_GREATER_EQ
 
     !  From the CLUBB libraries
     use advance_clubb_core_module, only: setup_clubb_core
@@ -901,7 +901,7 @@ end subroutine clubb_init_cnst
   ! =============================================================================== !
 
    subroutine clubb_tend_cam( &
-                              state,   ptend_all,   pbuf, chunk_stat, hdtime, nstep, &
+                              state,   ptend_all,   pbuf, chunk_smry, hdtime, nstep, &
                               cmfmc,   cam_in,   sgh30, & 
                               macmic_it, cld_macmic_num_steps,dlf, det_s, det_ice, alst_o)
 
@@ -955,7 +955,7 @@ end subroutine clubb_init_cnst
    use advance_xp2_xpyp_module,   only: update_xp2_mc
    use macrop_driver,             only: ice_macro_tend
 
-   use global_statistics,         only: tp_statistics, get_stat_field_idx, get_chunk_stat
+   use global_summary,            only: tp_stat_smry, get_smry_field_idx, get_chunk_smry
     
 #endif
 
@@ -981,7 +981,7 @@ end subroutine clubb_init_cnst
     
    type(physics_buffer_desc), pointer :: pbuf(:)
 
-   type(tp_statistics) :: chunk_stat(:)
+   type(tp_stat_smry) :: chunk_smry(:)
 
    ! ---------------------- !
    ! Output Auguments !
@@ -2173,14 +2173,14 @@ end subroutine clubb_init_cnst
   !                          trim(string) )
 
    call get_stat_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
-   call get_chunk_stat( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
+   call get_chunk_smry( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        chunk_stat(istat) )    
+                        chunk_smry(istat) )    
 
    call get_stat_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
-   call get_chunk_stat( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
+   call get_chunk_smry( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        chunk_stat(istat) )    
+                        chunk_smry(istat) )    
 
    call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
    call outfld( 'THLM_SPURSRC_REL', z_spur_src_relative(:,2), pcols, lchnk)
