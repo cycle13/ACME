@@ -63,7 +63,7 @@ OBJ2 = \
 	physconst.o  \
 	constituents.o  \
 	physics_types.o  \
-        global_statistics.o \
+        global_summary.o \
 	ascii_io.o \
 	physpkg.o  
 
