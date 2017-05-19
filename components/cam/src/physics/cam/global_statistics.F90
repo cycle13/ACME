@@ -11,7 +11,7 @@ module global_statistics
   public add_stat_field
   public get_stat_field_idx
   public get_chunk_stat
-  public get_domain_stat
+  public get_global_stat
 
   !------------------
   ! Constants
@@ -50,9 +50,10 @@ module global_statistics
     module procedure get_chunk_stat_2d_real
   end interface get_chunk_stat
 
-  integer,parameter  :: max_number_of_stat_fields = 1000
+  integer,parameter   :: max_number_of_stat_fields = 1000
+  integer,public      :: current_number_of_stat_fields = 0
+
   type(tp_statistics) :: global_stat(max_number_of_stat_fields)
-  integer,public :: current_number_of_stat_fields = 0
 
   character(len=256) :: msg 
 
@@ -187,11 +188,10 @@ contains
  
   end subroutine get_stat_field_idx
 
-  !---------------------------------------------------------------------
   !---------------------------------------------------------------------------------------
   ! Description:
   !   Subroutine for finding values in array that exceed threshold.
-  !   The total number of such values and the location of the extreme values are saved 
+  !   The total number of such values and the location of the extreme value are saved 
   !   for later use.
   !
   ! Written by:
@@ -224,7 +224,7 @@ contains
     logical  :: l_print               ! print message in log file
     character(len=16) :: stat_type_char
   
-    !--------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Calculate the total number of columns with value exceeding threshold
     ! then get the index of the extremem value.
   
@@ -370,7 +370,7 @@ contains
   end subroutine get_chunk_stat_1d_real
 
 
-  subroutine get_domain_stat( l_print_always, nchnk, chunk_stat, domain_stat ) ! in, inout, in
+  subroutine get_domain_stat( l_print_always, chunk_stat, domain_stat ) ! in, inout, in
 
   !---------------------------------------------------------------------------------------
   ! Description:
@@ -386,25 +386,21 @@ contains
     logical, intent(in) :: l_print_always    ! always print message in log file
                                              ! (even when there are no
                                              ! values exeeding threshold)
-    integer, intent(in) :: nchnk
 
-    type(tp_statistics), intent(inout) ::  chunk_stat(nchnk)
+    type(tp_statistics), intent(inout) ::  chunk_stat(:) ! shape: (nchnk)
     type(tp_statistics), intent(inout) :: domain_stat
 
     ! Local variables
 
-    integer  :: iflag(nchnk) 
     integer  :: idx(1)
     integer  :: ichnk
     logical  :: l_print                   ! print message in log file
     character(len=16) :: stat_type_char
   
-    !--------------------------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Calculate the total number of columns with value exceeding threshold
     ! then get the index of the extremem value.
   
-    iflag(:) = 0
-
     SELECT CASE (domain_stat%stat_type)
     CASE (GREATER_THAN)
       idx = maxloc( chunk_stat(:)%extreme_val )
@@ -459,56 +455,84 @@ contains
   
   end subroutine get_domain_stat
 
-  subroutine get_global_stat( chunk_stat_2d, domain_stat, begchunk, endchunk )
+  !------------------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------------------
+  subroutine get_global_stat( chunk_stat_2d, domain_stat_1d, nstep)
 
 #ifdef SPMD
-    use mpishortland
+    use mpishorthand, only: mpir8, mpiint, mpicom
+    use spmd_utils,   only: masterproc, npes
+    use cam_logfile,  only: iulog
 #endif
 
-    type(tp_statistics), pointer ::  chunk_stat_2d(:,:)
-    type(tp_statistics), pointer :: domain_stat(:)
-    integer,intent(in) :: begchunk, endchunk
+    type(tp_statistics)  ::  chunk_stat_2d(:,:)
+    type(tp_statistics)  :: domain_stat_1d(:)
+    integer,intent(in)   :: nstep
 
-    integer :: ii, nchnk
+    integer :: ii
     logical :: l_print_always = .true.
 
+
 #ifdef SPMD
-    integer  :: scount
-    real(r8) :: real_array         (3,current_number_of_stat_fields)
-    real(r8) :: real_array_gathered(3,current_number_of_stat_fields,0:npes-1)
-    integer  ::  int_array         (4,current_number_of_stat_fields)
-    integer  ::  int_array_gathered(4,current_number_of_stat_fields,0:npes-1)
+    integer           :: sndrcvcnt   ! number of element for single send/receive
+    integer,parameter :: nreal = 3   ! number of real variables to pack for mpigather
+    integer,parameter :: nintg = 4   ! number of integer variables to pack for mpigather
+
+    real(r8) :: real_array          (nreal,current_number_of_stat_fields)
+    real(r8) :: real_array_gathered (nreal,current_number_of_stat_fields,0:npes-1)
+
+    integer  ::  int_array          (nintg,current_number_of_stat_fields)
+    integer  ::  int_array_gathered (nintg,current_number_of_stat_fields,0:npes-1)
+
+    character(len=16) :: stat_type_char
+    integer  :: idx(1)
 #endif
 
-    nchnk = endchunk - begchunk + 1
-
     do ii = 1,current_number_of_stat_fields
-       call get_domain_stat( l_print_always, nchnk, chunk_stat_2d(:,ii), domain_stat(ii) ) !intent: 3xin, inout
+       call get_domain_stat( l_print_always, chunk_stat_2d(:,ii), domain_stat_1d(ii) ) !intent: 3xin, inout
     end do
 
 #ifdef SPMD
-    real_array(1,:) = domain_stat(:)%extreme_val
-    real_array(2,:) = domain_stat(:)%extreme_lat
-    real_array(3,:) = domain_stat(:)%extreme_lon
 
-     int_array(1,:) = domain_stat(:)%extreme_lev
-     int_array(2,:) = domain_stat(:)%extreme_col
-     int_array(3,:) = domain_stat(:)%extreme_chnk
-     int_array(4,:) = domain_stat(:)%count
+    ! Pack arrays for MPI communication
 
-    scount = 3*current_number_of_stat_fields
-    call MPI_GATHER(real_array, scount, mpir8,  real_array_gathered, scount, mpir8,  root, comm, ierr)
+    real_array(1,:) = domain_stat_1d(:)%extreme_val
+    real_array(2,:) = domain_stat_1d(:)%extreme_lat
+    real_array(3,:) = domain_stat_1d(:)%extreme_lon
 
-    scount = 4*current_number_of_stat_fields
-    call MPI_GATHER( int_array, scount, mpiint,  int_array_gathered, scount, mpiint, root, comm, ierr)
+     int_array(1,:) = domain_stat_1d(:)%extreme_lev
+     int_array(2,:) = domain_stat_1d(:)%extreme_col
+     int_array(3,:) = domain_stat_1d(:)%extreme_chnk
+     int_array(4,:) = domain_stat_1d(:)%count
+
+    ! Master process gathers info from all processes
+
+    sndrcvcnt = nreal*current_number_of_stat_fields
+    call mpigather( real_array, sndrcvcnt, mpir8,  real_array_gathered, sndrcvcnt, mpir8,  0, mpicom )
+
+    sndrcvcnt = nintg*current_number_of_stat_fields
+    call mpigather( int_array, sndrcvcnt, mpiint,  int_array_gathered, sndrcvcnt, mpiint, 0, mpicom )
+
+    ! Add the counts and find the extreme values from different processes
 
     if (masterproc) then
     do ii = 1,current_number_of_stat_fields
 
        SELECT CASE (global_stat(ii)%stat_type)
-       CASE( GREATER_THAN, ABS_GREATHER_THAN)
+       CASE( GREATER_THAN )
+         stat_type_char = '>='
          idx = maxloc( real_array_gathered(1,ii,:) )
-       CASE( SMALLER_THAN, ABS_SMALLER_THAN)
+
+       CASE( ABS_GREATER_THAN)
+         stat_type_char = 'ABS >='
+         idx = maxloc( real_array_gathered(1,ii,:) )
+
+       CASE( SMALLER_THAN)
+         stat_type_char = '<'
+         idx = minloc( real_array_gathered(1,ii,:) )
+
+       CASE( ABS_SMALLER_THAN)
+         stat_type_char = 'ABS <'
          idx = minloc( real_array_gathered(1,ii,:) )
        END SELECT
 
@@ -522,7 +546,21 @@ contains
 
        global_stat(ii)%count = sum(int_array_gathered(4,ii,:))
 
-       write(iulog,*) 
+         write(iulog,*) '*** nstep ',nstep, " *** global summary for "// &
+                        "procedure "//trim(global_stat(ii)%procedure_name)// & &
+                        ', field '//trim(global_stat(ii)%field_name)//": "
+
+         write(iulog,"(i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
+               global_stat(ii)%count, ' values '//trim(stat_type_char), &
+               global_stat(ii)%threshold, &
+               ', extreme value is ', global_stat(ii)%extreme_val, &
+               ' at ',&
+               '  chnk ',global_stat(ii)%extreme_chnk, &
+               ', col. ',global_stat(ii)%extreme_col, &
+               ', lev. ',global_stat(ii)%extreme_lev, &
+               ', lat = ',global_stat(ii)%extreme_lat, &
+               ', lon = ',global_stat(ii)%extreme_lon
+
     end do
     end if
 #endif

@@ -678,7 +678,7 @@ subroutine phys_inidat( cam_out, pbuf2d )
 end subroutine phys_inidat
 
 
-subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat, cam_out )
+subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat_1d, cam_out )
 
     !----------------------------------------------------------------------- 
     ! 
@@ -759,7 +759,7 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat,
     type(physics_tend ), pointer       :: phys_tend(:)
     type(physics_buffer_desc), pointer :: pbuf2d(:,:)
     type(tp_statistics), pointer :: chunk_stat_2d(:,:)
-    type(tp_statistics), pointer :: domain_stat(:)
+    type(tp_statistics), pointer :: domain_stat_1d(:)
 
     type(cam_out_t),intent(inout)      :: cam_out(begchunk:endchunk)
 
@@ -999,7 +999,7 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat,
 
     ! Initialize global statistics
     !--------------------------------
-    call global_stat_init( chunk_stat_2d, domain_stat, begchunk, endchunk )
+    call global_stat_init( chunk_stat_2d, domain_stat_1d, begchunk, endchunk )
 
     ! Initialize Nudging Parameters
     !--------------------------------
@@ -1305,7 +1305,7 @@ end subroutine phys_run1_adiabatic_or_ideal
   !-----------------------------------------------------------------------
   !
 
-subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_out, &
+subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, domain_stat_1d, pbuf2d, cam_out, &
        cam_in )
     !----------------------------------------------------------------------- 
     ! 
@@ -1315,6 +1315,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_ou
     ! Modified by Kai Zhang 2017-03: add IEFLX fixer treatment 
     !-----------------------------------------------------------------------
     use global_statistics,      only: tp_statistics, nfld=>current_number_of_stat_fields
+    use global_statistics,      only: get_global_stat
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_deallocate, pbuf_update_tim_idx
     use mo_lightning,   only: lightning_no_prod
 
@@ -1340,6 +1341,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_ou
     type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
     type(tp_statistics), intent(inout), dimension(begchunk:endchunk,1:nfld) :: chunk_stat_2d
+    type(tp_statistics), intent(inout), dimension(1:nfld) :: domain_stat_1d
     type(physics_buffer_desc),pointer, dimension(:,:)     :: pbuf2d
 
     type(cam_out_t),     intent(inout), dimension(begchunk:endchunk) :: cam_out
@@ -1424,6 +1426,8 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_stat_2d, pbuf2d, cam_ou
 #ifdef TRACER_CHECK
     call gmean_mass ('after tphysac FV:WET)', phys_state)
 #endif
+
+    call get_global_stat( chunk_stat_2d, domain_stat_1d, nstep)
 
     call t_startf ('carma_accumulate_stats')
     call carma_accumulate_stats()

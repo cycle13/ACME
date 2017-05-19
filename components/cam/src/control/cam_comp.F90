@@ -59,7 +59,7 @@ module cam_comp
   type(physics_buffer_desc), pointer :: pbuf2d(:,:) => null()
 
   type(tp_statistics), pointer :: chunk_stat_2d(:,:) => null() ! (begchunk:endchunk,nfld)
-  type(tp_statistics), pointer :: domain_stat(:) => null()     ! (nfld)
+  type(tp_statistics), pointer :: domain_stat_1d(:) => null()     ! (nfld)
 
   real(r8) :: wcstart, wcend     ! wallclock timestamp at start, end of timestep
   real(r8) :: usrstart, usrend   ! user timestamp at start, end of timestep
@@ -179,7 +179,7 @@ subroutine cam_init( cam_out, cam_in, mpicom_atm, &
    end if
 
 
-   call phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat, cam_out )
+   call phys_init( phys_state, phys_tend, pbuf2d, chunk_stat_2d, domain_stat_1d, cam_out )
 
    call bldfld ()       ! master field list (if branch, only does hash tables)
 
@@ -286,7 +286,7 @@ subroutine cam_run2( cam_out, cam_in )
    !
    call t_barrierf ('sync_phys_run2', mpicom)
    call t_startf ('phys_run2')
-   call phys_run2(phys_state, dtime, phys_tend, chunk_stat_2d, pbuf2d, cam_out, cam_in )
+   call phys_run2(phys_state, dtime, phys_tend, chunk_stat_2d, domain_stat_1d, pbuf2d, cam_out, cam_in )
    call t_stopf  ('phys_run2')
 
    !
