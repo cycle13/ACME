@@ -999,7 +999,7 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, chunk_smry_2d, domain_smry_
 
     ! Initialize global statistics
     !--------------------------------
-    call global_stat_init( chunk_smry_2d, domain_smry_1d, begchunk, endchunk )
+    call global_smry_init( chunk_smry_2d, domain_smry_1d, begchunk, endchunk )
 
     ! Initialize Nudging Parameters
     !--------------------------------
@@ -1026,7 +1026,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, chunk_smry_2d, pbuf2d, cam_in
     use cam_diagnostics,only: diag_allocate, diag_physvar_ic
     use check_energy,   only: check_energy_gmean
 
-    use global_summary,         only: tp_stat_smry, nfld=>current_number_of_stat_fields
+    use global_summary,         only: tp_stat_smry, nfld=>current_number_of_smry_fields
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_allocate
     use cam_control_mod,        only: nsrest  ! restart flag !BSINGH
 #if (defined BFB_CAM_SCAM_IOP )
@@ -1305,7 +1305,7 @@ end subroutine phys_run1_adiabatic_or_ideal
   !-----------------------------------------------------------------------
   !
 
-subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_smry_2d, domain_smry, pbuf2d, cam_out, &
+subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_smry_2d, domain_smry_1d, pbuf2d, cam_out, &
        cam_in )
     !----------------------------------------------------------------------- 
     ! 
@@ -1314,7 +1314,7 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_smry_2d, domain_smry, p
     ! 
     ! Modified by Kai Zhang 2017-03: add IEFLX fixer treatment 
     !-----------------------------------------------------------------------
-    use global_summary,      only: tp_stat_smry, nfld=>current_number_of_stat_fields
+    use global_summary,      only: tp_stat_smry, nfld=>current_number_of_smry_fields
     use global_summary,      only: get_global_smry
     use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, pbuf_deallocate, pbuf_update_tim_idx
     use mo_lightning,   only: lightning_no_prod

@@ -603,8 +603,8 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_stat_field( 'RTM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
-    call add_stat_field('THLM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field( 'RTM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field('THLM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
@@ -2172,12 +2172,12 @@ end subroutine clubb_init_cnst
   !                          conservation_tol, l_always_print_conservation_error, &
   !                          trim(string) )
 
-   call get_stat_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
+   call get_smry_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
    call get_chunk_smry( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
                         chunk_smry(istat) )    
 
-   call get_stat_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
+   call get_smry_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
    call get_chunk_smry( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
                         state%lat(:ncol), state%lon(:ncol), &! intent(in)
                         chunk_smry(istat) )    
