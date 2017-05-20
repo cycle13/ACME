@@ -515,10 +515,10 @@ contains
     integer,parameter :: nintg = 4   ! number of integer variables to pack for mpigather
 
     real(r8) :: real_array          (nreal,current_number_of_smry_fields)
-    real(r8) :: real_array_gathered (nreal,current_number_of_smry_fields,0:npes-1)
+    real(r8) :: real_array_gathered (nreal,current_number_of_smry_fields,npes)
 
     integer  :: intg_array          (nintg,current_number_of_smry_fields)
-    integer  :: intg_array_gathered (nintg,current_number_of_smry_fields,0:npes-1)
+    integer  :: intg_array_gathered (nintg,current_number_of_smry_fields,npes)
 
     character(len=shortchar) :: smry_type_char
     integer  :: idx(1), ipe
