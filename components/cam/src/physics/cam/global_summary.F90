@@ -452,7 +452,7 @@ contains
       smry_type_char = '>='
 
     CASE (ABS_GREATER_EQ)
-      idx = maxloc( chunk_smry_of_all_chunks(:)%extreme_val )
+      idx = maxloc( abs(chunk_smry_of_all_chunks(:)%extreme_val) )
       smry_type_char = 'ABS >='
 
     CASE (SMALLER_THAN)
@@ -460,7 +460,7 @@ contains
       smry_type_char = '<'
 
     CASE (ABS_SMALLER_THAN)
-      idx = minloc( chunk_smry_of_all_chunks(:)%extreme_val )
+      idx = minloc( abs(chunk_smry_of_all_chunks(:)%extreme_val) )
       smry_type_char = 'ABS <'
     END SELECT
 
@@ -568,7 +568,7 @@ contains
 
        CASE( ABS_GREATER_EQ)
          smry_type_char = 'ABS >='
-         idx = maxloc( real_array_gathered(1,ii,:) )
+         idx = maxloc( abs(real_array_gathered(1,ii,:)) )
 
        CASE( SMALLER_THAN)
          smry_type_char = '<'
@@ -576,7 +576,7 @@ contains
 
        CASE( ABS_SMALLER_THAN)
          smry_type_char = 'ABS <'
-         idx = minloc( real_array_gathered(1,ii,:) )
+         idx = minloc( abs(real_array_gathered(1,ii,:)) )
        END SELECT
 
        ipe = idx(1)
