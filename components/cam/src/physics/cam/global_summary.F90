@@ -254,24 +254,16 @@ contains
     integer, intent(out)           :: fldidx
 
     integer :: ii
-    logical :: found_field
 
-    found_field = .false.
+    fldidx = -999
     do ii = 1,current_number_of_smry_fields 
        if (trim(global_smry_1d(ii)%field_name) == trim(fldname) .and. &
            trim(global_smry_1d(ii)%procedure_name) == trim(procname)  ) then
-          found_field = .true.
           fldidx = ii
           exit
        end if
     end do
 
-    if (.not.found_field) then
-       write(msg,*) trim(THIS_MODULE)//': get_smry_field_idx, did not find '// &
-                     trim(fldname)//' from '//trim(procname)//' on the list.'
-       call endrun(trim(msg))
-    end if
- 
   end subroutine get_smry_field_idx
 
   !---------------------------------------------------------------------------------------
