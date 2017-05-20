@@ -74,7 +74,7 @@ _TEST_SUITES = {
                               "ERS.f09_g16.IMCLM45BC")
                              ),
 
-    "acme_atm_developer" : (None, None,
+    "atm_developer" : (None, None,
                             ("ERS.ne16_ne16.FC5MAM4",
                              "ERS.ne16_ne16.FC5PLMOD",
                              "ERS.ne16_ne16.FC5CLBMG2",
@@ -90,6 +90,18 @@ _TEST_SUITES = {
                              "SMS.f19_g16.FC5ATMMODCOSP",
                              "SMS_D.f19_g16.FC5ATMMODCOSP")
                             ),
+    "acme_atm_developer" : (None, None,
+                            (("ERP_Ln9.ne4_ne4.FC5AV1C-L","cam-rtm_null"),
+                             "SMS_D_Ln5.ne4_ne4.FC5",
+                             "SMS_D_Ln5.ne4_ne4.FC5AV1C-L")
+                            ),
+    "acme_atm_integration" : (None, None,
+                            (("ERP_Ln9.ne4_ne4.FC5AV1C-L","cam-rtm_null"),
+                             "SMS_D_Ln5.ne4_ne4.FC5",
+                             "SMS_D_Ln5.ne4_ne4.FC5AV1C-L")
+                            ),
+
+
 
     "acme_developer" : ("acme_land_developer", "0:45:00",
                         ("ERS.f19_g16_rx1.A",
