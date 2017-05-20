@@ -29,6 +29,7 @@ module global_summary
   use shr_kind_mod,   only: shortchar=>SHR_KIND_CS, longchar=>SHR_KIND_CL
   use cam_abortutils, only: endrun
   use cam_logfile,    only: iulog
+  use physconst,      only: pi
 
   implicit none
   private
@@ -76,8 +77,10 @@ module global_summary
 
   integer,parameter       :: max_number_of_smry_fields = 1000
   integer,public          :: current_number_of_smry_fields = 0
-  logical                 :: l_smry_arrays_allocated = .false.
+
   character(len=longchar) :: msg 
+  real(r8),parameter      :: rad2deg = 180._r8/pi
+  logical                 :: l_smry_arrays_allocated = .false.
 
 #ifdef UNIT_TEST
   logical :: l_print_always = .true.    ! always print message in log file 
@@ -338,10 +341,15 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-       '  **** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
+       write(iulog,"(a,i8,a,e15.7,a,e15.7,  (a,i4),2(a,f8.2))") &
+       '  **** chunk_smry '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
        chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
-       ', extreme is ', chunk_smry%extreme_val
+       ', extreme is ', chunk_smry%extreme_val,          &
+              '  chnk ',chunk_smry%extreme_chnk,         &
+              ', col. ',chunk_smry%extreme_col,          &
+              ', lev. ',chunk_smry%extreme_lev,          &
+              ', lat ',chunk_smry%extreme_lat *rad2deg, &
+              ', lon ',chunk_smry%extreme_lon *rad2deg
     end if
   
   end subroutine get_chunk_smry_m_lev_real
@@ -412,10 +420,14 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-       '  **** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
+       write(iulog,"(a,i8,a,e15.7,a,e15.7,  2(a,i4),2(a,f8.2))") &
+       '  ****  chunk_smry '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
        chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
-       ', extreme is ', chunk_smry%extreme_val
+       ', extreme is ', chunk_smry%extreme_val, &
+              '  chnk ',chunk_smry%extreme_chnk, &
+              ', col. ',chunk_smry%extreme_col, &
+             ', lat ',chunk_smry%extreme_lat *rad2deg, &
+             ', lon ',chunk_smry%extreme_lon *rad2deg
     end if
   
   end subroutine get_chunk_smry_1_lev_real
@@ -476,14 +488,14 @@ contains
   
     if (l_print_always) then
        write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
-         '  '//trim(domain_smry%field_name)//' from '//trim(domain_smry%procedure_name)//':', &
+         '  domain_smry: '//trim(domain_smry%field_name)//' from '//trim(domain_smry%procedure_name)//':', &
          domain_smry%count, ' values '//trim(smry_type_char), domain_smry%threshold, &
          ', extreme is ',domain_smry%extreme_val,' at ',&
          '  chnk ',domain_smry%extreme_chnk, &
          ', col. ',domain_smry%extreme_col, &
          ', lev. ',domain_smry%extreme_lev, &
-         ', lat = ',domain_smry%extreme_lat, &
-         ', lon = ',domain_smry%extreme_lon 
+         ', lat ',domain_smry%extreme_lat *rad2deg, &
+         ', lon ',domain_smry%extreme_lon *rad2deg
     end if
   
   end subroutine get_domain_smry
@@ -558,7 +570,8 @@ contains
 
     if (masterproc) then
 
-      write(iulog,*) '   **** Global summary at step ',nstep,' ****'
+      write(iulog,*)
+      write(iulog,*) '  **** Global summary at step ',nstep,' ****'
       do ii = 1,current_number_of_smry_fields
 
        SELECT CASE (global_smry_1d(ii)%smry_type)
@@ -593,17 +606,18 @@ contains
        ! Send message to log file
 
        write(iulog,'(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))')    &
-             '   '//trim(global_smry_1d(ii)%field_name)//' from '//trim(global_smry_1d(ii)%procedure_name)//':', &
+             '    '//trim(global_smry_1d(ii)%field_name)//' from '//trim(global_smry_1d(ii)%procedure_name)//':', &
              global_smry_1d(ii)%count, ' values '//trim(smry_type_char), global_smry_1d(ii)%threshold, &
              ', extreme is ', global_smry_1d(ii)%extreme_val, ' at ',&
              '  chnk ',global_smry_1d(ii)%extreme_chnk, &
              ', col. ',global_smry_1d(ii)%extreme_col, &
              ', lev. ',global_smry_1d(ii)%extreme_lev, &
-             ', lat = ',global_smry_1d(ii)%extreme_lat, &
-             ', lon = ',global_smry_1d(ii)%extreme_lon
+             ', lat ',global_smry_1d(ii)%extreme_lat *rad2deg, &
+             ', lon ',global_smry_1d(ii)%extreme_lon *rad2deg
 
       end do
-      write(iulog,*) '   **** End of global summary at step ',nstep,' ****'
+      write(iulog,*) '  **** End of global summary at step ',nstep,' ****'
+      write(iulog,*)
 
     end if
 #endif
