@@ -333,7 +333,7 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7,  (a,i4),2(a,f8.2))") &
+       write(iulog,"(a,i8,a,e15.7,a,e15.7, 3(a,i4),2(a,f8.2))") &
        '  **** chunk_smry '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
        chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
        ', extreme is ', chunk_smry%extreme_val,          &

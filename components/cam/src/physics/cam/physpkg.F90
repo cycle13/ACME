@@ -2641,7 +2641,8 @@ end if
                 call physics_update(state, ptend, ztodt, tend)
                 call check_energy_chng(state, tend, "clubb_tend", nstep, ztodt, &
                      cam_in%cflx(:,1)/cld_macmic_num_steps, flx_cnd/cld_macmic_num_steps, &
-                     det_ice/cld_macmic_num_steps, flx_heat/cld_macmic_num_steps)
+                     det_ice/cld_macmic_num_steps, flx_heat/cld_macmic_num_steps, &
+                     chunk_smry)
  
           endif
 
