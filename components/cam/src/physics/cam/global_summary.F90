@@ -339,7 +339,7 @@ contains
   
     if (l_print_always) then
        write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-       '**** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
+       '  **** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
        chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
        ', extreme is ', chunk_smry%extreme_val
     end if
@@ -413,7 +413,7 @@ contains
   
     if (l_print_always) then
        write(iulog,"(a,i8,a,e15.7,a,e15.7)") &
-       '**** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
+       '  **** '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
        chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
        ', extreme is ', chunk_smry%extreme_val
     end if
@@ -476,7 +476,7 @@ contains
   
     if (l_print_always) then
        write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
-         trim(domain_smry%field_name)//' from '//trim(domain_smry%procedure_name)//':', &
+         '  '//trim(domain_smry%field_name)//' from '//trim(domain_smry%procedure_name)//':', &
          domain_smry%count, ' values '//trim(smry_type_char), domain_smry%threshold, &
          ', extreme is ',domain_smry%extreme_val,' at ',&
          '  chnk ',domain_smry%extreme_chnk, &
@@ -558,7 +558,7 @@ contains
 
     if (masterproc) then
 
-      write(iulog,*) '**** Global summary at step ',nstep,' ****'
+      write(iulog,*) '   **** Global summary at step ',nstep,' ****'
       do ii = 1,current_number_of_smry_fields
 
        SELECT CASE (global_smry_1d(ii)%smry_type)
@@ -593,7 +593,7 @@ contains
        ! Send message to log file
 
        write(iulog,'(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))')    &
-             trim(global_smry_1d(ii)%field_name)//' from '//trim(global_smry_1d(ii)%procedure_name)//':', &
+             '   '//trim(global_smry_1d(ii)%field_name)//' from '//trim(global_smry_1d(ii)%procedure_name)//':', &
              global_smry_1d(ii)%count, ' values '//trim(smry_type_char), global_smry_1d(ii)%threshold, &
              ', extreme is ', global_smry_1d(ii)%extreme_val, ' at ',&
              '  chnk ',global_smry_1d(ii)%extreme_chnk, &
@@ -603,7 +603,7 @@ contains
              ', lon = ',global_smry_1d(ii)%extreme_lon
 
       end do
-      write(iulog,*) '**** End of global summary at step ',nstep,' ****'
+      write(iulog,*) '   **** End of global summary at step ',nstep,' ****'
 
     end if
 #endif
