@@ -1199,7 +1199,6 @@ end subroutine clubb_init_cnst
    character(len=128) :: string
    integer :: istat
 
-
    ! --------------- !
    ! Pointers        !
    ! --------------- !
@@ -2173,14 +2172,18 @@ end subroutine clubb_init_cnst
   !                          trim(string) )
 
    call get_smry_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
-   call get_chunk_smry( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
-                        state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        chunk_smry(istat) )    
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
 
    call get_smry_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
-   call get_chunk_smry( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
-                        state%lat(:ncol), state%lon(:ncol), &! intent(in)
-                        chunk_smry(istat) )    
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
 
    call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
    call outfld( 'THLM_SPURSRC_REL', z_spur_src_relative(:,2), pcols, lchnk)
