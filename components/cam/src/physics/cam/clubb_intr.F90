@@ -492,6 +492,7 @@ end subroutine clubb_init_cnst
     use trb_mtn_stress,         only: init_tms
     use rad_constituents,       only: rad_cnst_get_info, rad_cnst_get_mode_num_idx, rad_cnst_get_mam_mmr_idx
     use global_summary,         only: add_smry_field, ABS_GREATER_EQ
+    use physconst,              only: rounding_tol
 
     !  From the CLUBB libraries
     use advance_clubb_core_module, only: setup_clubb_core
@@ -603,9 +604,9 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(clubb_tend)',ABS_GREATER_EQ,1.E-14_r8)
-    call add_smry_field( 'RTM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,1.E-14_r8)
-    call add_smry_field('THLM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(clubb_tend)',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field( 'RTM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('THLM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,rounding_tol)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
