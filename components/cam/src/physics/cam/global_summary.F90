@@ -43,8 +43,8 @@ module global_summary
 
   character(len=shortchar),private,parameter :: THIS_MODULE = 'global_summary'
 
-  !-------------------------------------------
-  ! Types of summary supported by this module
+  !----------------------------------------------
+  ! Types of comparison supported by this module
 
   integer,public,parameter :: SMALLER_THAN     = -1
   integer,public,parameter :: GREATER_EQ       =  1
@@ -59,7 +59,7 @@ module global_summary
     character(len=shortchar) :: procedure_name   ! a procedure could be any piece of code
     character(len=shortchar) :: field_name       ! the physical quantity to be evaluated
 
-    integer  :: smry_type  ! one of the summary types defined above
+    integer  :: cmpr_type  ! one of the comparison types defined above
     real(r8) :: threshold  ! threshold specified by developer/user
     integer  :: count = 0  ! total number of cells with values exceeding threshold
 
@@ -111,12 +111,12 @@ contains
   !  The subroutine registers a new field for getting global summary. It is expected to be
   !  called during the initialization of various parameterizations.
   !--------------------------------------------------------------------------------------------
-  subroutine add_smry_field( fldname, procname, stattype, threshold, fldidx )
+  subroutine add_smry_field( fldname, procname, cmprtype, threshold, fldidx )
 
     character(len=*), intent(in)   :: fldname
     character(len=*), intent(in)   :: procname
     real(r8)                       :: threshold
-    integer                        :: stattype
+    integer                        :: cmprtype
     integer, intent(out), optional :: fldidx
 
     integer :: ii
@@ -155,7 +155,7 @@ contains
     global_smry_1d(ii)%field_name     = trim(fldname)
     global_smry_1d(ii)%procedure_name = trim(procname)
     global_smry_1d(ii)%threshold      = threshold
-    global_smry_1d(ii)%smry_type      = stattype
+    global_smry_1d(ii)%cmpr_type      = cmprtype
 
     if (present(fldidx)) fldidx = ii 
  
@@ -201,8 +201,8 @@ contains
     domain_smry_1d(1:current_number_of_smry_fields)%procedure_name = &
     global_smry_1d(1:current_number_of_smry_fields)%procedure_name
 
-    domain_smry_1d(1:current_number_of_smry_fields)%smry_type = &
-    global_smry_1d(1:current_number_of_smry_fields)%smry_type
+    domain_smry_1d(1:current_number_of_smry_fields)%cmpr_type = &
+    global_smry_1d(1:current_number_of_smry_fields)%cmpr_type
 
     domain_smry_1d(1:current_number_of_smry_fields)%threshold = &
     global_smry_1d(1:current_number_of_smry_fields)%threshold
@@ -228,8 +228,8 @@ contains
        chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%procedure_name = &
       global_smry_1d(      1:current_number_of_smry_fields)%procedure_name
 
-       chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%smry_type = &
-      global_smry_1d(      1:current_number_of_smry_fields)%smry_type
+       chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%cmpr_type = &
+      global_smry_1d(      1:current_number_of_smry_fields)%cmpr_type
 
        chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%threshold = &
       global_smry_1d(      1:current_number_of_smry_fields)%threshold
@@ -287,7 +287,7 @@ contains
 
     integer  :: iflag(ncol,nlev) 
     integer  :: idx(2)
-    character(len=shortchar) :: smry_type_char
+    character(len=shortchar) :: cmpr_type_char
   
     !-------------------------------------------------------------------------
     ! Calculate the total number of grid cells with value exceeding threshold
@@ -295,24 +295,24 @@ contains
   
     iflag(:,:) = 0
 
-    SELECT CASE (chunk_smry%smry_type)
+    SELECT CASE (chunk_smry%cmpr_type)
     CASE (GREATER_EQ)
-      smry_type_char = '>='
+      cmpr_type_char = '>='
       where( array .ge. chunk_smry%threshold ) iflag = 1
       idx = maxloc( array )
 
     CASE (SMALLER_THAN)
-      smry_type_char = '<'
+      cmpr_type_char = '<'
       where( array .lt. chunk_smry%threshold ) iflag = 1
       idx = minloc( array )
 
     CASE (ABS_GREATER_EQ)
-      smry_type_char = 'ABS >='
+      cmpr_type_char = 'ABS >='
       WHERE( abs(array) .ge. chunk_smry%threshold ) iflag = 1
       idx = maxloc( abs(array) )
 
     CASE (ABS_SMALLER_THAN)
-      smry_type_char = 'ABS < '
+      cmpr_type_char = 'ABS < '
       WHERE( abs(array) .lt. chunk_smry%threshold ) iflag = 1
       idx = minloc( abs(array) )
 
@@ -333,15 +333,15 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7, 3(a,i4),2(a,f8.2))") &
-       '  **** chunk_smry '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
-       chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
-       ', extreme is ', chunk_smry%extreme_val,          &
-              '  chnk ',chunk_smry%extreme_chnk,         &
-              ', col. ',chunk_smry%extreme_col,          &
-              ', lev. ',chunk_smry%extreme_lev,          &
-              ', lat ',chunk_smry%extreme_lat *rad2deg, &
-              ', lon ',chunk_smry%extreme_lon *rad2deg
+       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
+         'chunk_smry: ',trim(chunk_smry%procedure_name),trim(chunk_smry%field_name),': ', &
+         chunk_smry%count, ' values ',trim(cmpr_type_char), chunk_smry%threshold, &
+         ', extreme is ',chunk_smry%extreme_val,' at ',&
+         '  lat ',chunk_smry%extreme_lat *rad2deg, &
+         ', lon ',chunk_smry%extreme_lon *rad2deg, &
+         ', lev ',chunk_smry%extreme_lev, &
+         ', chnk ',chunk_smry%extreme_chnk, &
+         ', col ',chunk_smry%extreme_col  
     end if
   
   end subroutine get_chunk_smry_m_lev_real
@@ -367,7 +367,7 @@ contains
 
     integer  :: iflag(ncol) 
     integer  :: idx(1)
-    character(len=shortchar) :: smry_type_char
+    character(len=shortchar) :: cmpr_type_char
   
     !-----------------------------------------------------------------------
     ! Calculate the total number of columns with value exceeding threshold
@@ -375,24 +375,24 @@ contains
   
     iflag(:) = 0
 
-    SELECT CASE (chunk_smry%smry_type)
+    SELECT CASE (chunk_smry%cmpr_type)
     CASE (GREATER_EQ)
-      smry_type_char = '>='
+      cmpr_type_char = '>='
       where( array .ge. chunk_smry%threshold ) iflag = 1
       idx = maxloc( array )
 
     CASE (SMALLER_THAN)
-      smry_type_char = '<'
+      cmpr_type_char = '<'
       where( array .lt. chunk_smry%threshold ) iflag = 1
       idx = minloc( array )
 
     CASE (ABS_GREATER_EQ)
-      smry_type_char = 'ABS >='
+      cmpr_type_char = 'ABS >='
       WHERE( abs(array) .ge. chunk_smry%threshold ) iflag = 1
       idx = maxloc( abs(array) )
 
     CASE (ABS_SMALLER_THAN)
-      smry_type_char = 'ABS <'
+      cmpr_type_char = 'ABS <'
       WHERE( abs(array) .lt. chunk_smry%threshold ) iflag = 1
       idx = minloc( abs(array) )
 
@@ -412,14 +412,14 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7,  2(a,i4),2(a,f8.2))") &
-       '  ****  chunk_smry '//trim(chunk_smry%field_name)//' from '//trim(chunk_smry%procedure_name)//':', &
-       chunk_smry%count, ' values '//trim(smry_type_char), chunk_smry%threshold, &
-       ', extreme is ', chunk_smry%extreme_val, &
-              '  chnk ',chunk_smry%extreme_chnk, &
-              ', col. ',chunk_smry%extreme_col, &
-             ', lat ',chunk_smry%extreme_lat *rad2deg, &
-             ', lon ',chunk_smry%extreme_lon *rad2deg
+       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i10),(a,i4))') &
+         'chunk_smry: ',trim(chunk_smry%procedure_name),trim(chunk_smry%field_name),': ', &
+         chunk_smry%count, ' values ',trim(cmpr_type_char), chunk_smry%threshold, &
+         ', extreme is ',chunk_smry%extreme_val,' at ',&
+         '  lat ',chunk_smry%extreme_lat *rad2deg, &
+         ', lon ',chunk_smry%extreme_lon *rad2deg, &
+         ', chnk ',chunk_smry%extreme_chnk, &
+         ', col ',chunk_smry%extreme_col  
     end if
   
   end subroutine get_chunk_smry_1_lev_real
@@ -440,7 +440,7 @@ contains
 
     integer  :: idx(1)
     integer  :: ichnk
-    character(len=shortchar) :: smry_type_char
+    character(len=shortchar) :: cmpr_type_char
   
     !------------------------------------------------
     ! Get a total count of values exceeding threshold
@@ -450,22 +450,22 @@ contains
     !-------------------
     ! Locate the extreme 
   
-    SELECT CASE (domain_smry%smry_type)
+    SELECT CASE (domain_smry%cmpr_type)
     CASE (GREATER_EQ)
       idx = maxloc( chunk_smry_of_all_chunks(:)%extreme_val )
-      smry_type_char = '>='
+      cmpr_type_char = '>='
 
     CASE (ABS_GREATER_EQ)
       idx = maxloc( abs(chunk_smry_of_all_chunks(:)%extreme_val) )
-      smry_type_char = 'ABS >='
+      cmpr_type_char = 'ABS >='
 
     CASE (SMALLER_THAN)
       idx = minloc( chunk_smry_of_all_chunks(:)%extreme_val )
-      smry_type_char = '<'
+      cmpr_type_char = '<'
 
     CASE (ABS_SMALLER_THAN)
       idx = minloc( abs(chunk_smry_of_all_chunks(:)%extreme_val) )
-      smry_type_char = 'ABS <'
+      cmpr_type_char = 'ABS <'
     END SELECT
 
     ichnk = idx(1)
@@ -479,15 +479,15 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,"(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))") &
-         '  domain_smry: '//trim(domain_smry%field_name)//' from '//trim(domain_smry%procedure_name)//':', &
-         domain_smry%count, ' values '//trim(smry_type_char), domain_smry%threshold, &
+       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
+         'domain_smry: ',trim(domain_smry%procedure_name),trim(domain_smry%field_name),': ', &
+         domain_smry%count, ' values ',trim(cmpr_type_char), domain_smry%threshold, &
          ', extreme is ',domain_smry%extreme_val,' at ',&
-         '  chnk ',domain_smry%extreme_chnk, &
-         ', col. ',domain_smry%extreme_col, &
-         ', lev. ',domain_smry%extreme_lev, &
-         ', lat ',domain_smry%extreme_lat *rad2deg, &
-         ', lon ',domain_smry%extreme_lon *rad2deg
+         '  lat ',domain_smry%extreme_lat *rad2deg, &
+         ', lon ',domain_smry%extreme_lon *rad2deg, &
+         ', lev ',domain_smry%extreme_lev, &
+         ', chnk ',domain_smry%extreme_chnk, &
+         ', col ',domain_smry%extreme_col  
     end if
   
   end subroutine get_domain_smry
@@ -503,9 +503,10 @@ contains
 
 #ifdef SPMD
     use mpishorthand, only: mpir8, mpiint, mpicom
-    use spmd_utils,   only: masterproc, npes
-    use cam_logfile,  only: iulog
+    use spmd_utils,   only: npes
 #endif
+    use spmd_utils,   only: masterproc
+    use cam_logfile,  only: iulog
 
     type(tp_stat_smry)  ::  chunk_smry_2d(:,:)  ! shape: (nchunk,nfld)
     type(tp_stat_smry)  :: domain_smry_1d(:)    ! shape: (nfld)
@@ -524,9 +525,9 @@ contains
     integer  :: intg_array          (nintg,current_number_of_smry_fields)
     integer  :: intg_array_gathered (nintg,current_number_of_smry_fields,npes)
 
-    character(len=shortchar) :: smry_type_char
     integer  :: idx(1), ipe
 #endif
+    character(len=shortchar) :: cmpr_type_char
 
     !--------------------------------------------
     ! Get domain summaries for each MPI process
@@ -557,33 +558,45 @@ contains
 
     sndrcvcnt = nintg*current_number_of_smry_fields
     call mpigather( intg_array, sndrcvcnt, mpiint, intg_array_gathered, sndrcvcnt, mpiint, 0, mpicom )
+#endif
 
     ! Add the counts and locate the extreme values
 
     if (masterproc) then
 
-      write(iulog,*)
-      write(iulog,*) '  **** Global summary at step ',nstep,' ****'
+      write(iulog,'(/,1x,a9,1x,i8,a)') 'nstep',nstep,', global summaries'
+      write(iulog,'(5x,15x,a36,a20, a7,a15,a2, a8, a15,2a8,a4,a10,a4)')    &
+                  'Procedure','Field','Cmpr.','Threshold','','Count','Extreme','Lat','Lon','Lev','Chunk','Col'
+
       do ii = 1,current_number_of_smry_fields
 
-       SELECT CASE (global_smry_1d(ii)%smry_type)
+       SELECT CASE (global_smry_1d(ii)%cmpr_type)
        CASE( GREATER_EQ )
-         smry_type_char = '>='
+         cmpr_type_char = '>='
+#ifdef SPMD
          idx = maxloc( real_array_gathered(1,ii,:) )
+#endif
 
        CASE( ABS_GREATER_EQ)
-         smry_type_char = 'ABS >='
+         cmpr_type_char = 'ABS >='
+#ifdef SPMD
          idx = maxloc( abs(real_array_gathered(1,ii,:)) )
+#endif
 
        CASE( SMALLER_THAN)
-         smry_type_char = '<'
+         cmpr_type_char = '<'
+#ifdef SPMD
          idx = minloc( real_array_gathered(1,ii,:) )
+#endif
 
        CASE( ABS_SMALLER_THAN)
-         smry_type_char = 'ABS <'
+         cmpr_type_char = 'ABS <'
+#ifdef SPMD
          idx = minloc( abs(real_array_gathered(1,ii,:)) )
+#endif
        END SELECT
 
+#ifdef SPMD
        ipe = idx(1)
 
        global_smry_1d(ii)%extreme_val = real_array_gathered(1,ii,ipe)
@@ -594,25 +607,33 @@ contains
        global_smry_1d(ii)%extreme_col  = intg_array_gathered(2,ii,ipe)
        global_smry_1d(ii)%extreme_chnk = intg_array_gathered(3,ii,ipe)
        global_smry_1d(ii)%count        = sum(intg_array_gathered(4,ii,:))
+#else
+       global_smry_1d(ii)%extreme_val = domain_smry_1d(ii)%extreme_val 
+       global_smry_1d(ii)%extreme_lat = domain_smry_1d(ii)%extreme_lat 
+       global_smry_1d(ii)%extreme_lon = domain_smry_1d(ii)%extreme_lon 
+
+       global_smry_1d(ii)%extreme_lev  = domain_smry_1d(ii)%extreme_lev
+       global_smry_1d(ii)%extreme_col  = domain_smry_1d(ii)%extreme_col
+       global_smry_1d(ii)%extreme_chnk = domain_smry_1d(ii)%extreme_chnk
+       global_smry_1d(ii)%count        = domain_smry_1d(ii)%count
+
+#endif
 
        ! Send message to log file
 
-       write(iulog,'(a,i8,a,e15.7,a,e15.7,a,3(a,i4),2(a,f8.2))')    &
-             '    '//trim(global_smry_1d(ii)%field_name)//' from '//trim(global_smry_1d(ii)%procedure_name)//':', &
-             global_smry_1d(ii)%count, ' values '//trim(smry_type_char), global_smry_1d(ii)%threshold, &
-             ', extreme is ', global_smry_1d(ii)%extreme_val, ' at ',&
-             '  chnk ',global_smry_1d(ii)%extreme_chnk, &
-             ', col. ',global_smry_1d(ii)%extreme_col, &
-             ', lev. ',global_smry_1d(ii)%extreme_lev, &
-             ', lat ',global_smry_1d(ii)%extreme_lat *rad2deg, &
-             ', lon ',global_smry_1d(ii)%extreme_lon *rad2deg
+       write(iulog,'(5x,a15,a36,a20, a7,e15.7,a2, i8, e15.7,2f8.2,i4,i10,i4)')    &
+             'GLOBAL SMRY:', trim(global_smry_1d(ii)%procedure_name), trim(global_smry_1d(ii)%field_name), &
+             trim(cmpr_type_char), global_smry_1d(ii)%threshold, ':', &
+             global_smry_1d(ii)%count,               global_smry_1d(ii)%extreme_val, &
+             global_smry_1d(ii)%extreme_lat*rad2deg, global_smry_1d(ii)%extreme_lon*rad2deg, &
+             global_smry_1d(ii)%extreme_lev, &
+             global_smry_1d(ii)%extreme_chnk,        global_smry_1d(ii)%extreme_col
 
       end do
-      write(iulog,*) '  **** End of global summary at step ',nstep,' ****'
+
       write(iulog,*)
 
     end if
-#endif
 
   end subroutine get_global_smry
 

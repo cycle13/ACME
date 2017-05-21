@@ -603,9 +603,9 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_smry_field( 'RTM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
-    call add_smry_field('THLM_SPUR_SRC','clubb_tend_cam',ABS_GREATER_EQ,1.E-14_r8)
-    call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng__clubb_tend',ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(clubb_tend)',ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field( 'RTM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,1.E-14_r8)
+    call add_smry_field('THLM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,1.E-14_r8)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
