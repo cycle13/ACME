@@ -80,7 +80,8 @@
     do ichnk=begchunk,endchunk
 
        write(*,*) '-----------------------------'
-       write(*,*) 'chunk ',ichnk
+       write(*,*) '  chunk ',ichnk
+       write(*,*) '-----------------------------'
 
        do icnst = 1,PCNST
 
@@ -113,7 +114,8 @@
 
     nchnk = endchunk-begchunk+1
     write(*,*) '-----------------------------'
-    write(*,*) 'entire domain on this process'
+    write(*,*) '  entire domain in this CPU'
+    write(*,*) '-----------------------------'
 
     call get_global_smry( chunk_smry, domain_smry, nstep )
 
@@ -146,7 +148,7 @@
     end if
 
     print*, '============================'
-    print*, ' Test finished successfully.'
+    print*, ' Test finished successfully'
     print*, '============================'
 
    !Below are intended errors. The code should stop in ENDRUN.

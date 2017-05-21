@@ -694,7 +694,7 @@ subroutine micro_mg_cam_init(pbuf2d)
    call handle_errmsg(errstring, subname="micro_mg_init")
 
    ! Register fields for global summary
-   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng__microp_tend',ABS_GREATER_EQ,1.E-14_r8)
+   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(microp_tend)',ABS_GREATER_EQ,1.E-14_r8)
 
    ! Register history variables
    do m = 1, ncnst
