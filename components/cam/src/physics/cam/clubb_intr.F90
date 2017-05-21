@@ -604,7 +604,7 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(clubb_tend)',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend(check_energy_chng)',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field( 'RTM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('THLM_SPUR_SRC',     'clubb_tend_cam',               ABS_GREATER_EQ,rounding_tol)
 

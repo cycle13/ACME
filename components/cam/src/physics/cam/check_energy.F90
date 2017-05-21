@@ -544,7 +544,7 @@ end subroutine check_energy_get_integrals
 
     ! error checking
     !----
-    call get_smry_field_idx('TOT_ENERGY_REL_ERR','check_energy_chng('//trim(name)//')',istat)
+    call get_smry_field_idx('TOT_ENERGY_REL_ERR',name//'(check_energy_chng)',istat)
     if (istat.ne.-999) then
        call get_chunk_smry( ncol, te_rer(:ncol),state%lat(:ncol), state%lon(:ncol), chunk_smry(istat) )
     end if
