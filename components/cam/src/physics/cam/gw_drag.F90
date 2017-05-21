@@ -195,7 +195,7 @@ subroutine gw_init()
   use global_summary,   only: add_smry_field, ABS_GREATER_EQ
 
   use ref_pres,   only: pref_edge
-  use physconst,  only: gravit, rair
+  use physconst,  only: gravit, rair, rounding_tol
 
   use gw_common,  only: gw_common_init, orographic_only
   use gw_oro,     only: gw_oro_init
@@ -490,7 +490,7 @@ subroutine gw_init()
   end if
 
    ! Register fields for global summary
-   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(gwdrag)',ABS_GREATER_EQ,1.E-14_r8)
+   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng(gwdrag)',ABS_GREATER_EQ,rounding_tol)
 
 
 end subroutine gw_init

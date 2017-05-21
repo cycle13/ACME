@@ -103,6 +103,10 @@ module physconst
    real(r8), public           :: tms_orocnst
    real(r8), public           :: tms_z0fac
 
+!---------------  Variables below are for conservation checks -----------------------
+
+   real(r8), public           :: rounding_tol = 1.e-14_r8  ! rounding error tolerance
+
 !================================================================================================
 contains
 !================================================================================================
@@ -159,7 +163,7 @@ contains
       logical       newg, newsday, newmwh2o, newcpwv, newmwdry, newrearth, newtmelt
 
       ! Physical constants needing to be reset (ie. for aqua planet experiments)
-      namelist /physconst_nl/  cpwv, gravit, mwdry, mwh2o, rearth, sday, tmelt, tms_orocnst, tms_z0fac
+      namelist /physconst_nl/  cpwv, gravit, mwdry, mwh2o, rearth, sday, tmelt, tms_orocnst, tms_z0fac, rounding_tol
 
       !-----------------------------------------------------------------------------
 
@@ -188,6 +192,7 @@ contains
       call mpibcast(tmelt,     1,                   mpir8,   0, mpicom)
       call mpibcast(tms_orocnst, 1,                 mpir8,   0, mpicom)
       call mpibcast(tms_z0fac, 1,                   mpir8,   0, mpicom)
+      call mpibcast(rounding_tol,1,                 mpir8,   0, mpicom)
 #endif
 
 
@@ -236,6 +241,13 @@ contains
          
       else
          ez          = omega / sqrt(0.375_r8)
+      end if
+
+      if (masterproc) then
+         write(iulog,*)'****************************************************************************'
+         write(iulog,*)'***    Tolerances for conservation checks set via namelist'
+         write(iulog,*)'***      rounding_tol = ',rounding_tol
+         write(iulog,*)'****************************************************************************'
       end if
       
     end subroutine physconst_readnl
