@@ -596,6 +596,7 @@ subroutine micro_mg_cam_init(pbuf2d)
    use micro_mg1_5, only: micro_mg_init1_5 => micro_mg_init
    use micro_mg2_0, only: micro_mg_init2_0 => micro_mg_init
 
+   use global_summary, only: add_smry_field, ABS_GREATER_EQ 
    !-----------------------------------------------------------------------
    !
    ! Initialization for MG microphysics
@@ -691,6 +692,9 @@ subroutine micro_mg_cam_init(pbuf2d)
    end select
 
    call handle_errmsg(errstring, subname="micro_mg_init")
+
+   ! Register fields for global summary
+   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng__microp_tend',ABS_GREATER_EQ,1.E-14_r8)
 
    ! Register history variables
    do m = 1, ncnst
