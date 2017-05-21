@@ -1638,7 +1638,7 @@ if (l_gw_drag) then
 
     call physics_update(state, ptend, ztodt, tend)
     ! Check energy integrals
-    call check_energy_chng(state, tend, "gwdrag", nstep, ztodt, zero, zero, zero, zero)
+    call check_energy_chng(state, tend, "gwdrag", nstep, ztodt, zero, zero, zero, zero, chunk_smry)
     call t_stopf('gw_tend')
 
     ! QBO relaxation
@@ -2496,7 +2496,8 @@ end if
           call physics_update (state, ptend, ztodt, tend)
           call check_energy_chng(state, tend, "microp_tend", nstep, ztodt, &
                zero, prec_str(:ncol)/cld_macmic_num_steps, &
-               snow_str(:ncol)/cld_macmic_num_steps, zero)
+               snow_str(:ncol)/cld_macmic_num_steps, zero, &
+               chunk_smry)
 
           call t_stopf('microp_tend')
           prec_sed_macmic(:ncol) = prec_sed_macmic(:ncol) + prec_sed(:ncol)

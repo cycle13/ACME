@@ -192,6 +192,7 @@ subroutine gw_init()
   use interpolate_data, only: lininterp
   use phys_control,     only: phys_getopts
   use physics_buffer,   only: pbuf_get_index
+  use global_summary,   only: add_smry_field, ABS_GREATER_EQ
 
   use ref_pres,   only: pref_edge
   use physconst,  only: gravit, rair
@@ -487,6 +488,10 @@ subroutine gw_init()
   if ( history_budget ) then
      call add_default ('TTGW', history_budget_histfile_num, ' ')
   end if
+
+   ! Register fields for global summary
+   call add_smry_field('TOT_ENERGY_REL_ERR','check_energy_chng__gwdrag',ABS_GREATER_EQ,1.E-14_r8)
+
 
 end subroutine gw_init
 
