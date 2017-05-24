@@ -158,7 +158,7 @@
     end if
 
     write(iulog,*) '==========================================='
-    write(iulog,*) ' all results confirmed with expected values'
+    write(iulog,*) ' all results conformed with expected values'
     write(iulog,*) '==========================================='
 
    !Below are intended errors. The code should stop in ENDRUN.
