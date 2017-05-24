@@ -151,9 +151,9 @@
        call endrun('Test error. chunk_smry and domain_smry do not match.')
     end if
 
-    write(iulog,*) '============================'
-    write(iulog,*) ' Test finished successfully'
-    write(iulog,*) '============================'
+    write(iulog,*) '==========================================='
+    write(iulog,*) ' all results confirmed with expected values'
+    write(iulog,*) '==========================================='
 
    !Below are intended errors. The code should stop in ENDRUN.
    !call get_smry_field_idx('Q','test_part_3',istat)
