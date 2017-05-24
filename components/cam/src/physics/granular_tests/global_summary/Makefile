@@ -8,6 +8,7 @@ include ./make.in
 include ./cpp.in
 
 all: exe
+	touch .success
 
 #
 # Suffix rules...
