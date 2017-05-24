@@ -7,6 +7,7 @@
     use constituents, only: cnst_add, cnst_name
     use physconst,    only: mwdry, cpair, mwh2o, cpwv
     use cam_abortutils,only: endrun
+    use cam_logfile,   only: iulog
 
     use global_summary, only: tp_stat_smry, SMALLER_THAN, GREATER_EQ, &
                                 add_smry_field, get_smry_field_idx, &
@@ -32,17 +33,20 @@
     integer :: n_tot_cnt_in_chunk (BCHNK:ECHNK,PCNST)
     integer :: n_tot_cnt_in_domain(PCNST)
 
-    !----------------------
-   
     begchunk = BCHNK
     endchunk = ECHNK
 
-    write(*,*)
-    write(*,*) 'Active domain size: ',pver,' levels, ',ncol,' columns, ',(endchunk-begchunk+1),' chunks.'
-    write(*,*)
-    write(*,*) '# of cells per chunk: ',pver*ncol
-    write(*,*) '# of cells in domain: ',pver*ncol*(endchunk-begchunk+1)
-    write(*,*)
+    !------------------------------
+    ! open an ASCII file for output
+    !------------------------------
+    open(unit=iulog,file='unitTest_1',status='unknown')
+
+    write(iulog,*)
+    write(iulog,*) 'Active domain size: ',pver,' levels, ',ncol,' columns, ',(endchunk-begchunk+1),' chunks.'
+    write(iulog,*)
+    write(iulog,*) '# of cells per chunk: ',pver*ncol
+    write(iulog,*) '# of cells in domain: ',pver*ncol*(endchunk-begchunk+1)
+    write(iulog,*)
 
     ! Initialize tracer indices
 
@@ -79,9 +83,9 @@
     ! The following chunk loop mimics the corresponding loop in phys_run1 (in which tphysbc is called)
     do ichnk=begchunk,endchunk
 
-       write(*,*) '-----------------------------'
-       write(*,*) '  chunk ',ichnk
-       write(*,*) '-----------------------------'
+       write(iulog,*) '-----------------------------'
+       write(iulog,*) '  chunk ',ichnk
+       write(iulog,*) '-----------------------------'
 
        do icnst = 1,PCNST
 
@@ -106,16 +110,16 @@
     end do
 
     if (any(n_tot_cnt_in_chunk/=ncol*pver)) then
-       write(*,*) n_tot_cnt_in_chunk
+       write(iulog,*) n_tot_cnt_in_chunk
        call endrun('Test error in chunk_smry.')
     end if
 
     ! After all chunks have been processed, get the domain statistics summary
 
     nchnk = endchunk-begchunk+1
-    write(*,*) '-----------------------------'
-    write(*,*) '  entire domain in this CPU'
-    write(*,*) '-----------------------------'
+    write(iulog,*) '-----------------------------'
+    write(iulog,*) '  entire domain in this CPU'
+    write(iulog,*) '-----------------------------'
 
     call get_global_smry( chunk_smry, domain_smry, nstep )
 
@@ -142,17 +146,19 @@
     ! the counts from all chunks.
 
     if (any(domain_smry(:)%count/=sum(chunk_smry(:,:)%count,dim=1))) then
-       write(*,*) domain_smry(:)%count
-       write(*,*) sum( chunk_smry(:,:)%count, dim=1 )
+       write(iulog,*) domain_smry(:)%count
+       write(iulog,*) sum( chunk_smry(:,:)%count, dim=1 )
        call endrun('Test error. chunk_smry and domain_smry do not match.')
     end if
 
-    print*, '============================'
-    print*, ' Test finished successfully'
-    print*, '============================'
+    write(iulog,*) '============================'
+    write(iulog,*) ' Test finished successfully'
+    write(iulog,*) '============================'
 
    !Below are intended errors. The code should stop in ENDRUN.
    !call get_smry_field_idx('Q','test_part_3',istat)
    !call get_smry_field_idx('U','test_part_1',istat)
+
+    close(unit=iulog)
 
   end Program test_global_summary
