@@ -1,0 +1,3 @@
+&params
+ filepath= '/ACME/components/cam/src/physics/granular_tests/test_input/' ,
+/
