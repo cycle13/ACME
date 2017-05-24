@@ -24,6 +24,25 @@ subroutine read_state_ascii( nstep, state )
    character(len=128) :: filename
    character(len=20) :: cdummy1, cdummy2, cdummy3
 
+   character(len=128) :: filepath
+   namelist /params/ filepath
+  
+
+   character(len=64) :: program_name, &
+   					 parameterfile
+
+   call getarg(0, program_name)
+   call getarg(1, parameterfile)
+   
+   write(*,*) 'Searching for input data in ' , parameterfile
+
+   ! test if datadir existse
+   open(unit=10,file=parameterfile)
+   read(10,nml=params)
+   write(*,*) 'File path is ' , filepath 
+   close(10)
+   
+
    !--------
    ! chunk index will be part of the output file name
 
@@ -36,7 +55,7 @@ subroutine read_state_ascii( nstep, state )
    ! open a file
 
    funit = 1234
-   write(filename,'(2(a,i5.5),a)') '../test_input/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
+   write(filename,'(2(a,i5.5),a)') trim(filepath)//'/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
 
    open(unit=funit,file=trim(filename),access='sequential',action='read',form='formatted',iostat=ierr)
    if (ierr/=0) then
