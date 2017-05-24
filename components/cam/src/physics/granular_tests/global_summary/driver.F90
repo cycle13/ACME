@@ -15,6 +15,12 @@
 
     implicit none
 
+
+
+
+
+
+
     integer :: idummy, mm, icol
     integer :: itr, istat, istat1, istat2, icnst
 
@@ -32,6 +38,29 @@
 
     integer :: n_tot_cnt_in_chunk (BCHNK:ECHNK,PCNST)
     integer :: n_tot_cnt_in_domain(PCNST)
+
+    
+
+    !     define namelist
+   !  character(len=128) :: filepath
+!     namelist /params/ filepath
+!
+!
+!     character(len=64) :: program_name, &
+!                parameterfile
+!
+!     call getarg(0, program_name)
+!     call getarg(1, parameterfile)
+!
+!     write(*,*) 'Searching for input data in ' , parameterfile
+!
+!     ! test if datadir existse
+!     open(unit=10,file=parameterfile)
+!     read(10,nml=params)
+!     write(*,nml=params)
+    
+    !----------------------
+   
 
     begchunk = BCHNK
     endchunk = ECHNK
