@@ -1,6 +1,6 @@
 module ascii_io
 
-  use shr_kind_mod,  only: r8=>shr_kind_r8
+  use shr_kind_mod,  only: r8=>shr_kind_r8, longchar=>SHR_KIND_CL
   use constituents,  only: pcnst, cnst_name 
   use ppgrid,        only: pcols, pver
   use physics_types, only: physics_state
@@ -14,33 +14,16 @@ CONTAINS
 !---------------------------------------------------------------------------------
 ! Write out components of model state vector to ASCII file
 !---------------------------------------------------------------------------------
-subroutine read_state_ascii( nstep, state )
+subroutine read_state_ascii( ic_filepath, nstep, state )
 
-   integer, intent(in) :: nstep
-   type(physics_state), intent(inout) :: state       ! Physics state variables
+   character(len=*),   intent(in)    :: ic_filepath
+   integer,            intent(in)    :: nstep
+   type(physics_state),intent(inout) :: state       ! Physics state variables
 
    integer :: ncol, lchnk, ii, kk , m, idummy1, idummy2, idummy3
    integer :: funit, ierr
-   character(len=128) :: filename
-   character(len=20) :: cdummy1, cdummy2, cdummy3
-
-   character(len=128) :: ic_filepath
-   namelist /test_nl/ ic_filepath
-  
-
-   character(len=128) :: exe_name, namelist_filename
-
-   call getarg(0, exe_name)
-   call getarg(1, namelist_filename)
-   
-   write(*,*) 'Searching for input data in ' , namelist_filename
-
-   ! test if datadir existse
-   open(unit=10,file=namelist_filename)
-   read(10,nml=test_nl)
-   write(*,*) 'File path is ' , ic_filepath 
-   close(10)
-   
+   character(len=longchar) :: ic_filename
+   character(len=longchar) :: cdummy1, cdummy2, cdummy3
 
    !--------
    ! chunk index will be part of the output file name
@@ -54,11 +37,12 @@ subroutine read_state_ascii( nstep, state )
    ! open a file
 
    funit = 1234
-   write(filename,'(2(a,i5.5),a)') trim(ic_filepath)//'/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
+   write(ic_filename,'(2(a,i5.5),a)') trim(ic_filepath)//'/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
 
-   open(unit=funit,file=trim(filename),access='sequential',action='read',form='formatted',iostat=ierr)
+   write(iulog,*) 'Attempting to open file '//trim(ic_filename)//' for IC conditions'
+   open(unit=funit,file=trim(ic_filename),access='sequential',action='read',form='formatted',iostat=ierr)
    if (ierr/=0) then
-      write(iulog,*) 'Failed to open file '//trim(filename)//' for ASCII output of model state.' 
+      write(iulog,*) 'Failed to open file '//trim(ic_filename)//' for ASCII output of model state.' 
       call endrun
    end if
 

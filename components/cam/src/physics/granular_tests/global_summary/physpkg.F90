@@ -12,7 +12,7 @@ module physpkg
   ! July 2015   B. Singh       Added code for unified convective transport
   !-----------------------------------------------------------------------
 
-  use shr_kind_mod,     only: r8 => shr_kind_r8, i8 => shr_kind_i8
+  use shr_kind_mod,     only: r8 => shr_kind_r8, i8 => shr_kind_i8, longchar=>SHR_KIND_CL
   use physconst,        only: latvap, latice, rh2o
   use physics_types,    only: physics_state, physics_tend,&
        physics_ptend, physics_tend_init,&
@@ -125,13 +125,32 @@ subroutine phys_init( phys_state, phys_tend, chunk_smry, domain_smry, nstep)
     integer :: lchnk
     integer :: ichnk
 
+    character(len=longchar) :: exe_name, namelist_filename
+    character(len=longchar) :: ic_filepath
+
+    namelist /test_nl/ ic_filepath
     !-----------------------------------------------------------------------
 
     call physics_type_alloc( phys_state, phys_tend, begchunk, endchunk, pcols )
     call global_smry_init( chunk_smry, domain_smry, begchunk, endchunk )
     call physconst_init()
+
+    ! Parse command line argument to locate namelist file
+    call getarg(0, exe_name)
+    call getarg(1, namelist_filename)
+
+    ! Read namelist to get path to IC files 
+    write(iulog,*) 'Looking for test_nl in ', trim(namelist_filename)
+
+    open(unit=10,file=trim(namelist_filename))
+    read(10,nml=test_nl)
+    close(10)
+
+    write(iulog,*) 'File path for initial conditions is ' , trim(ic_filepath)
+  
+    ! Read in the initial conditions 
     do ichnk=begchunk,endchunk
-       call read_state_ascii(nstep, phys_state(ichnk))
+       call read_state_ascii(trim(ic_filepath), nstep, phys_state(ichnk))
     end do
 
 end subroutine phys_init

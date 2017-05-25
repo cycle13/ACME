@@ -3,15 +3,15 @@ To play with the test
 1. Edit ener_config.cpp.in to change the following if you 
    do not want the default values
 
-   * the tolerance of relative energy error: TOL
-   * chunk index: BCHNK ECHNK
+   * chunk indices: BCHNK ECHNK
    * time step index: STEP
    * number of grid columns: PCOLS
    * number of vertical layers: PLEV
 
-   Note: make sure you have an ASCII file 
+   Note: make sure you have ASCII files 
    nstep_xxxxx_chunk_yyyyy_state.asc
-   in this directory that contains the model 
+   in the directory specified in params.txt 
+   These ASCII files are expected to contain the model 
    state variables needed for the test.
 
    *  xxxxx is the time step index (e.g., 00005);
@@ -24,7 +24,7 @@ To play with the test
     $> make
 
 3. Run the test by typing
-    $> ./etest
+    $> ./exe params.txt
 
 4. If anything has been modified in ener_config.cpp.in, do
     $> make clean
