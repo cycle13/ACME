@@ -21,7 +21,7 @@
 
 
 
-    integer :: idummy, mm, icol
+    integer :: idummy, icol
     integer :: itr, istat, istat1, istat2, icnst
 
     type(physics_state), pointer :: phys_state(:) => null()     ! shape: (begchunk:endchunk)
@@ -34,7 +34,6 @@
                                ! the code works in such situations
     integer :: nstep = STEP
     integer :: nchnk, ichnk
-    logical :: l_print_always = .true.
 
     integer :: n_tot_cnt_in_chunk (BCHNK:ECHNK,PCNST)
     integer :: n_tot_cnt_in_domain(PCNST)
