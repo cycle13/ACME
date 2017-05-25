@@ -89,7 +89,7 @@ $(OBJ3):  $(OBJ2)
 
 
 clean:
-	/bin/rm  exe  *.o  *.mod
+	/bin/rm  exe  *.o  *.mod .success unitTest_1
 #/bin/rm  exe  *.o  *.f  *.f90  *.mod
 
 
