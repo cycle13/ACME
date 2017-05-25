@@ -24,22 +24,21 @@ subroutine read_state_ascii( nstep, state )
    character(len=128) :: filename
    character(len=20) :: cdummy1, cdummy2, cdummy3
 
-   character(len=128) :: filepath
-   namelist /params/ filepath
+   character(len=128) :: ic_filepath
+   namelist /test_nl/ ic_filepath
   
 
-   character(len=64) :: program_name, &
-   					 parameterfile
+   character(len=128) :: exe_name, namelist_filename
 
-   call getarg(0, program_name)
-   call getarg(1, parameterfile)
+   call getarg(0, exe_name)
+   call getarg(1, namelist_filename)
    
-   write(*,*) 'Searching for input data in ' , parameterfile
+   write(*,*) 'Searching for input data in ' , namelist_filename
 
    ! test if datadir existse
-   open(unit=10,file=parameterfile)
-   read(10,nml=params)
-   write(*,*) 'File path is ' , filepath 
+   open(unit=10,file=namelist_filename)
+   read(10,nml=test_nl)
+   write(*,*) 'File path is ' , ic_filepath 
    close(10)
    
 
@@ -55,7 +54,7 @@ subroutine read_state_ascii( nstep, state )
    ! open a file
 
    funit = 1234
-   write(filename,'(2(a,i5.5),a)') trim(filepath)//'/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
+   write(filename,'(2(a,i5.5),a)') trim(ic_filepath)//'/nstep_',nstep,'_chunk_',lchnk,'_state.asc'
 
    open(unit=funit,file=trim(filename),access='sequential',action='read',form='formatted',iostat=ierr)
    if (ierr/=0) then
