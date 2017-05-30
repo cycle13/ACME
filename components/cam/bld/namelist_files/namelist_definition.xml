@@ -2906,21 +2906,6 @@ Temporary variable for a bug fix. Introduced to maintain BFB, must be REMOVED la
 Default: FALSE
 </entry>
 
-<entry id="conservation_tol" type="real" category="pblrad"
-       group="clubbpbl_diff_nl" valid_values="" >
-Tolerance of relative conservation error in rtm and thlm. Values beyond this
-tolerance will be reported in log file.
-Default: 1e-14 
-</entry>
-
-<entry id="l_always_print_conservation_error" type="logical"  category="pblrad"
-       group="clubbpbl_diff_nl" valid_values="" >
-Always print rtm and thlm conservation errors to log file
-even when there are no values exceeding tolerance.
-Default: FALSE
-</entry>
-
-
 <!-- Clubb tunable parameters -->
 
 <entry id="C1" type="real" category="pblrad"
