@@ -1015,7 +1015,7 @@ subroutine phys_run1(phys_state, ztodt, phys_tend, chunk_smry_2d, pbuf2d, cam_in
           call diag_physvar_ic ( c,  phys_buffer_chunk, cam_out(c), cam_in(c) )
           call t_stopf ('diag_physvar_ic')
           call tphysbc (ztodt, fsns(1,c), fsnt(1,c), flns(1,c), flnt(1,c), phys_state(c),        &
-                       phys_tend(c), phys_buffer_chunk, chunk_stat_2d(c,:), fsds(1,c), landm(1,c), &
+                       phys_tend(c), phys_buffer_chunk, chunk_smry_2d(c,:), fsds(1,c), landm(1,c), &
                        sgh(1,c), sgh30(1,c), cam_out(c), cam_in(c) )
        end do
 
