@@ -4199,6 +4199,12 @@ Turn off LW radiation computation.
 Default: FALSE
 </entry>
 
+<entry id="precip_off" type="logical" category="scm"
+       group="cam_inparm" valid_values="">
+Turn off microphysics computation.
+Default: FALSE
+</entry>
+
 <!-- Solar Parameters -->
 
 <entry id="solar_const" type="real" category="solar"

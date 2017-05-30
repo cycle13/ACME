@@ -173,6 +173,7 @@ logical  :: scm_crm_mode
 logical  :: scm_observed_aero
 logical  :: swrad_off
 logical  :: lwrad_off
+logical  :: precip_off
 
 contains
 
@@ -326,7 +327,7 @@ contains
   ! scam
   namelist /cam_inparm/ iopfile,scm_iop_srf_prop,scm_relaxation, &
                         scm_diurnal_avg,scm_crm_mode,scm_clubb_iop_name, &
-			scm_observed_aero,swrad_off,lwrad_off
+			scm_observed_aero,swrad_off,lwrad_off, precip_off
 
 ! 
 !-----------------------------------------------------------------------
@@ -376,6 +377,7 @@ contains
 	scm_observed_aero_out=scm_observed_aero, &
         swrad_off_out=swrad_off, &
         lwrad_off_out=lwrad_off, &
+	precip_off_out=precip_off, &
         scm_clubb_iop_name_out=scm_clubb_iop_name)
    end if
 
@@ -459,6 +461,7 @@ contains
 			    scm_observed_aero_in=scm_observed_aero, &
                             swrad_off_in=swrad_off, &
                             lwrad_off_in=lwrad_off, &
+			    precip_off_in=precip_off, &
                             scm_clubb_iop_name_in=scm_clubb_iop_name)
       end if
    endif
