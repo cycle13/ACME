@@ -58,6 +58,7 @@ module global_summary
 
     character(len=shortchar) :: procedure_name   ! a procedure could be any piece of code
     character(len=shortchar) :: field_name       ! the physical quantity to be evaluated
+    character(len=shortchar) :: field_unit       ! unit of the field
 
     integer  :: cmpr_type  ! one of the comparison types defined above
     real(r8) :: threshold  ! threshold specified by developer/user
@@ -111,10 +112,11 @@ contains
   !  The subroutine registers a new field for getting global summary. It is expected to be
   !  called during the initialization of various parameterizations.
   !--------------------------------------------------------------------------------------------
-  subroutine add_smry_field( fldname, procname, cmprtype, threshold, fldidx )
+  subroutine add_smry_field( fldname, procname, fldunit, cmprtype, threshold, fldidx )
 
     character(len=*), intent(in)   :: fldname
     character(len=*), intent(in)   :: procname
+    character(len=*), intent(in)   :: fldunit
     real(r8)                       :: threshold
     integer                        :: cmprtype
     integer, intent(out), optional :: fldidx
@@ -154,6 +156,7 @@ contains
     ii = current_number_of_smry_fields
     global_smry_1d(ii)%field_name     = trim(fldname)
     global_smry_1d(ii)%procedure_name = trim(procname)
+    global_smry_1d(ii)%field_unit     = trim(fldunit)
     global_smry_1d(ii)%threshold      = threshold
     global_smry_1d(ii)%cmpr_type      = cmprtype
 
@@ -201,6 +204,9 @@ contains
     domain_smry_1d(1:current_number_of_smry_fields)%procedure_name = &
     global_smry_1d(1:current_number_of_smry_fields)%procedure_name
 
+    domain_smry_1d(1:current_number_of_smry_fields)%field_unit = &
+    global_smry_1d(1:current_number_of_smry_fields)%field_unit
+
     domain_smry_1d(1:current_number_of_smry_fields)%cmpr_type = &
     global_smry_1d(1:current_number_of_smry_fields)%cmpr_type
 
@@ -227,6 +233,9 @@ contains
 
        chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%procedure_name = &
       global_smry_1d(      1:current_number_of_smry_fields)%procedure_name
+
+       chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%field_unit = &
+      global_smry_1d(      1:current_number_of_smry_fields)%field_unit
 
        chunk_smry_2d(ichnk,1:current_number_of_smry_fields)%cmpr_type = &
       global_smry_1d(      1:current_number_of_smry_fields)%cmpr_type
@@ -333,8 +342,9 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
-         'chunk_smry: ',trim(chunk_smry%procedure_name),trim(chunk_smry%field_name),': ', &
+       write(iulog,'(2x,a,a36,a20,a12,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
+         'chunk_smry: ',trim(chunk_smry%procedure_name), &
+         trim(chunk_smry%field_name),'('//trim(chunk_smry%field_unit)//')',': ', &
          chunk_smry%count, ' values ',trim(cmpr_type_char), chunk_smry%threshold, &
          ', extreme is ',chunk_smry%extreme_val,' at ',&
          '  lat ',chunk_smry%extreme_lat *rad2deg, &
@@ -412,8 +422,9 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i10),(a,i4))') &
-         'chunk_smry: ',trim(chunk_smry%procedure_name),trim(chunk_smry%field_name),': ', &
+       write(iulog,'(2x,a,a36,a20,a12,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i10),(a,i4))') &
+         'chunk_smry: ',trim(chunk_smry%procedure_name), &
+         trim(chunk_smry%field_name),'('//trim(chunk_smry%field_unit)//')',': ', &
          chunk_smry%count, ' values ',trim(cmpr_type_char), chunk_smry%threshold, &
          ', extreme is ',chunk_smry%extreme_val,' at ',&
          '  lat ',chunk_smry%extreme_lat *rad2deg, &
@@ -479,8 +490,9 @@ contains
     ! Send message to log file
   
     if (l_print_always) then
-       write(iulog,'(2x,a,a36,a20,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
-         'domain_smry: ',trim(domain_smry%procedure_name),trim(domain_smry%field_name),': ', &
+       write(iulog,'(2x,a,a36,a20,a12,a2, i8,a,a7,e15.7, a,e15.7, a3,2(a,f7.2),(a,i4),(a,i10),(a,i4))') &
+         'domain_smry: ',trim(domain_smry%procedure_name), &
+         trim(domain_smry%field_name),'('//trim(domain_smry%field_unit)//')',': ', &
          domain_smry%count, ' values ',trim(cmpr_type_char), domain_smry%threshold, &
          ', extreme is ',domain_smry%extreme_val,' at ',&
          '  lat ',domain_smry%extreme_lat *rad2deg, &
@@ -564,9 +576,10 @@ contains
 
     if (masterproc) then
 
-      write(iulog,'(/,1x,a9,1x,i8,a)') 'nstep',nstep,', global summaries'
-      write(iulog,'(5x,15x,a36,a20, a7,a15,a2, a8, a15,2a8,a4,a10,a4)')    &
-                  'Procedure','Field','Cmpr.','Threshold','','Count','Extreme','Lat','Lon','Lev','Chunk','Col'
+      write(iulog,*)
+      write(iulog,'(15x,a8,a36,a20,a12, a7,a11,a2, a8, a11,2a8,a5,a10,a4)')    &
+                  'nstep','Procedure','Field','Unit','Cmpr.','Threshold','',   &
+                  'Count','Extreme','Lat','Lon','Lev','Chunk','Col'
 
       do ii = 1,current_number_of_smry_fields
 
@@ -621,8 +634,9 @@ contains
 
        ! Send message to log file
 
-       write(iulog,'(5x,a15,a36,a20, a7,e15.7,a2, i8, e15.7,2f8.2,i4,i10,i4)')    &
-             'GLOBAL SMRY:', trim(global_smry_1d(ii)%procedure_name), trim(global_smry_1d(ii)%field_name), &
+       write(iulog,'(a15,i8,a36,a20,a12, a7,e11.3,a2, i8, e11.3,2f8.2,i5,i10,i4)')    &
+             'GLB_VERIF_SMRY:',nstep, trim(global_smry_1d(ii)%procedure_name),     &
+             trim(global_smry_1d(ii)%field_name), '('//trim(global_smry_1d(ii)%field_unit)//')', &
              trim(cmpr_type_char), global_smry_1d(ii)%threshold, ':', &
              global_smry_1d(ii)%count,               global_smry_1d(ii)%extreme_val, &
              global_smry_1d(ii)%extreme_lat*rad2deg, global_smry_1d(ii)%extreme_lon*rad2deg, &

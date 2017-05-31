@@ -67,14 +67,14 @@ contains
     ! This has to be done before 'call phys_init' which allocates memory for 
     ! chunk_smry and domain_smry.
     !-------------------------------------------------------------------------
-    call add_smry_field('Q','test_part_1',GREATER_EQ,  1.E-4_r8)
-    call add_smry_field('Q','test_part_2',SMALLER_THAN,1.E-4_r8)
+    call add_smry_field('Q','test_part_1','kg/kg',GREATER_EQ,  1.E-4_r8)
+    call add_smry_field('Q','test_part_2','kg/kg',SMALLER_THAN,1.E-4_r8)
 
-    call add_smry_field('CLDLIQ','test_part_1',GREATER_EQ,  1.E-9_r8)
-    call add_smry_field('CLDLIQ','test_part_2',SMALLER_THAN,1.E-9_r8)
+    call add_smry_field('CLDLIQ','test_part_1','kg/kg',GREATER_EQ,  1.E-9_r8)
+    call add_smry_field('CLDLIQ','test_part_2','kg/kg',SMALLER_THAN,1.E-9_r8)
 
-    call add_smry_field('CLDICE','test_part_1',SMALLER_THAN,5._r8)
-    call add_smry_field('CLDICE','test_part_2',GREATER_EQ,  5._r8)
+    call add_smry_field('CLDICE','test_part_1','kg/kg',SMALLER_THAN,5._r8)
+    call add_smry_field('CLDICE','test_part_2','kg/kg',GREATER_EQ,  5._r8)
 
     !-------------------------------------------------------------------------------
     ! Allocate memory for state, tend, and stat vectors; read in initial conditions.
