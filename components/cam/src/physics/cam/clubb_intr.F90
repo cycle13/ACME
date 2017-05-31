@@ -2150,6 +2150,8 @@ end subroutine clubb_init_cnst
    !--------------------------------------------
    ! Diagnose time-step-mean conservation error
    !--------------------------------------------
+   ! Calculate relative conservation error from spurious source
+
    where( z_rtm_integral_before_1st_substep(:ncol) > qsmall ) 
      z_rtm_cnsv_err(:ncol) = z_rtm_spur_src_sum(:ncol) * dtime &
                            / z_rtm_integral_before_1st_substep(:ncol)
@@ -2158,19 +2160,29 @@ end subroutine clubb_init_cnst
      z_thlm_cnsv_err(:ncol) = z_thlm_spur_src_sum(:ncol) * dtime &
                             / z_thlm_integral_before_1st_substep(:ncol)
 
+   ! chunk summary for rtm
+
+   call t_startf('get_chunk_smry')
    call get_smry_field_idx('RTM_CNSV_ERR','clubb_tend_cam',istat)
    if (istat.ne.-999) then
       call get_chunk_smry( ncol, z_rtm_cnsv_err(:ncol),        &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
+   call t_stopf('get_chunk_smry')
 
+   ! chunk summary for thlm
+
+   call t_startf('get_chunk_smry')
    call get_smry_field_idx('THLM_CNSV_ERR','clubb_tend_cam',istat)
    if (istat.ne.-999) then
       call get_chunk_smry( ncol, z_thlm_cnsv_err(:ncol,2),     &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
+   call t_stopf('get_chunk_smry')
+
+   ! prep for history output
 
    call outfld(  'RTM_CNSV_ERR',  z_rtm_cnsv_err, pcols, lchnk)
    call outfld( 'THLM_CNSV_ERR', z_thlm_cnsv_err, pcols, lchnk)

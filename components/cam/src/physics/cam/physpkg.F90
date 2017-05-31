@@ -1238,7 +1238,9 @@ subroutine phys_run2(phys_state, ztodt, phys_tend, chunk_smry_2d, domain_smry_1d
     call gmean_mass ('after tphysac FV:WET)', phys_state)
 #endif
 
+    call t_startf('get_global_smry')
     call get_global_smry( chunk_smry_2d, domain_smry_1d, nstep)
+    call t_stopf('get_global_smry')
 
     call t_startf ('carma_accumulate_stats')
     call carma_accumulate_stats()
