@@ -1250,11 +1250,11 @@ end subroutine clubb_init_cnst
 
    ! energy conservation diagnostics for output
 
-   real(r8) :: te_xpd          (pcol)         ! "expected" value of the column-integrated total energy 
+   real(r8) :: te_xpd          (pcols)        ! "expected" value of the column-integrated total energy 
                                               ! after all substeps of CLUBB integration
                                               ! (= value before integration + increment caused by sources/sinks)
-   real(r8) :: te_rel_err      (pcol)         ! relative error of column-integrated total energy
-   real(r8) :: dsdt_efixer     (pcol)         ! dry static energy tendency due to energy fixer
+   real(r8) :: te_rel_err      (pcols)        ! relative error of column-integrated total energy
+   real(r8) :: dsdt_efixer     (pcols)        ! dry static energy tendency due to energy fixer
    real(r8) :: dsdt_efixer_rel (pcols,pver)   ! ration between tendencies caused by energy fixer and by CLUBB
    real(r8) :: zsmall = 1.e-12_r8
 
