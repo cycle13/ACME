@@ -2176,7 +2176,7 @@ end subroutine clubb_init_cnst
    call t_startf('get_chunk_smry')
    call get_smry_field_idx('THLM_CNSV_ERR','clubb_tend_cam',istat)
    if (istat.ne.-999) then
-      call get_chunk_smry( ncol, z_thlm_cnsv_err(:ncol,2),     &! intent(in)
+      call get_chunk_smry( ncol, z_thlm_cnsv_err(:ncol),       &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
