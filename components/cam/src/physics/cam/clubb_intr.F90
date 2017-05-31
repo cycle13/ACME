@@ -599,8 +599,8 @@ end subroutine clubb_init_cnst
     ! conservation errors.
     ! ----------------------------------------------------------------- !
     call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend(check_energy_chng)','1',ABS_GREATER_EQ,rounding_tol)
-    call add_smry_field( 'RTM_SPUR_SRC',     'clubb_tend_cam',               '1/s',ABS_GREATER_EQ,rounding_tol)
-    call add_smry_field('THLM_SPUR_SRC',     'clubb_tend_cam',               '1/s',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field( 'RTM_CNSV_ERR',     'clubb_tend_cam',               '1',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('THLM_CNSV_ERR',     'clubb_tend_cam',               '1',ABS_GREATER_EQ,rounding_tol)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
@@ -769,8 +769,8 @@ end subroutine clubb_init_cnst
     call addfld ('CONCLD', (/ 'lev' /),  'A',        'fraction', 'Convective cloud cover')
     call addfld ('CMELIQ', (/ 'lev' /),  'A',        'kg/kg/s', 'Rate of cond-evap of liq within the cloud')
 
-    call addfld ( 'RTM_SPURSRC_REL', horiz_only, 'A','1/s', 'Spurious source of vertically integrated rtm, normalized')
-    call addfld ('THLM_SPURSRC_REL', horiz_only, 'A','1/s', 'Spurious source of vertically integrated thlm, normalized')
+    call addfld ( 'RTM_CNSV_ERR', horiz_only, 'A','1', 'relative conservation error in vertically integrated rtm')
+    call addfld ('THLM_CNSV_ERR', horiz_only, 'A','1', 'relative conservation error in vertically integrated thlm')
 
     !  Initialize statistics, below are dummy variables
     dum1 = 300._r8
@@ -1188,12 +1188,9 @@ end subroutine clubb_init_cnst
    real(r8) ::  z_rtm_spur_src_sum (pcols)
    real(r8) :: z_thlm_spur_src_sum (pcols)
 
-   real(r8) :: zrnadv
+   real(r8) ::  z_rtm_cnsv_err (pcols)
+   real(r8) :: z_thlm_cnsv_err (pcols)
 
-   real(r8) :: z_spur_src_relative (pcols,2)
-   character(len=10) :: fldname(2) = (/"rtm_CLUBB ","thlm_CLUBB"/)
-
-   character(len=128) :: string
    integer :: istat
 
    ! --------------- !
@@ -1444,8 +1441,6 @@ end subroutine clubb_init_cnst
    !  host time step divided by CLUBB time step  
    nadv = max(hdtime/dtime,1._r8)
 
-   zrnadv = 1._r8/nadv
-  
    !  Initialize forcings for transported scalars to zero
    
    sclrm_forcing(:,:)   = 0._r8
@@ -2152,33 +2147,33 @@ end subroutine clubb_init_cnst
    enddo  ! end column loop
    call t_stopf('adv_clubb_core_col_loop')
 
-   !-------------------------------------------------------------------------
-   ! Diagnose time-step-mean conservation error and send message to log file
-   !-------------------------------------------------------------------------
+   !--------------------------------------------
+   ! Diagnose time-step-mean conservation error
+   !--------------------------------------------
    where( z_rtm_integral_before_1st_substep(:ncol) > qsmall ) 
-     z_spur_src_relative(:ncol,1) = z_rtm_spur_src_sum(:ncol) * zrnadv &
-                                  / z_rtm_integral_before_1st_substep(:ncol)
+     z_rtm_cnsv_err(:ncol) = z_rtm_spur_src_sum(:ncol) * dtime &
+                           / z_rtm_integral_before_1st_substep(:ncol)
    endwhere 
 
-     z_spur_src_relative(:ncol,2) = z_thlm_spur_src_sum(:ncol) * zrnadv &
-                                  / z_thlm_integral_before_1st_substep(:ncol)
+     z_thlm_cnsv_err(:ncol) = z_thlm_spur_src_sum(:ncol) * dtime &
+                            / z_thlm_integral_before_1st_substep(:ncol)
 
-   call get_smry_field_idx('RTM_SPUR_SRC','clubb_tend_cam',istat)
+   call get_smry_field_idx('RTM_CNSV_ERR','clubb_tend_cam',istat)
    if (istat.ne.-999) then
-      call get_chunk_smry( ncol, z_spur_src_relative(:ncol,1), &! intent(in)
+      call get_chunk_smry( ncol, z_rtm_cnsv_err(:ncol),        &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
 
-   call get_smry_field_idx('THLM_SPUR_SRC','clubb_tend_cam',istat)
+   call get_smry_field_idx('THLM_CNSV_ERR','clubb_tend_cam',istat)
    if (istat.ne.-999) then
-      call get_chunk_smry( ncol, z_spur_src_relative(:ncol,2), &! intent(in)
+      call get_chunk_smry( ncol, z_thlm_cnsv_err(:ncol,2),     &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
 
-   call outfld(  'RTM_SPURSRC_REL', z_spur_src_relative(:,1), pcols, lchnk)
-   call outfld( 'THLM_SPURSRC_REL', z_spur_src_relative(:,2), pcols, lchnk)
+   call outfld(  'RTM_CNSV_ERR',  z_rtm_cnsv_err, pcols, lchnk)
+   call outfld( 'THLM_CNSV_ERR', z_thlm_cnsv_err, pcols, lchnk)
    !-------------------------------------------------------------------------
    
    ! Add constant to ghost point so that output is not corrupted 
