@@ -598,9 +598,10 @@ end subroutine clubb_init_cnst
     ! Register fields for calculating global statistics for, e.g., 
     ! conservation errors.
     ! ----------------------------------------------------------------- !
-    call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend(check_energy_chng)','1',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field( 'RTM_CNSV_ERR',     'clubb_tend_cam',               '1',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('THLM_CNSV_ERR',     'clubb_tend_cam',               '1',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend_cam (before fixer)','1',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend(check_energy_chng)','1',ABS_GREATER_EQ,rounding_tol)
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
@@ -771,6 +772,10 @@ end subroutine clubb_init_cnst
 
     call addfld ( 'RTM_CNSV_ERR', horiz_only, 'A','1', 'relative conservation error in vertically integrated rtm')
     call addfld ('THLM_CNSV_ERR', horiz_only, 'A','1', 'relative conservation error in vertically integrated thlm')
+
+    call addfld ('CLUBB_ENERGY_ERR',  horiz_only,'A', '1',  'Relative error in column integrated total energ at the clubb-cam INT' )
+    call addfld ('CLUBB_STEND_EFIX',  horiz_only,'A', 'k/s','Dry static energy tendency due to energy fixer')
+    call addfld ('CLUBB_STENDR_EFIX',(/ 'lev' /),'A', '1',  'Dry static energy tendency due to energy fixer, relative to CLUBBs tendency')
 
     !  Initialize statistics, below are dummy variables
     dum1 = 300._r8
@@ -1242,7 +1247,17 @@ end subroutine clubb_init_cnst
    real(r8)  qitend(pcols,pver)
    real(r8)  initend(pcols,pver)
    logical            :: lqice(pcnst)
-   
+
+   ! energy conservation diagnostics for output
+
+   real(r8) :: te_xpd          (pcol)         ! "expected" value of the column-integrated total energy 
+                                              ! after all substeps of CLUBB integration
+                                              ! (= value before integration + increment caused by sources/sinks)
+   real(r8) :: te_rel_err      (pcol)         ! relative error of column-integrated total energy
+   real(r8) :: dsdt_efixer     (pcol)         ! dry static energy tendency due to energy fixer
+   real(r8) :: dsdt_efixer_rel (pcols,pver)   ! ration between tendencies caused by energy fixer and by CLUBB
+   real(r8) :: zsmall = 1.e-12_r8
+
    integer :: ixorg
 
    intrinsic :: selected_real_kind, max
@@ -2062,7 +2077,7 @@ end subroutine clubb_init_cnst
       enddo
      
       ! Take into account the surface fluxes of heat and moisture
-      te_b(i) = te_b(i)+(cam_in%shf(i)+(cam_in%cflx(i,1))*(latvap+latice))*hdtime
+      te_xpd(i) = te_b(i)+(cam_in%shf(i)+(cam_in%cflx(i,1))*(latvap+latice))*hdtime
 
       ! Limit the energy fixer to find highest layer where CLUBB is active
       ! Find first level where wp2 is higher than lowest threshold
@@ -2072,7 +2087,11 @@ end subroutine clubb_init_cnst
       enddo
 
       ! Compute the disbalance of total energy, over depth where CLUBB is active
-      se_dis = (te_a(i) - te_b(i))/(state1%pint(i,pverp)-state1%pint(i,clubbtop))
+      se_dis = (te_a(i) - te_xpd(i))/(state1%pint(i,pverp)-state1%pint(i,clubbtop))
+
+      ! Save error for output
+      te_rel_err(i) = ( te_a(i) - te_xpd(i) )/te_b(i)
+      dsdt_efixer(i) = - se_dis*gravit/hdtime
 
       ! Apply this fixer throughout the column evenly, but only at layers where
       ! CLUBB is active.
@@ -2089,6 +2108,11 @@ end subroutine clubb_init_cnst
          ptend_loc%q(i,k,ixq) = (rtm(i,k)-rcm(i,k)-state1%q(i,k,ixq))/hdtime ! water vapor
          ptend_loc%q(i,k,ixcldliq) = (rcm(i,k)-state1%q(i,k,ixcldliq))/hdtime   ! Tendency of liquid water
          ptend_loc%s(i,k)   = (clubb_s(k)-state1%s(i,k))/hdtime          ! Tendency of static energy
+
+         !save for output
+         if (abs(ptend_loc%s(i,k)).gt.zsmall) then
+            dsdt_efixer_rel(i,k) = dsdt_efixer(i)/ptend_loc%s(i,k)
+         end if
 
          if (clubb_do_adv) then
             if (macmic_it .eq. cld_macmic_num_steps) then
@@ -2186,6 +2210,22 @@ end subroutine clubb_init_cnst
 
    call outfld(  'RTM_CNSV_ERR',  z_rtm_cnsv_err, pcols, lchnk)
    call outfld( 'THLM_CNSV_ERR', z_thlm_cnsv_err, pcols, lchnk)
+
+   !-------------------------------------------------------------------------
+   ! Energy fixer related diagnostics
+
+   call t_startf('get_chunk_smry')
+   call get_smry_field_idx('TOT_ENERGY_REL_ERR','clubb_tend_cam (before fixer)',istat)
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, te_rel_err(:ncol),            &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
+   call t_stopf('get_chunk_smry')
+
+   call outfld( 'CLUBB_ENERGY_ERR',   te_rel_err,    pcols,lchnk)
+   call outfld( 'CLUBB_STEND_EFIX',  dsdt_efixer,    pcols,lchnk)
+   call outfld( 'CLUBB_STENDR_EFIX', dsdt_efixer_rel,pcols,lchnk)
    !-------------------------------------------------------------------------
    
    ! Add constant to ghost point so that output is not corrupted 
