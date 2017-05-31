@@ -753,9 +753,22 @@ end subroutine clubb_init_cnst
     call addfld ('DPDLFT', (/ 'lev' /),  'A',        'K/s', 'T-tendency due to deep convective detrainment') 
     call addfld ('RELVAR', (/ 'lev' /),  'A',        '-', 'Relative cloud water variance')
 
-
     call addfld ('CONCLD', (/ 'lev' /),  'A',        'fraction', 'Convective cloud cover')
     call addfld ('CMELIQ', (/ 'lev' /),  'A',        'kg/kg/s', 'Rate of cond-evap of liq within the cloud')
+
+    call addfld ('CLUBB_ENG_RELERR',   horiz_only, 'A', 'J/m2','Relative error in column integrated total energy' )
+    call addfld ('CLUBB_STEND_EFIXER', horiz_only, 'A', 'k/s', 'Dry static energy tendency due to energy fixer')
+    call addfld ('CLUBB_RSTEND_EFIXER',(/ 'lev' /),'A', 'k/s', 'Dry static energy tendency due to energy fixer, relative to CLUBBs tendency')
+
+    call addfld ('CLUBB_THLM_AMS'  ,(/ 'lev' /),'A', 'K', 'thlm calculated using the AMS formula')
+    call addfld ('CLUBB_THLM_BETTS',(/ 'lev' /),'A', 'K', 'thlm calculated using the Betts formula')
+    call addfld ('CLUBB_THLM_DIFF' ,(/ 'lev' /),'A', 'K', 'thlm difference: Betts formula minus AMS formula')
+
+    call addfld ('CLUBB_S_AMS'  ,(/ 'lev' /),'A', 'J', 'dry static energy calculated using the AMS formula')
+    call addfld ('CLUBB_S_BETTS',(/ 'lev' /),'A', 'J', 'dry static energy calculated using the Betts formula')
+    call addfld ('CLUBB_S_DIFF' ,(/ 'lev' /),'A', 'J', 'dry static energy difference: Betts formula minus AMS formula')
+    call addfld ('CLUBB_S_INCR' ,(/ 'lev' /),'A', 'J', 'dry static energy increment in one time step, from CLUBB')
+    call addfld ('CLUBB_S_RDIFF',(/ 'lev' /),'A', '1', 'dry static energy difference divided by increment in one time step')
 
     !  Initialize statistics, below are dummy variables
     dum1 = 300._r8
@@ -1205,6 +1218,25 @@ end subroutine clubb_init_cnst
    real(r8)  qitend(pcols,pver)
    real(r8)  initend(pcols,pver)
    logical            :: lqice(pcnst)
+
+   ! energy conservation diagnostics for output
+
+   real(r8) :: te_rel_err           (pver)   ! relative error of column-integrated total energy
+   real(r8) :: dsdt_efixer          (pver)   ! dry static energy tendency due to energy fixer
+   real(r8) :: dsdt_efixer_rel(pcols,pver)   ! ration between tendencies caused by energy fixer and by CLUBB
+   real(r8) :: zsmall = 1.e-12_r8
+
+   ! diagnostics for output
+
+   real(r8) :: thlm_ams  (pcols,pver)
+   real(r8) :: thlm_betts(pcols,pver)
+   real(r8) :: thlm_diff (pcols,pver)
+
+   real(r8) :: clubb_s_ams    (pcols,pver)
+   real(r8) :: clubb_s_betts  (pcols,pver)
+   real(r8) :: clubb_s_diff   (pcols,pver)
+   real(r8) :: clubb_s_incr   (pcols,pver)
+   real(r8) :: clubb_s_rdiff  (pcols,pver)
    
    integer :: ixorg
 
@@ -1214,6 +1246,9 @@ end subroutine clubb_init_cnst
    det_s(:)   = 0.0_r8
    det_ice(:) = 0.0_r8
 #ifdef CLUBB_SGS
+
+   clubb_s_incr (:,:) = 0._r8
+   clubb_s_rdiff(:,:) = 0._r8
 
    !-----------------------------------------------------------------------------------------------!
    !-----------------------------------------------------------------------------------------------!
@@ -1437,6 +1472,10 @@ end subroutine clubb_init_cnst
        um(i,k)      = state1%u(i,k)
        vm(i,k)      = state1%v(i,k)
        thlm(i,k)    = state1%t(i,k)*exner_clubb(i,k)-(latvap/cpair)*state1%q(i,k,ixcldliq)
+
+       thlm_ams  (i,k) = thlm(i,k)
+       thlm_betts(i,k) = ( state1%t(i,k) - (latvap/cpair)*state1%q(i,k,ixcldliq) )*exner_clubb(i,k)
+       thlm_diff (i,k) = thlm_betts(i,k) - thlm_ams(i,k) 
 
        if (clubb_do_adv) then
           if (macmic_it .eq. 1) then 
@@ -1990,6 +2029,12 @@ end subroutine clubb_init_cnst
       do k=1,pver
          clubb_s(k) = cpair*((thlm(i,k)+(latvap/cpair)*rcm(i,k))/exner_clubb(i,k))+ &
                       gravit*state1%zm(i,k)+state1%phis(i)
+
+         clubb_s_betts(i,k) = cpair*(thlm(i,k)/exner_clubb(i,k)+(latvap/cpair)*rcm(i,k))+ &
+                              gravit*state1%zm(i,k)+state1%phis(i) 
+         clubb_s_ams  (i,k) = clubb_s(k) 
+         clubb_s_diff (i,k) = clubb_s_betts(i,k) - clubb_s_ams(i,k)
+
          se_a(i) = se_a(i) + clubb_s(k)*state1%pdel(i,k)/gravit
          ke_a(i) = ke_a(i) + 0.5_r8*(um(i,k)**2+vm(i,k)**2)*state1%pdel(i,k)/gravit
          wv_a(i) = wv_a(i) + (rtm(i,k)-rcm(i,k))*state1%pdel(i,k)/gravit
@@ -2015,6 +2060,10 @@ end subroutine clubb_init_cnst
       ! Compute the disbalance of total energy, over depth where CLUBB is active
       se_dis = (te_a(i) - te_b(i))/(state1%pint(i,pverp)-state1%pint(i,clubbtop))
 
+      ! Save error for output
+      te_rel_err(i) = te_a(i)/te_b(i) - 1._r8
+      dsdt_efixer(i) = - se_dis*gravit/hdtime
+
       ! Apply this fixer throughout the column evenly, but only at layers where
       ! CLUBB is active.
       do k=clubbtop,pver
@@ -2030,6 +2079,13 @@ end subroutine clubb_init_cnst
          ptend_loc%q(i,k,ixq) = (rtm(i,k)-rcm(i,k)-state1%q(i,k,ixq))/hdtime ! water vapor
          ptend_loc%q(i,k,ixcldliq) = (rcm(i,k)-state1%q(i,k,ixcldliq))/hdtime   ! Tendency of liquid water
          ptend_loc%s(i,k)   = (clubb_s(k)-state1%s(i,k))/hdtime          ! Tendency of static energy
+
+         !save for output
+         if (abs(ptend_loc%s(i,k)).gt.zsmall) then
+            dsdt_efixer_rel(i,k) = dsdt_efixer(i)/ptend_loc%s(i,k)
+            clubb_s_incr (i,k)   = ptend_loc%s(i,k)*hdtime
+            clubb_s_rdiff(i,k)   = clubb_s_diff(i,k)/clubb_s_incr(i,k)
+         end if
 
          if (clubb_do_adv) then
             if (macmic_it .eq. cld_macmic_num_steps) then
@@ -2112,6 +2168,21 @@ end subroutine clubb_init_cnst
    call outfld( 'STEND_CLUBB',   ptend_loc%s,pcols, lchnk)
    call outfld( 'UTEND_CLUBB',   ptend_loc%u,pcols, lchnk)
    call outfld( 'VTEND_CLUBB',   ptend_loc%v,pcols, lchnk)     
+
+   call outfld( 'CLUBB_ENG_RELERR',   te_rel_err, pcols,lchnk)
+   call outfld( 'CLUBB_STEND_EFIXER', dsdt_efixer,pcols,lchnk)
+   call outfld( 'CLUBB_RSTEND_EFIXER',dsdt_efixer_rel,pcols,lchnk)
+
+   call outfld ('CLUBB_THLM_AMS'  ,thlm_ams,  pcols,lchnk)
+   call outfld ('CLUBB_THLM_BETTS',thlm_betts,pcols,lchnk)
+   call outfld ('CLUBB_THLM_DIFF' ,thlm_diff, pcols,lchnk)
+
+   call outfld ('CLUBB_S_AMS'     ,clubb_s_ams,  pcols,lchnk)
+   call outfld ('CLUBB_S_BETTS'   ,clubb_s_betts,pcols,lchnk)
+   call outfld ('CLUBB_S_DIFF'    ,clubb_s_diff, pcols,lchnk)
+   call outfld ('CLUBB_S_INCR'    ,clubb_s_incr, pcols,lchnk)
+   call outfld ('CLUBB_S_RDIFF'   ,clubb_s_rdiff,pcols,lchnk)
+
 
    if (clubb_do_deep) call outfld( 'MU_CLUBB',      varmu      ,pcols, lchnk)
 
