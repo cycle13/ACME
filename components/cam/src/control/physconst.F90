@@ -105,7 +105,8 @@ module physconst
 
 !---------------  Variables below are for conservation checks -----------------------
 
-   real(r8), public           :: rounding_tol = 1.e-14_r8  ! rounding error tolerance
+   real(r8), public           ::   rounding_tol = 1.e-14_r8  ! rounding error tolerance
+   real(r8), public           :: water_cnsv_tol = 1.e-10_r8  ! tolerance for total water conservation
 
 !================================================================================================
 contains
@@ -163,7 +164,8 @@ contains
       logical       newg, newsday, newmwh2o, newcpwv, newmwdry, newrearth, newtmelt
 
       ! Physical constants needing to be reset (ie. for aqua planet experiments)
-      namelist /physconst_nl/  cpwv, gravit, mwdry, mwh2o, rearth, sday, tmelt, tms_orocnst, tms_z0fac, rounding_tol
+      namelist /physconst_nl/  cpwv, gravit, mwdry, mwh2o, rearth, sday, tmelt, tms_orocnst, tms_z0fac &
+                             , rounding_tol, water_cnsv_tol
 
       !-----------------------------------------------------------------------------
 
@@ -193,6 +195,7 @@ contains
       call mpibcast(tms_orocnst, 1,                 mpir8,   0, mpicom)
       call mpibcast(tms_z0fac, 1,                   mpir8,   0, mpicom)
       call mpibcast(rounding_tol,1,                 mpir8,   0, mpicom)
+      call mpibcast(water_cnsv_tol,1,               mpir8,   0, mpicom)
 #endif
 
 
@@ -246,7 +249,8 @@ contains
       if (masterproc) then
          write(iulog,*)'****************************************************************************'
          write(iulog,*)'***    Tolerances for conservation checks set via namelist'
-         write(iulog,*)'***      rounding_tol = ',rounding_tol
+         write(iulog,*)'***        rounding_tol = ',rounding_tol
+         write(iulog,*)'***      water_cnsv_tol = ',water_cnsv_tol
          write(iulog,*)'****************************************************************************'
       end if
       

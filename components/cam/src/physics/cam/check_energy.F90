@@ -543,15 +543,22 @@ end subroutine check_energy_get_integrals
        tw_rer(:ncol) = (tw_xpd(:ncol) - tw(:ncol)) / state%tw_cur(:ncol)
     end where
 
+    !----
     ! error checking
     !----
     call t_startf('get_chunk_smry')
-
     call get_smry_field_idx('TOT_ENERGY_REL_ERR',name//'(check_energy_chng)',istat)
     if (istat.ne.-999) then
        call get_chunk_smry( ncol, te_rer(:ncol),state%lat(:ncol), state%lon(:ncol), chunk_smry(istat) )
     end if
+    call t_stopf('get_chunk_smry')
 
+    !----
+    call t_startf('get_chunk_smry')
+    call get_smry_field_idx('TOT_WATER_REL_ERR',name//'(check_energy_chng)',istat)
+    if (istat.ne.-999) then
+       call get_chunk_smry( ncol, tw_rer(:ncol),state%lat(:ncol), state%lon(:ncol), chunk_smry(istat) )
+    end if
     call t_stopf('get_chunk_smry')
     !----
     ! the relative error threshold for the water budget has been reduced to 1.e-10

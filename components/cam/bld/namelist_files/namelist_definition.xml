@@ -7039,4 +7039,10 @@ Rounding error tolerance used in checking relative energy conservation error etc
 Default: 1E-14
 </entry>
 
+<entry id="water_cnsv_tol" type="real" category="physconst"
+       group="physconst_nl" valid_values="" >
+Tolerance of relative error in total energy conservation.
+Default: 1E-10
+</entry>
+
 </namelist_definition>
