@@ -577,7 +577,7 @@ contains
     if (masterproc) then
 
       write(iulog,*)
-      write(iulog,'(15x,a8,a36,a20,a12, a7,a11,a2, a8, a11,2a8,a5,a10,a4)')    &
+      write(iulog,'(15x,a8,a36,a20,a12, a10,a11,a2, a8, a11,2a8,a5,a10,a4)')   &
                   'nstep','Procedure','Field','Unit','Cmpr.','Threshold','',   &
                   'Count','Extreme','Lat','Lon','Lev','Chunk','Col'
 
@@ -634,11 +634,11 @@ contains
 
        ! Send message to log file
 
-       write(iulog,'(a15,i8,a36,a20,a12, a7,e11.3,a2, i8, e11.3,2f8.2,i5,i10,i4)')    &
-             'GLB_VERIF_SMRY:',nstep, trim(global_smry_1d(ii)%procedure_name),     &
-             trim(global_smry_1d(ii)%field_name), '('//trim(global_smry_1d(ii)%field_unit)//')', &
-             trim(cmpr_type_char), global_smry_1d(ii)%threshold, ':', &
-             global_smry_1d(ii)%count,               global_smry_1d(ii)%extreme_val, &
+       write(iulog,'(a15,i8,a36,a20,a12, a10,e11.3,a2, i8, e11.3,2f8.2,i5,i10,i4)')    &
+             'GLB_VERIF_SMRY:',nstep, trim(global_smry_1d(ii)%procedure_name),         &
+             trim(global_smry_1d(ii)%field_name), trim(global_smry_1d(ii)%field_unit), &
+             trim(cmpr_type_char), global_smry_1d(ii)%threshold, ':',                  &
+             global_smry_1d(ii)%count,               global_smry_1d(ii)%extreme_val,   &
              global_smry_1d(ii)%extreme_lat*rad2deg, global_smry_1d(ii)%extreme_lon*rad2deg, &
              global_smry_1d(ii)%extreme_lev, &
              global_smry_1d(ii)%extreme_chnk,        global_smry_1d(ii)%extreme_col

@@ -138,8 +138,8 @@ subroutine zm_conv_init(pref_edge)
 ! 
 ! Register fields for global summary 
 !
-  call add_smry_field('TOT_ENERGY_REL_ERR','convect_deep(check_energy_chng)','1',ABS_GREATER_EQ,rounding_tol)
-  call add_smry_field('TOT_WATER_REL_ERR', 'convect_deep(check_energy_chng)','1',ABS_GREATER_EQ,water_cnsv_tol)
+  call add_smry_field('TOT_ENERGY_REL_ERR','convect_deep(check_energy_chng)','-',ABS_GREATER_EQ,rounding_tol)
+  call add_smry_field('TOT_WATER_REL_ERR', 'convect_deep(check_energy_chng)','-',ABS_GREATER_EQ,water_cnsv_tol)
 ! 
 ! Register fields with the output buffer
 !
