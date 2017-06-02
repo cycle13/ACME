@@ -2906,6 +2906,21 @@ Temporary variable for a bug fix. Introduced to maintain BFB, must be REMOVED la
 Default: FALSE
 </entry>
 
+<entry id="clubb_const_exner" type="logical" category="pblrad"
+       group="clubbpbl_diff_nl" valid_values="" >
+Default: FALSE
+</entry>
+
+<entry id="clubb_energy_no_ke" type="logical" category="pblrad"
+       group="clubbpbl_diff_nl" valid_values="" >
+Default: FALSE
+</entry>
+
+<entry id="clubb_energy_liquid" type="logical" category="pblrad"
+       group="clubbpbl_diff_nl" valid_values="" >
+Default: FALSE
+</entry>
+
 <!-- Clubb tunable parameters -->
 
 <entry id="C1" type="real" category="pblrad"

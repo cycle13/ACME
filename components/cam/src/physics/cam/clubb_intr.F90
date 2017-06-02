@@ -126,6 +126,9 @@ module clubb_intr
   logical            :: clubb_do_deep
   logical            :: micro_do_icesupersat
   logical            :: history_budget
+  logical            :: clubb_const_exner          ! when true, set exner = 1. for verification tests.
+  logical            :: clubb_energy_no_ke         ! when true, exclude kinentic energy in the calculation of total energy 
+  logical            :: clubb_energy_liquid        ! when true, define total energy as  liquid water static energy 
 
   integer            :: history_budget_histfile_num
   integer            :: edsclr_dim       ! Number of scalars to transport in CLUBB
@@ -375,7 +378,8 @@ end subroutine clubb_init_cnst
     namelist /clubbpbl_diff_nl/ clubb_cloudtop_cooling, clubb_rainevap_turb, clubb_expldiff, &
                                 clubb_do_adv, clubb_do_deep, clubb_timestep, clubb_stabcorrect, &
                                 clubb_rnevap_effic, clubb_liq_deep, clubb_liq_sh, clubb_ice_deep, &
-                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix
+                                clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix, &
+                                clubb_const_exner, clubb_energy_no_ke, clubb_energy_liquid
 
     !----- Begin Code -----
 
@@ -389,6 +393,10 @@ end subroutine clubb_init_cnst
     relvar_fix         = .false.   ! Initialize to false
     clubb_do_adv       = .false.   ! Initialize to false
     clubb_do_deep      = .false.   ! Initialize to false
+
+    clubb_const_exner   = .false.   ! .false. means calculate exner function using pressure
+    clubb_energy_no_ke  = .false.   ! .false. means include kinetic energy in energy checker and fixer
+    clubb_energy_liquid = .false.   ! .false. means using ACME's definition of total energy (frozen) 
 
     !  Read namelist to determine if CLUBB history should be called
     if (masterproc) then
@@ -424,6 +432,9 @@ end subroutine clubb_init_cnst
       call mpibcast(clubb_expldiff,           1,   mpilog,   0, mpicom)
       call mpibcast(clubb_do_adv,             1,   mpilog,   0, mpicom)
       call mpibcast(clubb_do_deep,            1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_const_exner,        1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_energy_no_ke,       1,  mpilog,   0, mpicom)
+      call mpibcast(clubb_energy_liquid,      1,   mpilog,   0, mpicom)
       call mpibcast(clubb_timestep,           1,   mpir8,   0, mpicom)
       call mpibcast(clubb_stabcorrect,        1,   mpilog,   0, mpicom)
       call mpibcast(clubb_rnevap_effic,       1,   mpir8,   0, mpicom)
@@ -1473,11 +1484,17 @@ end subroutine clubb_init_cnst
    !  treatment with CLUBB code, anytime exner is needed to treat CLUBB variables 
    !  (such as thlm), use "exner_clubb" other wise use the exner in state
 
-   do k=1,pver
+   if (clubb_const_exner) then  ! for verification tests
+      exner_clubb = 1._r8
+   else
+
+     do k=1,pver
      do i=1,ncol
        exner_clubb(i,k) = 1._r8/((state1%pmid(i,k)/p0_clubb)**(rair/cpair))
      enddo
-   enddo
+     enddo
+
+   end if
    
    !  At each CLUBB call, initialize mean momentum  and thermo CLUBB state 
    !  from the CAM state 
@@ -1544,17 +1561,24 @@ end subroutine clubb_init_cnst
    ! effort to conserve energy since liquid water potential temperature (which CLUBB 
    ! conserves) and static energy (which CAM conserves) are not exactly equal.   
    se_b = 0._r8
-   ke_b = 0._r8
    wv_b = 0._r8
    wl_b = 0._r8
    do k=1,pver
      do i=1,ncol
        se_b(i) = se_b(i) + state1%s(i,k)*state1%pdel(i,k)/gravit
-       ke_b(i) = ke_b(i) + 0.5_r8*(um(i,k)**2+vm(i,k)**2)*state1%pdel(i,k)/gravit
        wv_b(i) = wv_b(i) + state1%q(i,k,ixq)*state1%pdel(i,k)/gravit
        wl_b(i) = wl_b(i) + state1%q(i,k,ixcldliq)*state1%pdel(i,k)/gravit
      enddo
    enddo
+
+   ! Computer vertically integrated kinentic energy
+   ke_b = 0._r8
+
+   if (.not.clubb_energy_no_ke) then
+      do k=1,pver
+         ke_b(1:ncol) = ke_b(1:ncol) + 0.5_r8*(um(1:ncol,k)**2+vm(1:ncol,k)**2)*state1%pdel(1:ncol,k)/gravit
+      enddo
+   endif
 
    !  Compute virtual potential temperature, which is needed for CLUBB  
    do k=1,pver
@@ -2059,23 +2083,33 @@ end subroutine clubb_init_cnst
       ! Compute integrals for static energy, kinetic energy, water vapor, and liquid water
       ! after CLUBB is called.  This is for energy conservation purposes.
       se_a = 0._r8
-      ke_a = 0._r8
       wv_a = 0._r8
       wl_a = 0._r8
       do k=1,pver
          clubb_s(k) = cpair*((thlm(i,k)+(latvap/cpair)*rcm(i,k))/exner_clubb(i,k))+ &
                       gravit*state1%zm(i,k)+state1%phis(i)
          se_a(i) = se_a(i) + clubb_s(k)*state1%pdel(i,k)/gravit
-         ke_a(i) = ke_a(i) + 0.5_r8*(um(i,k)**2+vm(i,k)**2)*state1%pdel(i,k)/gravit
          wv_a(i) = wv_a(i) + (rtm(i,k)-rcm(i,k))*state1%pdel(i,k)/gravit
          wl_a(i) = wl_a(i) + (rcm(i,k))*state1%pdel(i,k)/gravit
       enddo
+
+      ! Computer vertically integrated kinentic energy
+      ke_a = 0._r8
+
+      if (.not.clubb_energy_no_ke) then
+         do k=1,pver
+            ke_a(i) = ke_a(i) + 0.5_r8*(um(i,k)**2+vm(i,k)**2)*state1%pdel(i,k)/gravit
+         enddo
+      end if
      
       ! Based on these integrals, compute the total energy before and after CLUBB call
-      do k=1,pver
+      if (clubb_energy_liquid) then
+         te_a(i) = se_a(i) + ke_a(i) - latvap*wl_a(i)
+         te_b(i) = se_b(i) + ke_b(i) - latvap*wl_b(i)
+      else
          te_a(i) = se_a(i) + ke_a(i) + (latvap+latice)*wv_a(i)+latice*wl_a(i)
          te_b(i) = se_b(i) + ke_b(i) + (latvap+latice)*wv_b(i)+latice*wl_b(i)
-      enddo
+      endif
      
       ! Take into account the surface fluxes of heat and moisture
       te_xpd(i) = te_b(i)+(cam_in%shf(i)+(cam_in%cflx(i,1))*(latvap+latice))*hdtime
