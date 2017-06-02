@@ -290,10 +290,10 @@ contains
        index_l2x_Flrl_rofsub_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DOC' )
        index_l2x_Flrl_rofsub_DIC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DIC' )
 
-       index_x2r_Flrl_rofsur_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_DOC' )
-       index_x2r_Flrl_rofsur_DIC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_DIC' )
-       index_x2r_Flrl_rofsub_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DOC' )
-       index_x2r_Flrl_rofsub_DIC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DIC' )
+       index_x2r_Flrl_rofsur_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_DOC' )
+       index_x2r_Flrl_rofsur_DIC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_DIC' )
+       index_x2r_Flrl_rofsub_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_DOC' )
+       index_x2r_Flrl_rofsub_DIC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_DIC' )
 
        index_l2x_Flrl_rofsur = mct_aVect_indexRA(l2x_r,'Flrl_rofsur' )
        index_l2x_Flrl_rofgwl = mct_aVect_indexRA(l2x_r,'Flrl_rofgwl' )
