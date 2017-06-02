@@ -506,6 +506,16 @@ class TestScheduler(object):
                     envtest.set_test_parameter("STOP_N", opti)
                     logger.debug (" STOP_OPTION set to %s" %stop_option[opt])
                     logger.debug (" STOP_N      set to %s" %opti)
+		    
+		elif opt.startswith('R'):
+		    envtest.set_test_parameter("PTS_MODE", "TRUE")
+		    envtest.set_test_parameter("MPILIB", "mpi-serial")
+                    comps=["ATM","LND","ICE","OCN","CPL","GLC","ROF","WAV"]
+		    for comp in comps:
+		        envtest.set_test_parameter("NTASKS_"+comp,"1") 
+		    
+		    envtest.set_test_parameter("PTS_LAT", "36.6")
+		    envtest.set_test_parameter("PTS_LON", "262.5")		    		    		    		    		    		    		    
 
                 elif opt.startswith('M'):
                     # M option handled by create newcase

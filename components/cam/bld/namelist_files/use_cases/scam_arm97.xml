@@ -3,16 +3,32 @@
 
 <namelist_defaults>
 
-<ncdata             hgrid="64x128"    nlev="30"   scam="1"  >atm/cam/inic/gaus/cami_0000-09-01_64x128_L30_c031210.nc</ncdata>
-<iopfile dyn="eul"                                scam="1"  >atm/cam/scam/iop/ARM97_4scam.nc</iopfile>
+<ncdata             hgrid="64x128"                scam="1"  >atm/cam/inic/gaus/cami_0000-09-01_64x128_L72_c031210.nc</ncdata>
+<iopfile dyn="eul"                                scam="1"  >atm/cam/scam/iop/ARM97_iopfile_4scam.nc</iopfile>
+<soag_ext_file >atm/cam/chem/trop_mozart_aero/emis/aces4bgc_nvsoa_soag_elev_2000_c160427.nc</soag_ext_file>
 <scmlat                                           scam="1"  >   36.6     </scmlat>
 <scmlon                                           scam="1"  >   262.5    </scmlon>
-<start_ymd                                        scam="1"  >   19970618 </start_ymd>
+<start_ymd                                        scam="1"  >   19970619 </start_ymd>
 <start_tod                                        scam="1"  >   84585    </start_tod>
-<stop_n                                           scam="1"  >   2088     </stop_n>
 <mfilt                                            scam="1"  >   1500     </mfilt>
-<nhtfrq                                           scam="1"  >   9        </nhtfrq>
-<stop_option                                      scam="1"  >   nsteps    </stop_option>
+<cld_macmic_num_steps                             scam="1"  >   8        </cld_macmic_num_steps>
+<scm_iop_srf_prop                                 scam="1"  >   .true.   </scm_iop_srf_prop>
+<nhtfrq                                           scam="1"  >   1        </nhtfrq>
+<atm_ntasks                                        scam="1"  >   1        </atm_ntasks>
+<atm_nthreads                                     scam="1"  >   1        </atm_nthreads>
+<cpl_ntasks                                        scam="1"  >   1        </cpl_ntasks>
+<cpl_nthreads                                     scam="1"  >   1        </cpl_nthreads>
+<lnd_ntasks                                        scam="1"  >   1        </lnd_ntasks>
+<lnd_nthreads                                     scam="1"  >   1        </lnd_nthreads>
+<ice_ntasks                                        scam="1"  >   1        </ice_ntasks>
+<ice_nthreads                                     scam="1"  >   1        </ice_nthreads>
+<ocn_ntasks                                        scam="1"  >   1        </ocn_ntasks>
+<ocn_nthreads                                     scam="1"  >   1        </ocn_nthreads>
+<rof_ntasks                                        scam="1"  >   1        </rof_ntasks>
+<rof_nthreads                                     scam="1"  >   1        </rof_nthreads>
+<wav_ntasks                                        scam="1"  >   1        </wav_ntasks>
+<wav_nthreads                                     scam="1"  >   1        </wav_nthreads>
+<single_column                                    scam="1"  >  .true.    </single_column>
 
 <!-- sim_year used for CLM datasets -->
 <sim_year>2000</sim_year>

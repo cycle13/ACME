@@ -1284,10 +1284,10 @@ subroutine micro_mg_tend ( &
      call kk2000_liq_autoconversion(microp_uniform, qcic(:,k), &
           ncic(:,k), rho(:,k), relvar(:,k),mg_prc_coeff_fix,prc_coef1,prc_exp,prc_exp1, prc(:,k), nprc(:,k), nprc1(:,k))
 
-     if (auto_off) then
+     if (precip_off) then
        prc(:,k) = 0.0_r8
        nprc(:,k) = 0.0_r8
-       nprcl(:,k) = 0.0_r8
+       nprc1(:,k) = 0.0_r8
      endif
 
      ! assign qric based on prognostic qr, using assumed precip fraction
@@ -2028,7 +2028,7 @@ subroutine micro_mg_tend ( &
 
   sed_col_loop: do i=1,mgncol
   
-   if (.not. auto_off) then
+   if (.not. precip_off) then
 
      do k=1,nlev
 
