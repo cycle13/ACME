@@ -496,6 +496,12 @@
       <alias>ne120_oRRS18v3_ICG</alias>
     </grid>
 
+    <grid compset="(CAM5.+CLM.+MPASO%SPUNUP)">
+      <sname>ne120np4_oRRS18to6v3_ICG_R05</sname>
+      <lname>a%ne120np4_l%ne120np4_oi%oRRS18to6v3_ICG_r%r05_m%oRRS18to6v3_g%null_w%null</lname>
+      <alias>ne120_oRRS18v3_ICG_R05</alias>
+    </grid>
+
     <grid compset="(DOCN|XOCN|SOCN|AQUAP)">
       <sname>ne60np4_ne60np4</sname>
       <alias>ne60_ne60</alias>
@@ -2267,6 +2273,11 @@
     <gridmap rof_grid="r0125" ocn_grid="oRRS18to6v3_ICG" >
       <ROF2OCN_ICE_RMAPNAME >cpl/cpl6/map_r0125_to_oRRS18to6v3_nn.170111.nc</ROF2OCN_ICE_RMAPNAME>
       <ROF2OCN_LIQ_RMAPNAME >cpl/cpl6/map_r0125_to_oRRS18to6v3_nn.170111.nc</ROF2OCN_LIQ_RMAPNAME>
+    </gridmap>
+
+    <gridmap rof_grid="r05" ocn_grid="oRRS18to6v3_ICG" >
+      <ROF2OCN_ICE_RMAPNAME >cpl/cpl6/map_r05_to_oRRS18to6v3_nn.170404.nc</ROF2OCN_ICE_RMAPNAME>
+      <ROF2OCN_LIQ_RMAPNAME >cpl/cpl6/map_r05_to_oRRS18to6v3_nn.170404.nc</ROF2OCN_LIQ_RMAPNAME>
     </gridmap>
 
     <gridmap rof_grid="r0125" ocn_grid="oRRS15to5" >
