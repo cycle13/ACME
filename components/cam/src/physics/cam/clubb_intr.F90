@@ -1484,9 +1484,9 @@ end subroutine clubb_init_cnst
    !  treatment with CLUBB code, anytime exner is needed to treat CLUBB variables 
    !  (such as thlm), use "exner_clubb" other wise use the exner in state
 
-   if (clubb_const_exner) then  ! for verification tests
-      exner_clubb = 1._r8
-   else
+  !if (clubb_const_exner) then  ! for verification tests
+  !   exner_clubb = 1._r8
+  !else
 
      do k=1,pver
      do i=1,ncol
@@ -1494,22 +1494,39 @@ end subroutine clubb_init_cnst
      enddo
      enddo
 
-   end if
+  !end if
    
    !  At each CLUBB call, initialize mean momentum  and thermo CLUBB state 
    !  from the CAM state 
 
    do k=1,pver   ! loop over levels
      do i=1,ncol ! loop over columns
-
        rtm(i,k)     = state1%q(i,k,ixq)+state1%q(i,k,ixcldliq)
        rvm(i,k)     = state1%q(i,k,ixq)
        um(i,k)      = state1%u(i,k)
        vm(i,k)      = state1%v(i,k)
+     enddo
+   enddo
+
+   if (clubb_const_exner) then
+     do k=1,pver   ! loop over levels
+     do i=1,ncol ! loop over columns
+       thlm(i,k)    = ( state1%t(i,k)-(latvap/cpair)*state1%q(i,k,ixcldliq) ) *exner_clubb(i,k)
+     end do
+     end do
+   else
+     do k=1,pver   ! loop over levels
+     do i=1,ncol ! loop over columns
        thlm(i,k)    = state1%t(i,k)*exner_clubb(i,k)-(latvap/cpair)*state1%q(i,k,ixcldliq)
+     enddo
+     enddo
+   end if
 
        if (clubb_do_adv) then
           if (macmic_it .eq. 1) then 
+
+          do k=1,pver   ! loop over levels
+            do i=1,ncol ! loop over columns
 
             !  Note that some of the moments below can be positive or negative.  
             !    Remove a constant that was added to prevent dynamics from clipping 
@@ -1523,11 +1540,12 @@ end subroutine clubb_init_cnst
             wp3(i,k)     = state1%q(i,k,ixwp3) - (wp3_const*apply_const)
             up2(i,k)     = state1%q(i,k,ixup2)
             vp2(i,k)     = state1%q(i,k,ixvp2)
+            enddo
+          enddo
+
           endif
        endif
 
-     enddo
-   enddo
    
    if (clubb_do_adv) then
      ! If not last step of macmic loop then set apply_const back to 
@@ -2085,9 +2103,22 @@ end subroutine clubb_init_cnst
       se_a = 0._r8
       wv_a = 0._r8
       wl_a = 0._r8
+
+      if (clubb_const_exner) then
+
+        do k=1,pver
+           clubb_s(k) = cpair*( thlm(i,k)/exner_clubb(i,k)+(latvap/cpair)*rcm(i,k) )+ &
+                        gravit*state1%zm(i,k)+state1%phis(i)
+        enddo
+      else
+
+        do k=1,pver
+           clubb_s(k) = cpair*((thlm(i,k)+(latvap/cpair)*rcm(i,k))/exner_clubb(i,k))+ &
+                        gravit*state1%zm(i,k)+state1%phis(i)
+        enddo
+      end if
+
       do k=1,pver
-         clubb_s(k) = cpair*((thlm(i,k)+(latvap/cpair)*rcm(i,k))/exner_clubb(i,k))+ &
-                      gravit*state1%zm(i,k)+state1%phis(i)
          se_a(i) = se_a(i) + clubb_s(k)*state1%pdel(i,k)/gravit
          wv_a(i) = wv_a(i) + (rtm(i,k)-rcm(i,k))*state1%pdel(i,k)/gravit
          wl_a(i) = wl_a(i) + (rcm(i,k))*state1%pdel(i,k)/gravit
