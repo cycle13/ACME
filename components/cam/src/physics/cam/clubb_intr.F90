@@ -496,7 +496,7 @@ end subroutine clubb_init_cnst
     use hb_diff,                only: init_hb_diff
     use trb_mtn_stress,         only: init_tms
     use rad_constituents,       only: rad_cnst_get_info, rad_cnst_get_mode_num_idx, rad_cnst_get_mam_mmr_idx
-    use global_summary,         only: add_smry_field, ABS_GREATER_EQ
+    use global_summary,         only: add_smry_field, ABS_GREATER_EQ, SMALLER_THAN
     use physconst,              only: rounding_tol, water_cnsv_tol
 
     !  From the CLUBB libraries
@@ -611,7 +611,10 @@ end subroutine clubb_init_cnst
     ! ----------------------------------------------------------------- !
     call add_smry_field( 'RTM_CNSV_ERR',     'clubb_tend_cam',               '-',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('THLM_CNSV_ERR',     'clubb_tend_cam',               '-',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('KE_DIFF',           'clubb_tend_cam (before fixer)','J',SMALLER_THAN,0._r8)
+    call add_smry_field('KE_DIFF_REL',       'clubb_tend_cam (before fixer)','-',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend_cam (before fixer)','-',ABS_GREATER_EQ,rounding_tol)
+    call add_smry_field('TOT_ENERGY_REL_ERR2','clubb_tend_cam (before fixer)','-',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('TOT_ENERGY_REL_ERR','clubb_tend(check_energy_chng)','-',ABS_GREATER_EQ,rounding_tol)
     call add_smry_field('TOT_WATER_REL_ERR', 'clubb_tend(check_energy_chng)','-',ABS_GREATER_EQ,water_cnsv_tol)
 
@@ -1132,6 +1135,8 @@ end subroutine clubb_init_cnst
    real(r8) :: wv_a(pcols), wv_b(pcols), wl_b(pcols), wl_a(pcols)
    real(r8) :: se_dis, se_a(pcols), se_b(pcols), clubb_s(pver)
 
+   real(r8) :: te_a2(pcols)
+
    real(r8) :: exner_clubb(pcols,pverp)         ! Exner function consistent with CLUBB          [-]
    real(r8) :: wpthlp_output(pcols,pverp)       ! Heat flux output variable                     [W/m2]
    real(r8) :: wprtp_output(pcols,pverp)        ! Total water flux output variable              [W/m2]
@@ -1265,7 +1270,10 @@ end subroutine clubb_init_cnst
    real(r8) :: te_xpd          (pcols)        ! "expected" value of the column-integrated total energy 
                                               ! after all substeps of CLUBB integration
                                               ! (= value before integration + increment caused by sources/sinks)
+   real(r8) :: ke_diff         (pcols)        ! 
+   real(r8) :: ke_diff_rel     (pcols)        ! 
    real(r8) :: te_rel_err      (pcols)        ! relative error of column-integrated total energy
+   real(r8) :: te_rel_err2     (pcols)        ! relative error of column-integrated total energy, assuming conservation of ke
    real(r8) :: dsdt_efixer     (pcols)        ! dry static energy tendency due to energy fixer
    real(r8) :: dsdt_efixer_rel (pcols,pver)   ! ration between tendencies caused by energy fixer and by CLUBB
    real(r8) :: zsmall = 1.e-12_r8
@@ -2125,19 +2133,27 @@ end subroutine clubb_init_cnst
       enddo
 
       ! Computer vertically integrated kinentic energy
-      ke_a = 0._r8
+      ke_a(i) = 0._r8
 
       if (.not.clubb_energy_no_ke) then
          do k=1,pver
             ke_a(i) = ke_a(i) + 0.5_r8*(um(i,k)**2+vm(i,k)**2)*state1%pdel(i,k)/gravit
          enddo
+
+         ke_diff(i)     = ke_a(i) - ke_b(i)
+         ke_diff_rel(i) = ke_a(i)/ke_b(i) - 1._r8
+      else
+         ke_diff(i)     = 0._r8 
+         ke_diff_rel(i) = 0._r8
       end if
      
       ! Based on these integrals, compute the total energy before and after CLUBB call
       if (clubb_energy_liquid) then
+         te_a2(i)= se_a(i) + ke_b(i) - latvap*wl_a(i)   ! diagnostic only
          te_a(i) = se_a(i) + ke_a(i) - latvap*wl_a(i)
          te_b(i) = se_b(i) + ke_b(i) - latvap*wl_b(i)
       else
+         te_a2(i)= se_a(i) + ke_b(i) + (latvap+latice)*wv_a(i)+latice*wl_a(i)   ! diagnostic only
          te_a(i) = se_a(i) + ke_a(i) + (latvap+latice)*wv_a(i)+latice*wl_a(i)
          te_b(i) = se_b(i) + ke_b(i) + (latvap+latice)*wv_b(i)+latice*wl_b(i)
       endif
@@ -2157,6 +2173,7 @@ end subroutine clubb_init_cnst
 
       ! Save error for output
       te_rel_err(i) = ( te_a(i) - te_xpd(i) )/te_b(i)
+      te_rel_err2(i)= ( te_a2(i)- te_xpd(i) )/te_b(i)
       dsdt_efixer(i) = - se_dis*gravit/hdtime
 
       ! Apply this fixer throughout the column evenly, but only at layers where
@@ -2284,6 +2301,32 @@ end subroutine clubb_init_cnst
    call get_smry_field_idx('TOT_ENERGY_REL_ERR','clubb_tend_cam (before fixer)',istat)
    if (istat.ne.-999) then
       call get_chunk_smry( ncol, te_rel_err(:ncol),            &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
+   call t_stopf('get_chunk_smry')
+
+   call t_startf('get_chunk_smry')
+   call get_smry_field_idx('TOT_ENERGY_REL_ERR2','clubb_tend_cam (before fixer)',istat)
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, te_rel_err2(:ncol),            &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
+   call t_stopf('get_chunk_smry')
+
+   call t_startf('get_chunk_smry')
+   call get_smry_field_idx('KE_DIFF','clubb_tend_cam (before fixer)',istat)
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, ke_diff(:ncol),            &! intent(in)
+                           state%lat(:ncol), state%lon(:ncol), &! intent(in)
+                           chunk_smry(istat) )    
+   end if
+   call t_stopf('get_chunk_smry')
+   call t_startf('get_chunk_smry')
+   call get_smry_field_idx('KE_DIFF_REL','clubb_tend_cam (before fixer)',istat)
+   if (istat.ne.-999) then
+      call get_chunk_smry( ncol, ke_diff_rel(:ncol),            &! intent(in)
                            state%lat(:ncol), state%lon(:ncol), &! intent(in)
                            chunk_smry(istat) )    
    end if
