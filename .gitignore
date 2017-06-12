@@ -6,3 +6,6 @@
 
 # Ignore emacs backup files
 *~
+.pydevproject
+.project
+.cproject

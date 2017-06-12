@@ -395,6 +395,7 @@ contains
     ! !LOCAL VARIABLES:
     integer :: c,j,l     ! indices
     integer :: fc        ! soil filter indices
+    integer :: nlev
 
     !-----------------------------------------------------------------------
 
@@ -408,14 +409,14 @@ contains
          soil_begnb_min         => clm_bgc_data%soil_begnb_min_col          & !
          )
     ! calculate beginning column-level soil carbon balance, for mass conservation check
-
+    nlev = nlevdecomp_full
     do fc = 1,filters(ifilter)%num_soilc
         c = filters(ifilter)%soilc(fc)
         soil_begnb(c)     = 0._r8
         soil_begnb_org(c) = 0._r8
         soil_begnb_min(c) = 0._r8
 
-        do j = 1, nlevdecomp_full
+        do j = 1, nlev
 !!do NOT directly use sminn_vr(c,j), it does NOT always equal to (no3+nh4+nh4sorb) herein due to unknown reason
             soil_begnb_min(c) = soil_begnb_min(c) + smin_no3_vr(c,j)*dzsoi_decomp(j)    &
                                                   + smin_nh4_vr(c,j)*dzsoi_decomp(j)    &
@@ -528,6 +529,7 @@ contains
     type(clm_bgc_interface_data_type), intent(inout) :: clm_bgc_data
     !
     ! !LOCAL VARIABLES:
+    integer  :: nlev
     integer  :: c,j,l                                                               ! indices
     integer  :: fc                                                                  ! lake filter indices
     real(r8) :: dtime                                                               ! land model time step (sec)
@@ -579,7 +581,7 @@ contains
 
     ! ------------------------------------------------------------------------
     dtime = real( get_step_size(), r8 )
-
+    nlev = nlevdecomp_full
     !! pflotran mass blance check-Carbon
     err_found = .false.
     do fc = 1,filters(ifilter)%num_soilc
@@ -619,7 +621,7 @@ contains
         pf_errnb_org        = 0._r8
         pf_errnb_min        = 0._r8
 
-        do j = 1, nlevdecomp_full
+        do j = 1, nlev
             !! sminn_vr(c,j) has been calculated above
             pf_nend_no3     = pf_nend_no3     + smin_no3_vr(c,j)*dzsoi_decomp(j)
             pf_nend_nh4     = pf_nend_nh4     + smin_nh4_vr(c,j)*dzsoi_decomp(j)
@@ -652,7 +654,7 @@ contains
         pf_errnb_org_vr(:) = 0._r8
         pf_ndelta_org_vr(:) = 0._r8
         pf_ninputs_org_vr(:) = 0._r8
-        do j = 1, nlevdecomp_full
+        do j = 1, nlev
 
             do l = 1, ndecomp_pools
                 pf_ndelta_org_vr(j)  = pf_ndelta_org_vr(j)  + decomp_npools_delta_vr(c,j,l)
@@ -1569,18 +1571,18 @@ write(iulog,*)'>>>DEBUG | pflotran nbalance error = ', pf_errnb, c, get_nstep()
        !! wgs: move from 'interface_init'
        ! force CLM soil domain into PFLOTRAN subsurface grids
        call get_clm_soil_dimension(clm_bgc_data, bounds)
-write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
+!write(iulog,*)">>>DEBUG: 0 get_clm_soil_properties"
        ! Currently always set soil hydraulic/BGC properties from CLM to PF
        call get_clm_soil_properties(clm_bgc_data, bounds, filters)
-write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
+!write(iulog,*)">>>DEBUG: 0 pfGetTopFaceArea"
        ! Get top surface area of 3-D pflotran subsurface domain
        call pflotranModelGetTopFaceArea(pflotran_m)
 
        !! wgs:end------------------------------------------------
-write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
+!write(iulog,*)">>>DEBUG: 0 get_clm_soil_th"
        ! always initializing soil 'TH' states from CLM to pflotran
        call get_clm_soil_th(clm_bgc_data, .not.initth_pf2clm, .not.initth_pf2clm, bounds, filters, ifilter)
-write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
+!write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
 
     endif
@@ -1589,7 +1591,7 @@ write(iulog,*)">>>DEBUG: 0 pfUpdateTHfromCLM"
     ! (1)
     ! if PF T/H mode not available, have to pass those from CLM to global variable in PF to drive BGC/H
     if (.not. isinitpf .and. (.not.pf_tmode .or. .not.pf_hmode)) then    ! always initialize from CLM to pF, if comment out this 'if'block
-write(iulog,*)">>>DEBUG: get_clm_soil_th"
+!write(iulog,*)">>>DEBUG: get_clm_soil_th"
        call get_clm_soil_th(clm_bgc_data, .TRUE., .TRUE., bounds, filters, ifilter)
 !write(iulog,*)">>>DEBUG: pfUpdateTHfromCLM"
        call pflotranModelUpdateTHfromCLM(pflotran_m, .FALSE., .FALSE.)     ! pass TH to global_auxvar
@@ -1598,7 +1600,7 @@ write(iulog,*)">>>DEBUG: get_clm_soil_th"
 
     ! ice-len adjusted porostiy
     if (.not.pf_frzmode) then
-write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
+!write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
         call get_clm_iceadj_porosity(clm_bgc_data, bounds, filters, ifilter)
 !write(iulog,*)">>>DEBUG: pfResetPorosity"
         call pflotranModelResetSoilPorosityFromCLM(pflotran_m)
@@ -1615,7 +1617,7 @@ write(iulog,*)">>>DEBUG: get_clm_iceadj_porosity"
     ! (4a) always (re-)initialize PFLOTRAN soil bgc state variables from CLM-CN
 
        !if (isinitpf) then    ! if only initialize ONCE, uncomment this 'if ... endif' block.
-write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
+!write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
           call get_clm_bgc_conc(clm_bgc_data, bounds, filters, ifilter)
           call pflotranModelSetBgcConcFromCLM(pflotran_m)
           if ((.not.pf_hmode .or. .not.pf_frzmode)) then
@@ -1631,11 +1633,11 @@ write(iulog,*)">>>DEBUG: get_clm_bgc_conc"
         if (.not.pf_hmode .or. .not.pf_frzmode) then
           call pflotranModelUpdateAqConcFromCLM(pflotran_m)
         endif
-write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
+!write(iulog,*)">>>DEBUG: get_clm_bgc_rate"
     ! (4b) bgc rate (fluxes) from CLM to PFLOTRAN
         call get_clm_bgc_rate(clm_bgc_data, bounds, filters, ifilter)
         call pflotranModelSetBgcRatesFromCLM(pflotran_m)
-write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
+!write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     endif
 
     ! (5) the main callings of PFLOTRAN
@@ -1646,7 +1648,7 @@ write(iulog,*)">>>DEBUG: pflotranModelSetBgcRatesFromCLM: done"
     else
        ispfprint = .FALSE.
     endif
-write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
+!write(iulog,*)">>>DEBUG: pflotranModelStepperRunTillPauseTime"
     call pflotranModelStepperRunTillPauseTime( pflotran_m, (nstep+1.0d0)*dtime, dtime, ispfprint )
     call mpi_barrier(mpicom, ierr)
 

@@ -1027,6 +1027,8 @@ contains
 	       / cnstate_vars%scalaravg_col(c)
              if ( decomp_cascade_con%spinup_factor(i_soil4) > 1._r8) decomp_k(c,j,i_soil4) = decomp_k(c,j,i_soil4)  &
 	       / cnstate_vars%scalaravg_col(c)
+	       write(*,*)">>>DEBUG: decomp_cascade_con%spinup_factor=",decomp_cascade_con%spinup_factor
+	       write(*,*)">>>DEBUG: 1/cnstate_vars%scalaravg_col=",1._r8/cnstate_vars%scalaravg_col(c)
            end do
          end do
        end if    

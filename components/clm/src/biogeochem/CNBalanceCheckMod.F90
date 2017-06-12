@@ -346,7 +346,13 @@ contains
            else
             col_noutputs(c) = col_noutputs(c) + f_n2o_nit(c)
 
-            col_noutputs(c) = col_noutputs(c) + smin_no3_leached(c) + smin_no3_runoff(c)
+            if(use_pflotran .and. pf_cmode) then
+               ! inclusion of aq. NH4 transport by PFLOTRAN-bgc
+                col_noutputs(c) = col_noutputs(c) + sminn_leached(c)
+            else
+                col_noutputs(c) = col_noutputs(c) + smin_no3_leached(c) + smin_no3_runoff(c)
+            end if
+
            end if
          endif
 
@@ -404,15 +410,15 @@ write(iulog,*)'>>>DEBUG | acme-col nbalance error = ', col_errnb(c), c, get_nste
                 write(iulog,'(A30,E14.6)')'delta_SONinput_bw_timesteps =',col_decompn_delta(c)*dt
 !                write(iulog,'(A30,E14.6)')'delta_NO3leach_bw_timesteps =',col_no3_delta(c)*dt
 
-            if (abs(col_errnb(c)) > 1e-7_r8) then
-!            !! for unknown reason, loosen this error-checking criteria will remarkably speed up CLM-PFLOTRAN simulation
-!            !! the 'col_errnb' is about 2.67e-8 at timestep=75653, i.e., 0005-04-27_02:30:00, which resulted in the crash of ALM but PF converged well.
-!            !! if 1e-8_r8 < abs(col_errnb(c)) <= 1e-7_r8, continue model run, but print 'err_found'
-                call endrun(msg=errMsg(__FILE__, __LINE__))
-            end if
-         else
-            call endrun(msg=errMsg(__FILE__, __LINE__))
-         end if
+!            if (abs(col_errnb(c)) > 1e-7_r8) then
+!!            !! for unknown reason, loosen this error-checking criteria will remarkably speed up CLM-PFLOTRAN simulation
+!!            !! the 'col_errnb' is about 2.67e-8 at timestep=75653, i.e., 0005-04-27_02:30:00, which resulted in the crash of ALM but PF converged well.
+!!            !! if 1e-8_r8 < abs(col_errnb(c)) <= 1e-7_r8, continue model run, but print 'err_found'
+!                call endrun(msg=errMsg(__FILE__, __LINE__))
+!            end if
+!         else
+        end if
+        call endrun(msg=errMsg(__FILE__, __LINE__))
 
       end if
 

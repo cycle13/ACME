@@ -4078,12 +4078,12 @@ contains
                         sminn_vr_loc(c,j) = smin_no3_vr(c,j) + smin_nh4_vr(c,j)
                     end if
                end if
-               if(use_pflotran .and. pf_cmode) then
-                    sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) &
-                                    *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
-               else
+!               if(use_pflotran .and. pf_cmode) then
+!                    sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) &
+!                                    *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
+!               else
                     sminn_tot(c) = sminn_tot(c) + sminn_vr_loc(c,j) * dzsoi_decomp(j) !!original: if (use_nitrif_denitrif): sminn_tot(c) = sminn_tot(c) + (smin_no3_vr(c,j) + smin_nh4_vr(c,j)) * dzsoi_decomp(j)
-               end if
+!               end if
             end do
          end do
 
@@ -4091,12 +4091,12 @@ contains
             do fc=1,num_soilc
                c = filter_soilc(fc)
                if (sminn_tot(c)  >  0._r8) then
-                    if(use_pflotran .and. pf_cmode) then
-                        nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c) &
-                                            *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
-                    else
+!                    if(use_pflotran .and. pf_cmode) then
+!                        nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c) &
+!                                            *(nfixation_prof(c,j)*dzsoi_decomp(j))         ! weighted by froot fractions in annual max. active layers
+!                    else
                         nuptake_prof(c,j) = sminn_vr_loc(c,j) / sminn_tot(c)   !!original: if (use_nitrif_denitrif): nuptake_prof(c,j) = sminn_vr(c,j) / sminn_tot(c)
-                    end if
+!                    end if
                else
                   nuptake_prof(c,j) = nfixation_prof(c,j)
                endif
