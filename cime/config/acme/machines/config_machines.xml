@@ -2505,6 +2505,9 @@
 		<modules mpilib="!mpi-serial">
 			<command name="load">parallel-netcdf/1.5.0</command>
 		</modules>
+		<modules>
+			<command name="load">fftw/3.3.7</command>
+		</modules>		
 	</module_system>
 	<environment_variables>
 		<env name="LD_LIBRARY_PATH">$ENV{LD_LIBRARY_PATH}:$ENV{NETCDF_ROOT}/lib</env>
