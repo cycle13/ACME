@@ -1386,6 +1386,7 @@ for mct, etc.
 	<SCC>icc</SCC>
 	<SCXX>icpc</SCXX>
 	<ADD_SLIBS>$(shell $(NETCDF_PATH)/bin/nf-config --flibs) -llapack -lblas</ADD_SLIBS>
+	<ADD_SLIBS>-L${FFTW_LIBS} -lfftw3</ADD_SLIBS>
 	<TRILINOS_PATH>$(TRILINOS_PATH)</TRILINOS_PATH>
 	<ADD_SLIBS MPILIB="mpich"> -mkl=cluster </ADD_SLIBS>
 	<ADD_SLIBS MPILIB="mpich2"> -mkl=cluster </ADD_SLIBS>
@@ -1394,6 +1395,7 @@ for mct, etc.
 	<ADD_SLIBS MPILIB="mvapich"> -mkl=cluster </ADD_SLIBS>
 	<ADD_SLIBS MPILIB="impi"> -mkl=cluster </ADD_SLIBS>
 	<ADD_SLIBS MPILIB="mpi-serial"> -mkl </ADD_SLIBS>
+        <FFLAGS> -I$(FFTW_INCLUDES)</FFLAGS>
 </compiler>
 
 <compiler MACH="wolf" COMPILER="gnu">
