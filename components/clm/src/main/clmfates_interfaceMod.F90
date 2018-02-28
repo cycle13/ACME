@@ -46,6 +46,7 @@ module CLMFatesInterfaceMod
    use clm_varctl        , only : use_vertsoilc 
    use clm_varctl        , only : use_fates_spitfire
    use clm_varctl        , only : use_fates_planthydro
+   use clm_varctl        , only : use_fates_insect
    use clm_varctl        , only : use_fates_ed_st3
    use clm_varctl        , only : use_fates_ed_prescribed_phys
    use clm_varctl        , only : use_fates_logging
@@ -129,6 +130,7 @@ module CLMFatesInterfaceMod
    use FatesPlantHydraulicsMod, only : InitHydrSites
    use FatesPlantHydraulicsMod, only : UpdateH2OVeg
    use FatesInterfaceMod      , only : bc_in_type, bc_out_type
+   use FatesInterfaceMod      , only : hlm_current_tod
 
    implicit none
    
@@ -176,6 +178,7 @@ module CLMFatesInterfaceMod
       procedure, public :: wrap_sunfrac
       procedure, public :: wrap_btran
       procedure, public :: wrap_photosynthesis
+      procedure, public :: wrap_insects
       procedure, public :: wrap_accumulatefluxes
       procedure, public :: prep_canopyfluxes
       procedure, public :: wrap_canopy_radiation
@@ -1669,6 +1672,95 @@ contains
 
  end subroutine wrap_photosynthesis
 
+
+
+ ! ====================================================================================
+   
+   subroutine wrap_insects(this, bounds_clump, fn, filterp, &
+         esat_tv, eair, oair, cair, rb, dayl_factor,             &
+         atm2lnd_inst, temperature_inst, canopystate_inst, photosyns_inst)
+   
+    use shr_log_mod       , only : errMsg => shr_log_errMsg
+    use abortutils        , only : endrun
+    use decompMod         , only : bounds_type
+    use clm_varcon        , only : rgas, tfrz, namep  
+    use clm_varpar        , only : nlevsoi
+    use clm_varctl        , only : iulog
+    use perf_mod          , only : t_startf, t_stopf
+    use quadraticMod      , only : quadratic
+    use EDTypesMod        , only : dinc_ed
+    use EDtypesMod        , only : ed_patch_type, ed_cohort_type, ed_site_type
+   
+    !
+    ! !ARGUMENTS:
+    class(hlm_fates_interface_type), intent(inout) :: this
+    type(bounds_type)      , intent(in)            :: bounds_clump
+    integer                , intent(in)            :: fn                          ! size of pft filter
+    integer                , intent(in)            :: filterp(fn)                 ! pft filter
+    real(r8)               , intent(in)            :: esat_tv(bounds_clump%begp: )      ! saturation vapor pressure at t_veg (Pa)
+    real(r8)               , intent(in)            :: eair( bounds_clump%begp: )        ! vapor pressure of canopy air (Pa)
+    real(r8)               , intent(in)            :: oair( bounds_clump%begp: )        ! Atmospheric O2 partial pressure (Pa)
+    real(r8)               , intent(in)            :: cair( bounds_clump%begp: )        ! Atmospheric CO2 partial pressure (Pa)
+    real(r8)               , intent(in)            :: rb( bounds_clump%begp: )          ! boundary layer resistance (s/m)
+    real(r8)               , intent(in)            :: dayl_factor( bounds_clump%begp: ) ! scalar (0-1) for daylength
+    type(atm2lnd_type)     , intent(in)            :: atm2lnd_inst
+    type(temperature_type) , intent(in)            :: temperature_inst
+    type(canopystate_type) , intent(inout)         :: canopystate_inst
+    type(photosyns_type)   , intent(inout)         :: photosyns_inst
+
+    integer                                        :: s,c,p,ifp,j,icp,nc
+    real(r8)                                       :: dtime
+    
+    dtime = get_step_size()
+
+    call t_startf('edpsn')
+    associate(&
+          t_soisno  => temperature_inst%t_soisno_col , &
+          t_veg     => temperature_inst%t_veg_patch  , &
+          tgcm      => temperature_inst%thm_patch    , &
+          forc_pbot => atm2lnd_inst%forc_pbot_downscaled_col, &
+          rssun     => photosyns_inst%rssun_patch  , &
+          rssha     => photosyns_inst%rssha_patch,   &
+          psnsun    => photosyns_inst%psnsun_patch,  &
+          psnsha    => photosyns_inst%psnsha_patch)
+      
+
+      nc = bounds_clump%clump_index
+
+      do s = 1, this%fates(nc)%nsites
+         
+         c = this%f2hmap(nc)%fcolumn(s)
+         
+         do j = 1,nlevsoi
+            this%fates(nc)%bc_in(s)%t_soisno_gl(j)   = t_soisno(c,j)  ! soil temperature (Kelvin)
+         end do
+         this%fates(nc)%bc_in(s)%forc_pbot           = forc_pbot(c)   ! atmospheric pressure (Pa)
+
+         do ifp = 1, this%fates(nc)%sites(s)%youngest_patch%patchno
+            
+            p = ifp+col_pp%pfti(c)
+
+            ! Check to see if this patch is in the filter
+            ! Note that this filter is most likely changing size, and getting smaller
+            ! and smaller as more patch have converged on solution
+            if( any(filterp==p) )then
+               if(hlm_current_tod > 0 .and. hlm_current_tod < dtime + 0.001_r8) then
+	            this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp) = -999.0_r8
+		    this%fates(nc)%bc_in(s)%tgcm_min_pa(ifp) = 999.0_r8
+	       endif
+
+	    ! Calculating maximum and minimum daily air temperatures at reference height
+	    this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp) &
+	    = max(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
+	    
+	    this%fates(nc)%bc_in(s)%tgcm_min_pa(ifp) &
+	    = min(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
+	       
+            end if
+         end do
+      end do
+
+ end subroutine wrap_insects
  ! ======================================================================================
 
  subroutine wrap_accumulatefluxes(this, bounds_clump, fn, filterp)
