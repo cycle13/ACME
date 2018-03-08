@@ -1734,6 +1734,7 @@ contains
          do j = 1,nlevsoi
             this%fates(nc)%bc_in(s)%t_soisno_gl(j)   = t_soisno(c,j)  ! soil temperature (Kelvin)
          end do
+	 
          this%fates(nc)%bc_in(s)%forc_pbot           = forc_pbot(c)   ! atmospheric pressure (Pa)
 
          do ifp = 1, this%fates(nc)%sites(s)%youngest_patch%patchno
@@ -1744,21 +1745,27 @@ contains
             ! Note that this filter is most likely changing size, and getting smaller
             ! and smaller as more patch have converged on solution
             if( any(filterp==p) )then
+	    
                if(hlm_current_tod > 0 .and. hlm_current_tod < dtime + 0.001_r8) then
 	            this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp) = -999.0_r8
 		    this%fates(nc)%bc_in(s)%tgcm_min_pa(ifp) = 999.0_r8
-	       endif
+	       end if
+	       
+	    end if
 
 	    ! Calculating maximum and minimum daily air temperatures at reference height
 	    this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp) &
-	    = max(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
+	    	= max(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
 	    
 	    this%fates(nc)%bc_in(s)%tgcm_min_pa(ifp) &
-	    = min(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
+	    	= min(tgcm(p),this%fates(nc)%bc_in(s)%tgcm_max_pa(ifp))
 	       
-            end if
-         end do
-      end do
+         end do ! This ends the ifp do-loop.
+	 
+      end do ! This ends the sites (s) do-loop. 
+      
+    end associate
+    call t_stopf('edpsn')
 
  end subroutine wrap_insects
  ! ======================================================================================
