@@ -856,7 +856,7 @@ contains
             call alm_fates%wrap_insects(bounds, fn, filterp(1:fn), &
                   svpts(begp:endp), eah(begp:endp), o2(begp:endp), &
                   co2(begp:endp), rb(begp:endp), dayl_factor(begp:endp), &
-                  atm2lnd_vars, temperature_vars, canopystate_vars, photosyns_vars) 		  
+                  atm2lnd_vars, temperature_vars, canopystate_vars, photosyns_vars)		  
 
          else ! not use_ed
 
